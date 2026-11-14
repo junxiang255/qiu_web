@@ -1,0 +1,23 @@
+# 依赖与虚拟环境
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# 运行时产物
+*.pid
+gunicorn.pid
+uwsgi.pid
+*.log
+
+# 本地/临时
+_trash/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# 含密钥的配置，不入库；部署时用 config.example.py 复制一份
+config.py
+.env
+*.local.py

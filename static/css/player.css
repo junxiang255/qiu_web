@@ -1,0 +1,223 @@
+* {
+    margin: 0;
+    padding: 0;
+}
+
+
+
+#myAudio {
+    display: none;
+}
+
+.player {
+    position: absolute;
+    /* width: 300px;  */
+    /* height: 500px; */
+    top: 800px;
+    left: 50px;
+    
+}
+/* 歌词 */
+.container {
+    background: rgb(255 255 255 / 0.06);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 15px;
+    border: 1px solid rgb(255 255 255 / 0.16);
+    box-shadow: rgb(0 0 0 / 0.35) 0px 8px 32px 0px;
+    width:300px;
+    height: 398px;
+    overflow: hidden;
+    position: absolute;
+    top: 300px;
+    left: 50px;
+    
+    
+
+}
+
+.control {
+    width: 300px;
+    height: 80px;
+    background: #fff;
+    border-radius: 15px;
+    position: relative;
+    box-shadow: 0 20px 20px 5px rgba(132, 132, 132, 0.2);
+}
+
+.alarm {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    position: absolute;
+    top: -15px;
+    left: 20px;
+    background: #000;
+    transform: scale(1);
+    transition: all 0.5s ease;
+}
+
+.alarm::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    bottom: 0;
+    border-radius: 50%;
+    background: url(../media/将那花瓣扬起了.jpg) no-repeat center center;
+    background-size: 100%;
+}
+
+/* 音响 */
+.control.active .alarm::before {
+    animation: rotateF 3s infinite linear;
+}
+
+@keyframes rotateF {
+    0% {
+    transform: rotate(0deg);
+    }
+
+    100% {
+    transform: rotate(360deg);
+    }
+}
+
+.buts {
+    display: flex;
+    justify-content: flex-end;
+    height: 80px;
+    padding: 0 15px;
+}
+
+.prev,
+.play,
+.next {
+    width: 55px;
+    height: auto;
+    border-radius: 10px;
+    background: #000;
+    cursor: pointer;
+}
+
+.prev:hover,
+.play:hover,
+.next:hover {
+    background-color: #eee;
+}
+
+.prev {
+    background: url(../img/prev.svg) no-repeat center center;
+    background-size: 20px;
+}
+
+.play {
+    background: url(../img/play2.svg) no-repeat center center;
+    background-size: 20px;
+}
+
+.next {
+    background: url(../img/next.svg) no-repeat center center;
+    background-size: 20px;
+}
+
+/* 播放时 */
+.control.active .play {
+    background: url(../img/play.svg) no-repeat center center;
+    background-size: 20px;
+}
+
+/* 隐藏 */
+.info {
+    position: absolute;
+    height: 60px;
+    top: -60px;
+    left: 10px;
+    right: 10px;
+    background: rgba(255, 255, 255, 0.5);
+    padding: 5px 15px 5px 110px;
+    border-radius: 15px;
+    width: 160px
+    
+}
+
+/* 歌名 */
+.song {
+    color: #222;
+    font-size: 16px;
+    margin-bottom: 14px;
+    line-height: 16px;
+}
+
+/* 歌手 */
+.name {
+    font-size: 12px;
+    color: #999;
+}
+
+/* 播放进度 */
+.progress-bar {
+    width: 100%;
+    height: 6px;
+    position: relative;
+    background-color: #d3d3d3;
+    border-radius: 6px;
+}
+
+.slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-radius: 6px;
+    background: transparent;
+    outline: none;
+    z-index: 2;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 14px;
+    width: 14px;
+    background: #ddd;
+    border-radius: 50%;
+    cursor: pointer;
+
+}
+
+.progress {
+    height: 6px;
+    width: 0%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    background-color: rgba(255, 0, 0, 0.766);
+    border-radius: 6px;
+}
+
+
+
+.lrc-box {
+    
+    width: 100%;
+    list-style: none;
+    transition: 0.5s;
+    text-align: center;
+    transition: all 2s ease-in;
+}
+
+.lrc-box li {
+    height: 30px;
+    line-height: 30px;
+    font-size: 13px;
+    color: #777;
+}
+
+.lrc-box li.on {
+    color: #444;
+    font-weight: 600;
+    transform: scale(1.1);
+}
