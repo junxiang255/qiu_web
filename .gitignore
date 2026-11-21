@@ -21,3 +21,13 @@ Thumbs.db
 config.py
 .env
 *.local.py
+
+# 部署备份（index.html.bak.20261121_150034 这类）
+*.bak.*
+*.bak
+
+# 用户上传的作品配图（业务数据，各环境各自持有，不入库）
+recworksimg/
+
+# 由 /root/qiu_recworks_export.py 从 MySQL 导出的前端快照
+static/data/
