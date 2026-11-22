@@ -470,7 +470,24 @@
             border: 1px solid rgba(255, 255, 255, .5);
             box-shadow: rgb(0 0 0 / 0.06) 0px 4px 14px 0px;
             transition: all .3s ease;
+            text-decoration: none;
+            color: inherit;
         }
+
+        /* 卡片是 <a>，要压住 style.css 里 a:hover 的下划线 */
+        .member,
+        .member:hover,
+        .member:focus,
+        .member:active,
+        .member *,
+        .member .nm,
+        .member .tag2,
+        .member .lv {
+            text-decoration: none !important;
+            border-bottom: none !important;
+        }
+
+        .member:hover { color: inherit; }
 
         .member:hover {
             background: rgba(255, 255, 255, .92);

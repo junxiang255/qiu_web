@@ -105,7 +105,7 @@
             margin-top: 12px;
         }
 
-        .name-row h1 {
+        .name-row .nm {
             margin: 0;
             font-size: 1.35rem;
             letter-spacing: 1px;
@@ -356,7 +356,7 @@
         }
 
         /* 个人主页信息卡：不受全局 a:hover 下划线影响 */
-        .hero-body h1,
+        .hero-body .nm,
         .hero-body .badge,
         .hero-body .lv-chip,
         .hero-body .uid,
@@ -367,7 +367,7 @@
             text-decoration: none !important;
         }
 
-        .hero-body h1,
+        .hero-body .nm,
         .hero-body .badge,
         .hero-body .lv-chip {
             border-bottom: none !important;
@@ -392,6 +392,28 @@
         .back:hover,
         .edit-btn:hover {
             text-decoration: none !important;
+        }
+
+
+        /* webkit 前缀兜底 */
+        .name-row .nm,
+        .badge,
+        .lv-chip {
+            -webkit-text-decoration: none !important;
+            -webkit-text-decoration-line: none !important;
+            text-decoration-line: none !important;
+            text-decoration-color: transparent !important;
+        }
+
+        /* 名字区悬停也别出下划线 */
+        .name-row:hover .nm,
+        .name-row .nm:hover,
+        .badge:hover,
+        .lv-chip:hover {
+            text-decoration: none !important;
+            -webkit-text-decoration: none !important;
+            border-bottom: none !important;
+            color: inherit;
         }
 
     </style>
@@ -422,7 +444,7 @@
             </div>
 
             <div class="name-row">
-                <h1>{{ u.display_name }}</h1>
+                <div class="nm">{{ u.display_name }}</div>
                 <span class="badge {{ role_tier }}">{{ role_label }}</span>
             </div>
 
@@ -504,6 +526,24 @@
 
 </div>
 
+
+    
+    <div style="margin-top:16px;padding:14px;border-radius:12px;background:#fff;
+                border:1px solid #ddd;font-family:system-ui,sans-serif;font-size:15px;color:#000;">
+        <p style="all: initial; display: block; font-family: system-ui, sans-serif;
+                  font-size: 15px; color: #000 !important; background: #fff;
+                  text-decoration: none !important; border: 0 !important;
+                  padding: 6px; margin: 0;">
+            隔离测试：俊翔不会玩 LV255 开发者 ABC 123
+        </p>
+        <p style="margin:8px 0 0;font-size:11px;color:#666;">
+            ↑ 这行用的是 all:initial 完全隔离，如果它也带下划线，说明是浏览器或插件加的，跟网站样式无关
+        </p>
+    </div>
+<pre id="diag" style="margin-top:18px;padding:12px;border-radius:12px;
+         background:rgba(0,0,0,.78);color:#7f7;font-size:10px;
+         font-family:monospace;line-height:1.7;white-space:pre-wrap;word-break:break-all;">
+诊断加载中…</pre>
 <script>
 (function () {
     'use strict';
@@ -524,6 +564,81 @@
             });
         });
     });
+})();
+</script>
+
+
+
+<script>
+setTimeout(function () {
+    var el = document.querySelector('.name-row .nm');
+    var box = document.getElementById('diag');
+    if (!el || !box) { box = document.body.appendChild(document.createElement('pre')); }
+    var cs = getComputedStyle(el);
+    var af = getComputedStyle(el, '::after');
+    var bf = getComputedStyle(el, '::before');
+
+    var lines = [];
+    lines.push('=== 名字元素 ===');
+    lines.push('tag: ' + el.tagName);
+    lines.push('outerHTML: ' + el.outerHTML.slice(0, 120));
+    lines.push('父元素: ' + el.parentElement.tagName + '.' + el.parentElement.className);
+    lines.push('祖先里有没有 A: ' + (el.closest('a') ? '有 → ' + el.closest('a').outerHTML.slice(0,80) : '没有'));
+    lines.push('text-decoration-line: ' + cs.textDecorationLine);
+    lines.push('text-decoration-color: ' + cs.textDecorationColor);
+    lines.push('border-bottom: ' + cs.borderBottomWidth + ' / ' + cs.borderBottomStyle);
+    lines.push('box-shadow: ' + (cs.boxShadow === 'none' ? 'none' : cs.boxShadow.slice(0,60)));
+    lines.push('background-image: ' + cs.backgroundImage.slice(0, 50));
+    lines.push('::after  content=' + af.content + ' | border-bottom=' + af.borderBottomWidth + ' | bg=' + af.backgroundImage.slice(0,30));
+    lines.push('::before content=' + bf.content + ' | border-bottom=' + bf.borderBottomWidth);
+    lines.push('');
+    lines.push('=== LV 胶囊 ===');
+    var lv = document.querySelector('.lv-chip');
+    if (lv) {
+        var lcs = getComputedStyle(lv);
+        lines.push('outerHTML: ' + lv.outerHTML.slice(0, 100));
+        lines.push('祖先里有没有 A: ' + (lv.closest('a') ? '有' : '没有'));
+        lines.push('text-decoration-line: ' + lcs.textDecorationLine);
+        lines.push('border-bottom: ' + lcs.borderBottomWidth + ' / ' + lcs.borderBottomStyle);
+    }
+
+    box.textContent = lines.join('\n');
+}, 600);
+</script>
+
+<script>
+/* 实时 hover 检测：鼠标停在哪个元素上，就把它的信息打到诊断区 */
+(function () {
+    var box = null;
+    function ready() {
+        box = document.getElementById('diag');
+        if (!box) { setTimeout(ready, 300); return; }
+
+        document.addEventListener('mouseover', function (e) {
+            var t = e.target;
+            if (!t || !t.tagName) { return; }
+            var cs = window.getComputedStyle(t);
+            var af = window.getComputedStyle(t, '::after');
+            var parts = [
+                '>>> HOVER 命中元素 <<<',
+                'tag: ' + t.tagName,
+                'class: ' + (t.className || '(空)'),
+                'html: ' + t.outerHTML.slice(0, 160),
+                'cursor: ' + cs.cursor,
+                'text-decoration-line: ' + cs.textDecorationLine,
+                'border-bottom: ' + cs.borderBottomWidth + ' ' + cs.borderBottomStyle + ' ' + cs.borderBottomColor,
+                '::after content: ' + af.content + ' border-bottom: ' + af.borderBottomWidth + ' ' + af.borderBottomColor,
+                'box-shadow: ' + (cs.boxShadow === 'none' ? 'none' : cs.boxShadow.slice(0, 80)),
+                '祖先 A: ' + (t.closest('a') ? t.closest('a').outerHTML.slice(0, 80) : '无')
+            ];
+            box.textContent = parts.join('\n');
+        }, true);
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', ready);
+    } else {
+        ready();
+    }
 })();
 </script>
 </body>
