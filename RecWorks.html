@@ -1024,10 +1024,6 @@
         var clearEl = document.getElementById('rec-clear');
         var allItems = [];
 
-        // 默认排序时置顶的推荐人（搜索时不参与，按筛选结果原样展示）
-        var PIN_NAME = '俊翔不会玩';
-        var PIN_UID = '2847407092';
-
         // QQ 头像接口。站点是 https，这里必须用 https，否则会被浏览器按混合内容拦掉
         function avatarUrl(qq) {
             return 'https://q.qlogo.cn/headimg_dl?dst_uin=' +
@@ -1120,21 +1116,6 @@
             });
         }
 
-        /* ---- 置顶：默认浏览时「俊翔不会玩」排最前 ---- */
-        function isPinned(it) {
-            return (it.qq_name || '').trim() === PIN_NAME ||
-                   String(it.qq_id || '').trim() === PIN_UID;
-        }
-
-        function pinFirst(items) {
-            var pinned = [];
-            var rest = [];
-            items.forEach(function (it) {
-                (isPinned(it) ? pinned : rest).push(it);
-            });
-            return pinned.concat(rest);
-        }
-
         /* ---- 搜索过滤 ---- */
         function matchItem(it, q) {
             var fields = [it.work_name, it.qq_name, it.qq_id, it.recwork];
@@ -1151,7 +1132,7 @@
             clearEl.classList.toggle('is-on', raw.length > 0);
 
             if (!q) {
-                render(pinFirst(allItems));
+                render(allItems);
                 return;
             }
 
