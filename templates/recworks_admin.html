@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>推荐管理 · 小秋的垃圾站</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/font.css') }}">
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 20px 16px 60px;
+            box-sizing: border-box;
+            background: linear-gradient(rgba(255, 255, 255, .2), rgba(255, 255, 255, .3)),
+                        url("{{ url_for('static', filename='img/background.png') }}") center/cover no-repeat fixed;
+            font-family: "筑紫A圆体D", system-ui, sans-serif;
+            color: #1f1f1f;
+        }
+
+        .wrap {
+            width: min(1180px, 100%);
+            margin: 0 auto;
+        }
+
+        /* 顶栏 */
+        .bar {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            padding: 14px 20px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, .78);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, .66);
+            box-shadow: rgb(0 0 0 / 0.12) 0px 8px 28px 0px;
+        }
+
+        .bar h1 {
+            margin: 0;
+            font-size: 1.1rem;
+            letter-spacing: 3px;
+        }
+
+        .bar .count {
+            font-size: .78rem;
+            color: #7d838c;
+        }
+
+        .bar-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 8px 18px;
+            font-family: inherit;
+            font-size: .82rem;
+            color: #333;
+            text-decoration: none;
+            border: 1px solid rgba(0, 0, 0, .07);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, .6);
+            box-shadow: rgb(0 0 0 / 0.08) 0px 3px 12px 0px;
+            cursor: pointer;
+            transition: all .3s ease;
+        }
+
+        .btn:hover {
+            background: #789bfa71;
+            box-shadow: 0 0 18px #e6b5e6;
+        }
+
+        .btn.danger {
+            color: #b42318;
+            border-color: rgba(180, 35, 24, .18);
+        }
+
+        .btn.danger:hover {
+            color: #fff;
+            background: #e53e3e;
+            box-shadow: 0 0 18px rgba(229, 62, 62, .45);
+        }
+
+        .btn:disabled {
+            opacity: .45;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .btn:disabled:hover {
+            background: rgba(255, 255, 255, .6);
+            color: #b42318;
+            box-shadow: none;
+        }
+
+        .btn.mini {
+            padding: 5px 12px;
+            font-size: .74rem;
+        }
+
+        /* flash */
+        .flash-wrap {
+            margin-top: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .flash {
+            padding: 11px 16px;
+            font-size: .82rem;
+            line-height: 1.6;
+            border-radius: 12px;
+            border-left: 4px solid #999;
+            background: rgba(255, 255, 255, .8);
+            backdrop-filter: blur(16px);
+            box-shadow: rgb(0 0 0 / 0.1) 0px 6px 20px 0px;
+        }
+
+        .flash-success { border-left-color: #38a169; background: rgba(237, 250, 242, .92); }
+        .flash-warning { border-left-color: #d69e2e; background: rgba(255, 250, 235, .92); }
+        .flash-error   { border-left-color: #e53e3e; background: rgba(255, 241, 241, .94); }
+
+        /* 工具条 */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            padding: 12px 20px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, .72);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, .6);
+            box-shadow: rgb(0 0 0 / 0.1) 0px 6px 22px 0px;
+        }
+
+        .checkbox {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: .84rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .checkbox input[type="checkbox"] {
+            width: 17px;
+            height: 17px;
+            accent-color: #789bfa;
+            cursor: pointer;
+        }
+
+        .search {
+            flex: 1 1 200px;
+            min-width: 140px;
+            max-width: 320px;
+            padding: 8px 14px;
+            font-family: inherit;
+            font-size: .8rem;
+            color: #2b2b2b;
+            border: 1px solid rgba(0, 0, 0, .08);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, .8);
+            outline: none;
+            transition: box-shadow .25s ease, border-color .25s ease;
+        }
+
+        .search:focus {
+            background: #fff;
+            border-color: rgba(120, 155, 250, .6);
+            box-shadow: 0 0 0 3px #789bfa52;
+        }
+
+        .sel-info {
+            font-size: .78rem;
+            color: #7d838c;
+        }
+
+        /* 表格 */
+        .table-wrap {
+            margin-top: 14px;
+            border-radius: 18px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, .8);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, .66);
+            box-shadow: rgb(0 0 0 / 0.12) 0px 10px 32px 0px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .8rem;
+        }
+
+        thead th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            padding: 12px 10px;
+            text-align: left;
+            font-weight: 700;
+            font-size: .76rem;
+            color: #4b5563;
+            white-space: nowrap;
+            background: rgba(246, 247, 251, .97);
+            border-bottom: 1px solid rgba(0, 0, 0, .07);
+        }
+
+        tbody td {
+            padding: 10px;
+            border-bottom: 1px solid rgba(0, 0, 0, .05);
+            vertical-align: middle;
+        }
+
+        tbody tr:hover { background: rgba(120, 155, 250, .07); }
+        tbody tr.is-checked { background: rgba(120, 155, 250, .12); }
+        tbody tr.is-hidden { display: none; }
+
+        .c-check { width: 40px; text-align: center; }
+        .c-img { width: 74px; }
+        .c-act { width: 82px; }
+
+        .thumb {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 10px;
+            display: block;
+            border: 1px solid rgba(0, 0, 0, .07);
+            box-shadow: 0 2px 8px rgb(0 0 0 / 0.12);
+        }
+
+        .noimg {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
+            font-size: .7rem;
+            color: #b6b6b6;
+            background: rgba(0, 0, 0, .04);
+            border: 1px dashed rgba(0, 0, 0, .14);
+        }
+
+        .work {
+            font-weight: 700;
+            color: #111;
+            font-size: .86rem;
+            max-width: 220px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .meta {
+            font-size: .74rem;
+            color: #7d838c;
+            white-space: nowrap;
+        }
+
+        .content {
+            color: #4d4d4d;
+            line-height: 1.7;
+            max-width: 380px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .id-badge {
+            display: inline-block;
+            margin-left: 6px;
+            padding: 1px 7px;
+            font-size: .66rem;
+            color: #6b7280;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, .06);
+        }
+
+        .empty {
+            padding: 50px 20px;
+            text-align: center;
+            color: #7d838c;
+            font-size: .86rem;
+        }
+
+        @media (max-width: 720px) {
+            .content { max-width: 200px; }
+            .work { max-width: 130px; }
+            .bar { gap: 10px; }
+            .btn { padding: 7px 14px; font-size: .76rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+
+    <header class="bar">
+        <h1>推荐管理</h1>
+        <span class="count">共 {{ items|length }} 条</span>
+        <div class="bar-right">
+            <a class="btn" href="{{ url_for('manager') }}">返回后台</a>
+        </div>
+    </header>
+
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% if msgs %}
+    <div class="flash-wrap">
+        {% for cat, msg in msgs %}
+        <div class="flash flash-{{ cat }}">{{ msg }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <form id="bulk-form" method="post" action="{{ url_for('recworks_delete') }}">
+
+        <div class="toolbar">
+            <label class="checkbox">
+                <input type="checkbox" id="check-all">
+                <span>全选</span>
+            </label>
+
+            <input class="search" id="search" type="search" autocomplete="off"
+                   placeholder="筛选：作品 / 推荐人 / QQ">
+
+            <span class="sel-info" id="sel-info">未选中</span>
+
+            <button class="btn danger" type="submit" id="del-btn" disabled>删除选中</button>
+        </div>
+
+        {% if items %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="c-check"></th>
+                        <th class="c-img">图</th>
+                        <th>作品</th>
+                        <th>推荐人</th>
+                        <th>QQ</th>
+                        <th>推荐内容</th>
+                        <th class="c-act">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for it in items %}
+                    <tr data-search="{{ (it.rw_work_name or '') }} {{ (it.rw_qq_name or '') }} {{ (it.rw_qq_id or '') }}">
+                        <td class="c-check">
+                            <input class="row-check" type="checkbox" name="ids" value="{{ it.id }}">
+                        </td>
+                        <td class="c-img">
+                            {% if it.rw_img_path %}
+                            <img class="thumb" src="/recworksimg/{{ it.rw_img_path }}" alt="{{ it.rw_work_name or '' }}" loading="lazy">
+                            {% else %}
+                            <span class="noimg">无图</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="work" title="{{ it.rw_work_name or '' }}">{{ it.rw_work_name or '（未填）' }}</div>
+                            <span class="id-badge">#{{ it.id }}</span>
+                        </td>
+                        <td class="meta">{{ it.rw_qq_name or '—' }}</td>
+                        <td class="meta">{{ it.rw_qq_id or '—' }}</td>
+                        <td>
+                            <div class="content">{{ it.rw_recwork or '—' }}</div>
+                        </td>
+                        <td class="c-act">
+                            <button class="btn mini danger js-del" type="button" data-id="{{ it.id }}">删除</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="empty">还没有任何推荐</p>
+        {% endif %}
+
+    </form>
+
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    var form = document.getElementById('bulk-form');
+    if (!form) { return; }
+
+    var checkAll = document.getElementById('check-all');
+    var delBtn = document.getElementById('del-btn');
+    var selInfo = document.getElementById('sel-info');
+    var searchEl = document.getElementById('search');
+    var rows = Array.prototype.slice.call(document.querySelectorAll('tbody tr'));
+
+    function checks() {
+        return rows.map(function (tr) {
+            return tr.querySelector('.row-check');
+        }).filter(Boolean);
+    }
+
+    function visibleChecks() {
+        var out = [];
+        rows.forEach(function (tr) {
+            if (tr.classList.contains('is-hidden')) { return; }
+            var c = tr.querySelector('.row-check');
+            if (c) { out.push(c); }
+        });
+        return out;
+    }
+
+    function selected() {
+        return checks().filter(function (c) { return c.checked; });
+    }
+
+    function sync() {
+        var n = selected().length;
+        var all = visibleChecks();
+        var allChecked = all.length > 0 && all.every(function (c) { return c.checked; });
+
+        checkAll.checked = allChecked;
+        checkAll.indeterminate = !allChecked && n > 0;
+
+        delBtn.disabled = n === 0;
+        selInfo.textContent = n ? ('已选中 ' + n + ' 条') : '未选中';
+
+        rows.forEach(function (tr) {
+            var c = tr.querySelector('.row-check');
+            tr.classList.toggle('is-checked', !!(c && c.checked));
+        });
+    }
+
+    checkAll.addEventListener('change', function () {
+        var on = checkAll.checked;
+        visibleChecks().forEach(function (c) { c.checked = on; });
+        sync();
+    });
+
+    rows.forEach(function (tr) {
+        var c = tr.querySelector('.row-check');
+        if (c) { c.addEventListener('change', sync); }
+    });
+
+    // 单行删除：勾上这一行再走提交
+    document.querySelectorAll('.js-del').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var id = btn.getAttribute('data-id');
+            checks().forEach(function (c) {
+                c.checked = (c.value === id);
+            });
+            sync();
+            if (confirm('确定删除这条推荐（#' + id + '）吗？图片也会一起删掉。')) {
+                form.submit();
+            }
+        });
+    });
+
+    form.addEventListener('submit', function (e) {
+        var n = selected().length;
+        if (!n) {
+            e.preventDefault();
+            return;
+        }
+        if (!confirm('确定删除选中的 ' + n + ' 条推荐吗？对应图片也会一起删掉，无法恢复。')) {
+            e.preventDefault();
+        }
+    });
+
+    // 前端筛选
+    if (searchEl) {
+        searchEl.addEventListener('input', function () {
+            var q = (searchEl.value || '').trim().toLowerCase();
+            rows.forEach(function (tr) {
+                var hay = (tr.getAttribute('data-search') || '').toLowerCase();
+                tr.classList.toggle('is-hidden', q !== '' && hay.indexOf(q) === -1);
+            });
+            sync();
+        });
+    }
+
+    sync();
+})();
+</script>
+</body>
+</html>

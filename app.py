@@ -228,6 +228,62 @@ def recWorks_get():
 
     return redirect(url_for("manager"))
 
+
+def sync_recworks_json():
+    """删改之后立刻刷新一次前端 JSON。
+
+    失败不影响主流程 —— cron 每 2 分钟还会兜一次。
+    """
+    try:
+        import subprocess
+        import sys
+        script = os.path.join(str(BASE_DIR), "scripts", "export_recworks.py")
+        subprocess.run([sys.executable, script], capture_output=True,
+                       timeout=20, check=False)
+    except Exception:
+        app.logger.warning("刷新 recworks.json 失败", exc_info=True)
+
+
+@app.route("/manager/recWorks", methods=["GET"])
+@login_required
+def recworks_admin():
+    """推荐管理：列出全部推荐，可勾选批量删除。"""
+    items = db.session.scalars(
+        db.select(recWorks).order_by(recWorks.id.desc())
+    ).all()
+    return render_template("recworks_admin.html", items=items)
+
+
+@app.post("/manager/recWorks/delete")
+@login_required
+def recworks_delete():
+    ids = [int(x) for x in request.form.getlist("ids") if x.isdigit()]
+    if not ids:
+        flash("没有选中任何推荐", "warning")
+        return redirect(url_for("recworks_admin"))
+
+    rows = db.session.scalars(
+        db.select(recWorks).where(recWorks.id.in_(ids))
+    ).all()
+
+    removed_img = 0
+    for row in rows:
+        if row.rw_img_path:
+            target = UPLOAD_DIR / row.rw_img_path
+            try:
+                if target.exists():
+                    target.unlink()
+                    removed_img += 1
+            except OSError:
+                app.logger.warning("删除图片失败: %s", target)
+        db.session.delete(row)
+    db.session.commit()
+
+    sync_recworks_json()
+    flash("已删除 %d 条推荐（连带 %d 张图片）" % (len(rows), removed_img), "success")
+    return redirect(url_for("recworks_admin"))
+
+
 class User(db.Model):
     __tablename__='user'
     id:Mapped[int]=mapped_column(Integer,primary_key=True,autoincrement=True)

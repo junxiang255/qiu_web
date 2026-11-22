@@ -19,6 +19,7 @@ Flask 3 + MySQL，线上由 uWSGI 托管、nginx 反向代理；前端是原生 
 | `RecWorks.html` | `/RecWorks.html` | 作品推荐列表：搜索、置顶、右侧缩略图、展开看正文与大图 |
 | `templates/login.html` | `/login` | 登录页（Jinja2 渲染） |
 | `templates/manager.html` | `/manager` | 后台：榜单录入 + 作品推荐录入（含图片上传），需登录 |
+| `templates/recworks_admin.html` | `/manager/recWorks` | 推荐管理：列表、筛选、勾选批量删除，需登录 |
 
 > `index.html`、`ew.html`、`RecWorks.html` 是纯静态页面，由 nginx 的 `try_files` 直接返回；
 > 只有 `templates/` 下的两个页面走 Jinja2 服务端渲染。
@@ -74,6 +75,8 @@ qiu_web/
 | POST | `/logout` | 退出 |
 | GET | `/manager` | 后台页面，需登录 |
 | POST | `/manager/top_name` | 提交榜单，需登录 |
+| GET | `/manager/recWorks` | 推荐管理页：列出全部推荐，可勾选批量删除，需登录 |
+| POST | `/manager/recWorks/delete` | 删除选中的推荐（连带 `recworksimg/` 里的图片并刷新 JSON），需登录 |
 | POST | `/manager/recWorks` | 提交作品推荐（`multipart/form-data`，含图片），需登录 |
 
 `/api/*`、`/login`、`/manager` 由 nginx 转发到 `127.0.0.1:5000`，其余路径走静态文件。

@@ -840,10 +840,39 @@ a:hover{	/*悬浮状态*/
         }
 
         .button-Join { margin-top: 0; }
+
+        /* 推荐管理入口 */
+        .admin-link-row {
+            text-align: center;
+            margin: -4px 0 14px;
+        }
+
+        .admin-link-row a {
+            display: inline-block;
+            padding: 7px 16px;
+            font-size: .78rem;
+            color: #333;
+            text-decoration: none;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, .6);
+            border: 1px solid rgba(0, 0, 0, .07);
+            box-shadow: rgb(0 0 0 / 0.08) 0px 3px 12px 0px;
+            transition: all .3s ease;
+        }
+
+        .admin-link-row a:hover {
+            color: #333;
+            text-decoration: none;
+            background: #789bfa71;
+            box-shadow: 0 0 18px #e6b5e6;
+        }
     </style>
 
     <div class="Introduction_3_big">
         <h2>作品推荐的后台</h2>
+        <p class="admin-link-row">
+            <a href="/manager/recWorks">管理已有推荐（查看 / 删除）→</a>
+        </p>
 
         {% with msgs = get_flashed_messages(with_categories=true) %}
         {% if msgs %}
