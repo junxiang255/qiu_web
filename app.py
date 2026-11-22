@@ -128,6 +128,7 @@ class recWorks(db.Model):
     rw_recwork:Mapped[str] = mapped_column( "rw_recwork", Text().with_variant(MEDIUMTEXT, "mysql"), nullable=False) 
     rw_img_path:Mapped[str | None]=mapped_column("rw_img_Path",String(500),nullable=True)
     rw_tag:Mapped[str | None]=mapped_column("rw_tag",String(30),nullable=True)
+    pinned:Mapped[bool]=mapped_column(Boolean,nullable=False,default=False,server_default="0")
  
     def __init__(self,qq_id: str | None = None, qq_name: str | None = None,
                  work_name: str | None = None, recwork: str = "",
@@ -384,6 +385,21 @@ def recworks_edit(rid):
     sync_recworks_json()
     flash("已保存修改", "success")
     return redirect(url_for("recworks_admin"))
+
+
+@app.post("/manager/recWorks/<int:rid>/pin")
+@login_required
+def recworks_pin(rid):
+    """置顶 / 取消置顶。"""
+    row = db.session.get(recWorks, rid)
+    if row is None:
+        return jsonify(ok=False, msg="这条推荐不存在"), 404
+
+    row.pinned = not bool(row.pinned)
+    db.session.commit()
+    sync_recworks_json()
+
+    return jsonify(ok=True, pinned=bool(row.pinned))
 
 
 # 网站开发者：这些 QQ 在后台会被额外标一个「开发者」标签

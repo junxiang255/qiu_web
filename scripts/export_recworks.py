@@ -39,8 +39,8 @@ def main():
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT id, rw_qq_id, rw_qq_name, rw_work_name, rw_recwork, rw_img_Path, rw_tag "
-                "FROM rec_Works ORDER BY id DESC"
+                "SELECT id, rw_qq_id, rw_qq_name, rw_work_name, rw_recwork, rw_img_Path, rw_tag, pinned "
+                "FROM rec_Works ORDER BY pinned DESC, id DESC"
             )
             rows = cur.fetchall()
 
@@ -74,6 +74,7 @@ def main():
             # 后台传的图落在项目根目录的 recworksimg/，nginx 按静态文件直接发
             'images': ['/recworksimg/' + img] if img else [],
             'tag': (r[6] or '').strip(),
+            'pinned': bool(r[7]),
             'author_state': author_state,
             'author_label': author_label,
             'author_role': users.get(qq, ''),
