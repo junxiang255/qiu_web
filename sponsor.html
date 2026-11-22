@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta HTTP-EQUIV="pragma" CONTENT="no-cache">
+    <title>赞助支持 · 小秋的垃圾站</title>
+    <link rel="shortcut icon" href="static/img/favicon.ico">
+    <link rel="stylesheet" href="static/css/font.css">
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 20px 16px 60px;
+            box-sizing: border-box;
+            background: linear-gradient(rgba(255, 255, 255, .2), rgba(255, 255, 255, .3)),
+                        url("static/img/background.png") center/cover no-repeat fixed;
+            font-family: "筑紫A圆体D", system-ui, sans-serif;
+            color: #1f1f1f;
+        }
+
+        .wrap { width: min(720px, 100%); margin: 0 auto; }
+
+        .bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 18px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, .78);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, .66);
+            box-shadow: rgb(0 0 0 / 0.12) 0px 8px 28px 0px;
+        }
+
+        .back {
+            font-size: .84rem;
+            color: #333;
+            text-decoration: none;
+            padding: 7px 15px;
+            border-radius: 11px;
+            background: rgba(255, 255, 255, .6);
+            border: 1px solid rgba(0, 0, 0, .07);
+            transition: all .3s ease;
+        }
+
+        .back:hover { background: #789bfa71; box-shadow: 0 0 18px #e6b5e6; }
+
+        .bar .title { margin-left: auto; font-size: .82rem; letter-spacing: 2px; color: #7d838c; }
+
+        .card {
+            margin-top: 16px;
+            padding: 30px 26px 30px;
+            border-radius: 22px;
+            background: rgba(255, 255, 255, .78);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, .66);
+            box-shadow: rgb(0 0 0 / 0.13) 0px 12px 36px 0px;
+            animation: fade_in .5s ease-out both;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 1.4rem;
+            letter-spacing: 4px;
+            text-align: center;
+        }
+
+        .sub {
+            margin: 0 0 24px;
+            text-align: center;
+            font-size: .78rem;
+            color: #8d9299;
+        }
+
+        .intro {
+            font-size: .88rem;
+            line-height: 2;
+            color: #444;
+            margin: 0 0 26px;
+            text-align: center;
+        }
+
+        .intro b { color: #33479c; }
+
+        /* 二维码 */
+        .qr-row {
+            display: flex;
+            gap: 28px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 26px;
+        }
+
+        .qr-box { text-align: center; }
+
+        .qr-frame {
+            width: 200px;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 18px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, .9);
+            border: 1px solid rgba(0, 0, 0, .08);
+            box-shadow: 0 6px 22px rgb(0 0 0 / 0.14);
+        }
+
+        .qr-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        .qr-tip {
+            padding: 16px;
+            font-size: .74rem;
+            line-height: 1.8;
+            color: #9aa0a8;
+        }
+
+        .qr-label {
+            margin: 12px 0 0;
+            font-size: .84rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .qr-label.wechat { color: #07c160; }
+        .qr-label.alipay { color: #1677ff; }
+
+        /* 说明 */
+        .notes {
+            margin-top: 8px;
+            padding: 18px 20px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, .6);
+            border: 1px dashed rgba(0, 0, 0, .1);
+            font-size: .8rem;
+            line-height: 2;
+            color: #5a5a5a;
+        }
+
+        .notes h2 {
+            margin: 0 0 8px;
+            font-size: .86rem;
+            letter-spacing: 1px;
+            color: #1f1f1f;
+        }
+
+        .notes ul { margin: 0; padding-left: 20px; }
+        .notes li { margin: 2px 0; }
+
+        /* 赞助记录 */
+        .records {
+            margin-top: 24px;
+        }
+
+        .records h2 {
+            margin: 0 0 14px;
+            font-size: .95rem;
+            letter-spacing: 3px;
+            text-align: center;
+        }
+
+        .rec-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .rec {
+            padding: 16px 18px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, .68);
+            border: 1px solid rgba(255, 255, 255, .55);
+            box-shadow: rgb(0 0 0 / 0.06) 0px 4px 16px 0px;
+        }
+
+        .rec-head {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .rec-no {
+            font-size: .72rem;
+            color: #9aa0a8;
+            letter-spacing: 1px;
+        }
+
+        .rec-date {
+            font-size: .82rem;
+            font-weight: 700;
+            color: #33479c;
+            letter-spacing: 1px;
+        }
+
+        .rec-total {
+            margin-left: auto;
+            font-size: .8rem;
+            font-weight: 700;
+            color: #b4235f;
+        }
+
+        .rec-purpose {
+            margin: 0 0 10px;
+            font-size: .78rem;
+            color: #6b7280;
+        }
+
+        .rec-names {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .rec-names li {
+            padding: 4px 12px;
+            font-size: .74rem;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #ffd9e8, #e6ddff);
+            color: #6b4b73;
+            box-shadow: 0 2px 8px rgb(0 0 0 / 0.07);
+        }
+
+        .rec-names li b {
+            margin-left: 5px;
+            color: #b4235f;
+        }
+
+        .rec-note {
+            margin: 10px 0 0;
+            font-size: .72rem;
+            line-height: 1.8;
+            color: #8d9299;
+        }
+
+        .grand-total {
+            margin-top: 14px;
+            padding: 12px 18px;
+            border-radius: 14px;
+            text-align: center;
+            font-size: .84rem;
+            color: #6b4b73;
+            background: rgba(255, 233, 240, .7);
+            border: 1px solid rgba(255, 45, 120, .16);
+        }
+
+        .grand-total b { color: #b4235f; font-size: 1rem; }
+
+        @keyframes fade_in {
+            0% { opacity: 0; transform: translateY(12px); }
+            100% { opacity: 1; transform: none; }
+        }
+
+        @media (max-width: 560px) {
+            .qr-frame { width: 160px; height: 160px; }
+            .card { padding: 24px 18px; }
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+
+    <header class="bar">
+        <a class="back" href="index.html">← 返回首页</a>
+        <span class="title">小秋的垃圾站</span>
+    </header>
+
+    <section class="card">
+        <h1>赞助支持</h1>
+        <p class="sub">如果这个小站帮到你了，可以请我喝杯奶茶</p>
+
+        <p class="intro">
+            服务器、域名、备份都是<b>自己掏钱</b>在维护的，<br>
+            你的一点心意能让这个站点活得更久一点。
+        </p>
+
+        <div class="qr-row">
+            <div class="qr-box">
+                <div class="qr-frame">
+                    <img src="static/img/sponsor_wechat.png" alt="微信收款码"
+                         onerror="this.style.display='none';this.nextElementSibling.hidden=false;">
+                    <div class="qr-tip" hidden>收款码待补充<br><small>static/img/sponsor_wechat.png</small></div>
+                </div>
+                <p class="qr-label wechat">微信</p>
+            </div>
+
+            <div class="qr-box">
+                <div class="qr-frame">
+                    <img src="static/img/sponsor_alipay.png" alt="支付宝收款码"
+                         onerror="this.style.display='none';this.nextElementSibling.hidden=false;">
+                    <div class="qr-tip" hidden>收款码待补充<br><small>static/img/sponsor_alipay.png</small></div>
+                </div>
+                <p class="qr-label alipay">支付宝</p>
+            </div>
+        </div>
+
+        <div class="notes">
+            <h2>一点说明</h2>
+            <ul>
+                <li>赞助完全自愿，<b>不影响任何功能</b>，不赞助也能正常使用；</li>
+                <li>金额随意，一杯奶茶的钱就很开心了；</li>
+                <li>赞助后想留名的话，在群里说一声，我把你记进下面的赞助记录；</li>
+                <li>不想留名也可以，我都记在心里。</li>
+            </ul>
+        </div>
+
+        <div class="records">
+            <h2>赞助记录</h2>
+
+            <ol class="rec-list">
+
+                <li class="rec">
+                    <div class="rec-head">
+                        <span class="rec-no">③</span>
+                        <span class="rec-date">2026.11.22</span>
+                        <span class="rec-total">¥50</span>
+                    </div>
+                    <ul class="rec-names">
+                        <li>小琦<b>¥50</b></li>
+                    </ul>
+                </li>
+
+                <li class="rec">
+                    <div class="rec-head">
+                        <span class="rec-no">②</span>
+                        <span class="rec-date">2026.8.23</span>
+                        <span class="rec-total">¥100</span>
+                    </div>
+                    <p class="rec-purpose">将用到每周「垃圾桶の夜」的活动金发放</p>
+                    <ul class="rec-names">
+                        <li>小琦<b>¥100</b></li>
+                    </ul>
+                </li>
+
+                <li class="rec">
+                    <div class="rec-head">
+                        <span class="rec-no">①</span>
+                        <span class="rec-date">2025.8.31</span>
+                        <span class="rec-total">¥181.88</span>
+                    </div>
+                    <p class="rec-purpose">小秋の垃圾桶 2025 第一届七夕 Gal 二创比赛 · 奖金赞助</p>
+                    <ul class="rec-names">
+                        <li>果子<b>¥50</b></li>
+                        <li>小秋<b>¥50</b></li>
+                        <li>小黑<b>¥20</b></li>
+                        <li>俊翔<b>¥15</b></li>
+                        <li>小幽<b>¥10</b></li>
+                        <li>小羡<b>¥9.37</b></li>
+                        <li>翡媛<b>¥7.21</b></li>
+                        <li>白子亲<b>¥5</b></li>
+                        <li>云子<b>¥5</b></li>
+                        <li>.。<b>¥5.3</b></li>
+                        <li>大好きです<b>¥3</b></li>
+                        <li>柚子<b>¥2</b></li>
+                    </ul>
+                    <p class="rec-note">
+                        合计 ¥181.88，比赛奖金实际用掉 ¥120，超出的部分已经退还给
+                        <b>果子、小秋、俊翔、小羡</b>。
+                    </p>
+                </li>
+
+            </ol>
+
+            <p class="grand-total">
+                累计收到赞助 <b>¥331.88</b>
+            </p>
+        </div>
+    </section>
+
+</div>
+</body>
+</html>
