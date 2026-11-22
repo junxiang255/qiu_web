@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta HTTP-EQUIV="pragma" CONTENT="no-cache">
+    <title>开发人员 · 小秋的垃圾站</title>
+    <link rel="shortcut icon" href="static/img/favicon.ico">
+    <link rel="stylesheet" href="static/css/font.css">
+    <link rel="stylesheet" href="static/css/style.css">
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 20px 16px 60px;
+            box-sizing: border-box;
+            background: linear-gradient(rgba(255, 255, 255, .2), rgba(255, 255, 255, .3)),
+                        url("static/img/background.png") center/cover no-repeat fixed;
+            font-family: "筑紫A圆体D", system-ui, sans-serif;
+            color: #1f1f1f;
+        }
+
+        .wrap { width: min(920px, 100%); margin: 0 auto; }
+
+        .bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 18px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, .78);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, .66);
+            box-shadow: rgb(0 0 0 / 0.12) 0px 8px 28px 0px;
+        }
+
+        .back {
+            font-size: .84rem;
+            color: #333;
+            text-decoration: none;
+            padding: 7px 15px;
+            border-radius: 11px;
+            background: rgba(255, 255, 255, .6);
+            border: 1px solid rgba(0, 0, 0, .07);
+            transition: all .3s ease;
+        }
+
+        .back:hover { background: #789bfa71; box-shadow: 0 0 18px #e6b5e6; }
+
+        .bar .title {
+            margin-left: auto;
+            font-size: .82rem;
+            letter-spacing: 2px;
+            color: #7d838c;
+        }
+
+        .devs {
+            margin-top: 16px;
+            padding: 26px 24px 28px;
+            border-radius: 22px;
+            background: rgba(255, 255, 255, .74);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, .66);
+            box-shadow: rgb(0 0 0 / 0.13) 0px 12px 36px 0px;
+            animation: fade_in .5s ease-out both;
+        }
+
+        .devs-title {
+            margin: 0 0 20px;
+            font-size: 1.15rem;
+            letter-spacing: 4px;
+            text-align: center;
+            color: #1f1f1f;
+        }
+
+        .dev-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+            gap: 12px;
+        }
+
+        .dev-card {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            padding: 14px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, .72);
+            border: 1px solid rgba(255, 255, 255, .5);
+            box-shadow: rgb(0 0 0 / 0.06) 0px 4px 14px 0px;
+            transition: all .3s ease;
+        }
+
+        .dev-card:hover {
+            background: rgba(255, 255, 255, .95);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgb(0 0 0 / 0.12);
+        }
+
+        .dev-card img {
+            width: 52px;
+            height: 52px;
+            flex: 0 0 52px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 3px 10px rgb(0 0 0 / 0.16);
+        }
+
+        .dev-name {
+            margin: 2px 0 4px;
+            font-size: .86rem;
+            font-weight: 700;
+            color: #1f1f1f;
+        }
+
+        .dev-name a { color: inherit; text-decoration: none; }
+        .dev-name a:hover { color: #1100ff; text-decoration: underline; }
+
+        .dev-desc {
+            margin: 0;
+            font-size: .72rem;
+            line-height: 1.75;
+            color: #6b7280;
+        }
+
+        .dev-cta {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px;
+            border-radius: 14px;
+            text-align: center;
+            background: rgba(255, 255, 255, .5);
+            border: 1px dashed rgba(0, 0, 0, .16);
+        }
+
+        .dev-cta strong { font-size: .82rem; color: #4b5563; }
+        .dev-cta img { max-width: 100%; width: 120px; border-radius: 10px; }
+
+        @keyframes fade_in {
+            0% { opacity: 0; transform: translateY(12px); }
+            100% { opacity: 1; transform: none; }
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+
+    <header class="bar">
+        <a class="back" href="index.html">← 返回首页</a>
+        <span class="title">小秋的垃圾站</span>
+    </header>
+
+    <section class="devs">
+<h2 class="devs-title">开发人员</h2>
+        <div class="dev-grid">
+            <div class="dev-card">
+                <img src="static/img/developer/jx.jpg" alt="俊翔不会玩">
+                <div>
+                    <h3 class="dev-name"><a href="https://github.com/junxiang255" target="_blank" rel="noopener noreferrer">俊翔不会玩</a></h3>
+                    <p class="dev-desc">全栈开发，群管理<br>网站用 flask + html + css + js 写的</p>
+                </div>
+            </div>
+            <div class="dev-card">
+                <img src="static/img/developer/qzw.jpg" alt="秋中雾">
+                <div>
+                    <h3 class="dev-name">秋中雾</h3>
+                    <p class="dev-desc">一头没用的大肥猪，是个猪群主<br>啥事不会干🐷，看板娘绘画者其一</p>
+                </div>
+            </div>
+            <div class="dev-card">
+                <img src="static/img/developer/hls.jpg" alt="heiqi">
+                <div>
+                    <h3 class="dev-name">heiqi</h3>
+                    <p class="dev-desc">看板娘绘画者其一<br>一头笨猪🐷，群管理</p>
+                </div>
+            </div>
+            <div class="dev-card">
+                <img src="static/img/developer/xygz.jpg" alt="星源果子">
+                <div>
+                    <h3 class="dev-name">星源果子</h3>
+                    <p class="dev-desc">看板娘绘画者其一<br>一头死猪🐷，群管理</p>
+                </div>
+            </div>
+            <div class="dev-card">
+                <img src="static/img/developer/dds.jpg" alt="冻冻诗">
+                <div>
+                    <h3 class="dev-name">冻冻诗</h3>
+                    <p class="dev-desc">看板娘绘画者其一<br>垃圾桶小猪家🐷</p>
+                </div>
+            </div>
+            <div class="dev-card">
+                <img src="static/img/developer/x.jpg" alt="向">
+                <div>
+                    <h3 class="dev-name">向</h3>
+                    <p class="dev-desc">看板娘绘画者其一</p>
+                </div>
+            </div>
+            <div class="dev-card">
+                <img src="static/img/developer/sjth.jpg" alt="世界太坏">
+                <div>
+                    <h3 class="dev-name">世界太坏</h3>
+                    <p class="dev-desc">看板娘绘画者其一<br>小黑的一抹多</p>
+                </div>
+            </div>
+            <div class="dev-card">
+                <img src="static/img/developer/xshx.jpg" alt="雪色幻想">
+                <div>
+                    <h3 class="dev-name">雪色幻想</h3>
+                    <p class="dev-desc">看板娘绘画者其一</p>
+                </div>
+            </div>
+            <div class="dev-card">
+                <img src="static/img/developer/lk.jpg" alt="莉可">
+                <div>
+                    <h3 class="dev-name">莉可</h3>
+                    <p class="dev-desc">看板娘绘画者其一</p>
+                </div>
+            </div>
+            <div class="dev-card">
+                <img src="static/img/developer/zero.jpg" alt="zero">
+                <div>
+                    <h3 class="dev-name">zero</h3>
+                    <p class="dev-desc">看板娘绘画者其一</p>
+                </div>
+            </div>
+            <div class="dev-cta">
+                <strong>我们需要更多的开发者!!!!</strong>
+                <img src="static/img/han_qb.gif" alt="放一只hanser在这里">
+            </div>
+        </div>
+    </section>
+
+</div>
+</body>
+</html>
