@@ -373,6 +373,27 @@
             border-bottom: none !important;
         }
 
+
+        /* ---- 最强兜底：整页不允许任何下划线 ---- */
+        html body,
+        html body *,
+        html body a,
+        html body a:link,
+        html body a:visited,
+        html body a:hover,
+        html body a:active,
+        html body a:focus {
+            text-decoration: none !important;
+            border-bottom-width: 0 !important;
+        }
+
+        /* 允许内容区里的链接悬停时用颜色变化提示，但不加线 */
+        .item-title a:hover,
+        .back:hover,
+        .edit-btn:hover {
+            text-decoration: none !important;
+        }
+
     </style>
 </head>
 <body>
