@@ -228,8 +228,12 @@ def recWorks_get():
     )
     try:
         db.session.add(row)
+        # 推荐人如果注册过账号，给 TA +50 经验
+        author_user = db.session.scalar(db.select(User).where(User.qq_id == qq_id))
+        if author_user is not None:
+            author_user.add_exp(50)
         db.session.commit()
-        flash("推荐成功", "success")
+        flash("推荐成功" + ("，推荐人 +50 经验" if author_user is not None else ""), "success")
     except IntegrityError:
         db.session.rollback()
         (UPLOAD_DIR / name).unlink(missing_ok=True)
