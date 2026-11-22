@@ -29,6 +29,12 @@ app = Flask(__name__)
 app.json.ensure_ascii = False
 CORS(app)
 app.secret_key = SECRET_KEY
+
+# 登录状态保持 30 天。不加这几行的话 Flask 发的是会话级 cookie，
+# 浏览器一关就掉登录。
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 UPLOAD_DIR = Path("/www/wwwroot/qiu_web/recworksimg")
@@ -761,6 +767,7 @@ def register():
         return redirect(url_for("login"))
 
     session.clear()
+    session.permanent = True
     session["user_id"] = u.id
     flash("注册成功，欢迎 %s" % u.display_name, "success")
     if u.is_admin:
@@ -1463,6 +1470,7 @@ def login():
     db.session.commit()
 
     session.clear()
+    session.permanent = True
     session['user_id'] = user.id
     # 只有群主 / 群管理员进后台，普通成员回首页
     if user.is_admin:
