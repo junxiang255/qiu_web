@@ -413,7 +413,7 @@
     </nav>
 
     <div class="tb-account" id="tb-account" hidden>
-        <a class="tb-user" id="tb-user" href="/account" title="个人设置">
+        <a class="tb-user" id="tb-user" href="/account" title="我的主页">
             <img class="tb-user-avatar" id="tb-user-avatar" alt="" width="34" height="34">
             <span class="tb-user-name" id="tb-user-name"></span>
         </a>
@@ -466,6 +466,7 @@
                 var img = document.getElementById('tb-user-avatar');
                 var nameEl = document.getElementById('tb-user-name');
                 var link = document.getElementById('tb-user');
+                if (link && d.profile_url) { link.href = d.profile_url; }
                 var fallback = 'static/img/qun_avatar.jpg';
 
                 if (img) {

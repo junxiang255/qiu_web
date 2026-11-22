@@ -276,7 +276,7 @@
         <a class="back" href="/index.html">← 首页</a>
         <span class="title">取代垃圾桶</span>
         {% if user %}
-        <a class="who" href="/account">
+        <a class="who" href="/u/{{ user.id }}">
             {% if user.qq_id %}
             <img src="https://q.qlogo.cn/headimg_dl?dst_uin={{ user.qq_id }}&spec=640&img_type=jpg"
                  onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/qun_avatar.jpg') }}';" alt="">
@@ -348,12 +348,28 @@
             av.alt = m.nickname;
             av.src = 'https://q.qlogo.cn/headimg_dl?dst_uin=' + encodeURIComponent(m.qq_id) + '&spec=640&img_type=jpg';
             av.addEventListener('error', function () { this.onerror = null; this.src = FALLBACK; });
-            wrap.appendChild(av);
+            if (m.user_id) {
+                var avLink = document.createElement('a');
+                avLink.href = '/u/' + m.user_id;
+                avLink.target = '_blank';
+                avLink.appendChild(av);
+                wrap.appendChild(avLink);
+            } else {
+                wrap.appendChild(av);
+            }
         } else {
             var avf = document.createElement('span');
             avf.className = 'avf';
             avf.textContent = (m.nickname || '?').charAt(0);
-            wrap.appendChild(avf);
+            if (m.user_id) {
+                var fbLink = document.createElement('a');
+                fbLink.href = '/u/' + m.user_id;
+                fbLink.target = '_blank';
+                fbLink.appendChild(avf);
+                wrap.appendChild(fbLink);
+            } else {
+                wrap.appendChild(avf);
+            }
         }
 
         var bw = document.createElement('div');

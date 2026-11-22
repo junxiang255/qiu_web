@@ -291,7 +291,7 @@
         <a class="back" href="/index.html">← 首页</a>
         <span class="title">留言板 <span id="count">（{{ total }} 条）</span></span>
         {% if user %}
-        <a class="who" href="/account">
+        <a class="who" href="/u/{{ user.id }}">
             {% if user.qq_id %}
             <img src="https://q.qlogo.cn/headimg_dl?dst_uin={{ user.qq_id }}&spec=640&img_type=jpg"
                  onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/qun_avatar.jpg') }}';" alt="">
@@ -321,6 +321,7 @@
         {% for e in entries %}
         <article class="entry" data-id="{{ e.id }}" data-uid="{{ e.user_id or '' }}">
             <div class="entry-head">
+                {% if e.user_id %}<a href="/u/{{ e.user_id }}" target="_blank" style="flex:0 0 auto;">{% endif %}
                 {% if e.qq_id %}
                 <img class="av" src="https://q.qlogo.cn/headimg_dl?dst_uin={{ e.qq_id }}&spec=640&img_type=jpg"
                      onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/qun_avatar.jpg') }}';"
@@ -328,6 +329,7 @@
                 {% else %}
                 <span class="avf">{{ (e.nickname or '?')[:1] }}</span>
                 {% endif %}
+                {% if e.user_id %}</a>{% endif %}
                 <b>{{ e.nickname or '匿名' }}</b>
                 <time>{{ e.created_at | humanize if e.created_at else '' }}</time>
                 <div class="act">

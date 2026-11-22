@@ -1728,6 +1728,8 @@ def api_me():
     u = g.user
     return jsonify(
         logged_in=True,
+        id=u.id,
+        profile_url="/u/%d" % u.id,
         username=u.username,
         display_name=u.display_name,
         nickname=u.nickname or "",

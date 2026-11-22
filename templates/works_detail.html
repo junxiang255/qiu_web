@@ -351,7 +351,7 @@
         <a class="back" href="/RecWorks.html">← 返回作品列表</a>
         <div class="bar-right">
             {% if user %}
-                <a class="who" href="/account">
+                <a class="who" href="/u/{{ user.id }}">
                     {% if user.qq_id %}
                     <img src="https://q.qlogo.cn/headimg_dl?dst_uin={{ user.qq_id }}&spec=640&img_type=jpg"
                          onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/qun_avatar.jpg') }}';" alt="">
