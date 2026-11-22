@@ -128,6 +128,14 @@
         .tag.off { background: rgba(229, 62, 62, .14); color: #9b2c2c; }
         .tag.me { background: rgba(120, 155, 250, .2); color: #33479c; }
 
+        .tag.dev {
+            margin-left: 6px;
+            background: linear-gradient(135deg, #789bfa, #b48ce0);
+            color: #fff;
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(120, 155, 250, .45);
+        }
+
         .act { display: flex; gap: 6px; flex-wrap: wrap; }
 
         .empty { padding: 44px 20px; text-align: center; color: #7d838c; font-size: .86rem; }
@@ -252,7 +260,7 @@
                     <th>用户名</th>
                     <th>昵称</th>
                     <th>QQ</th>
-                    <th style="width:96px">角色</th>
+                    <th style="width:150px">角色</th>
                     <th style="width:86px">状态</th>
                     <th>注册</th>
                     <th>最后登录</th>
@@ -272,6 +280,7 @@
                     <td class="meta">{{ it.qq_id or '—' }}</td>
                     <td>
                         <span class="tag {{ 'admin' if it.is_admin else '' }}">{{ '管理员' if it.is_admin else '普通用户' }}</span>
+                        {% if it.is_developer %}<span class="tag dev" title="网站开发者">开发者</span>{% endif %}
                     </td>
                     <td>
                         {% if it.is_active %}

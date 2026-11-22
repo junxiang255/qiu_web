@@ -379,6 +379,10 @@ def recworks_edit(rid):
     return redirect(url_for("recworks_admin"))
 
 
+# 网站开发者：这些 QQ 在后台会被额外标一个「开发者」标签
+DEVELOPER_QQS = {"2847407092"}
+
+
 class GroupMember(db.Model):
     """群成员白名单：只有在这里面的 QQ 号才能注册。
 
@@ -400,6 +404,10 @@ class GroupMember(db.Model):
     @property
     def role_label(self):
         return {"owner": "群主", "admin": "管理员", "member": "成员"}.get(self.role, self.role)
+
+    @property
+    def is_developer(self):
+        return self.qq_id in DEVELOPER_QQS
 
 
 class User(db.Model):
@@ -439,6 +447,10 @@ class User(db.Model):
     @property
     def is_admin(self):
         return self.role == "admin"
+
+    @property
+    def is_developer(self):
+        return self.qq_id in DEVELOPER_QQS
 
     @property
     def is_pending(self):
