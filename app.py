@@ -516,7 +516,7 @@ def admin_required(func):
             return redirect(url_for("login"))
         if not g.user.is_admin:
             flash("这个操作需要管理员权限", "error")
-            return redirect(url_for("account"))
+            return redirect(url_for("home"))
         return func(*args,**kwargs)
     return inner
 
@@ -680,7 +680,7 @@ def register():
     flash("注册成功，欢迎 %s" % u.display_name, "success")
     if u.is_admin:
         return redirect(url_for("manager"))
-    return redirect(url_for("account"))
+    return redirect(url_for("home"))
 
 
 @app.route("/account", methods=["GET","POST"])
@@ -1019,10 +1019,10 @@ def login():
 
     session.clear()
     session['user_id'] = user.id
-    # 只有群主 / 群管理员进后台，普通成员去个人设置
+    # 只有群主 / 群管理员进后台，普通成员回首页
     if user.is_admin:
         return redirect(url_for('manager'))
-    return redirect(url_for('account'))
+    return redirect(url_for('home'))
 
 
 @app.post("/logout")

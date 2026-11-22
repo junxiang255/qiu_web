@@ -23,6 +23,13 @@ http=0.0.0.0:5000
 #socket=0.0.0.0:5000
 
 #启动uwsgi的用户名和用户组
+# ---- 注册验证码用的发信邮箱 ----
+env=QIU_SMTP_HOST=smtp.qq.com
+env=QIU_SMTP_PORT=465
+env=QIU_SMTP_USER=your_qq@qq.com
+env=QIU_SMTP_PASS=CHANGE_ME
+env=QIU_MAIL_FROM_NAME=小秋的垃圾站
+
 uid=www
 gid=www
 

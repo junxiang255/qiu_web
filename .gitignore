@@ -31,3 +31,6 @@ recworksimg/
 
 # 由 /root/qiu_recworks_export.py 从 MySQL 导出的前端快照
 static/data/
+
+# 线上部署配置（含 SMTP 授权码等凭据，不入库）
+uwsgi.ini
