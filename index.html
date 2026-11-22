@@ -209,6 +209,30 @@
             white-space: nowrap;
         }
 
+
+        /* 顶栏签到按钮 */
+        .tb-checkin {
+            flex: 0 0 auto;
+            padding: 7px 16px;
+            font-size: .8rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 11px;
+            background: linear-gradient(135deg, #789bfa, #b48ce0);
+            box-shadow: 0 4px 14px rgb(120 155 250 / .45);
+            transition: all .3s ease;
+            white-space: nowrap;
+        }
+
+        .tb-checkin:hover,
+        .tb-checkin:focus {
+            text-decoration: none;
+            box-shadow: 0 6px 20px rgb(120 155 250 / .6);
+            transform: translateY(-1px);
+        }
+
         .tb-nav {
             flex: 0 0 auto;
             display: flex;
@@ -1000,29 +1024,7 @@
         </a>
     </div>
 
-    <button class="tb-music" id="tb-music" type="button"
-            aria-label="音乐" title="显示 / 隐藏播放器">
-        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
-            <path fill="currentColor" d="M6.5 12.2V4.1l7-1.6v7.9a2.2 2.2 0 1 1-1.1-1.9V4.6l-4.8 1.1v6.5a2.2 2.2 0 1 1-1.1-1.9z"/>
-        </svg>
-    </button>
-
-    <div class="tb-player" id="tb-player" hidden>
-        <audio id="tb-audio" preload="metadata"
-               src="static/media/将那花瓣扬起了.mp3"></audio>
-        <button class="tb-play" id="tb-play" type="button"
-                data-state="paused" aria-label="播放"></button>
-        <div class="tb-mid">
-            <div class="tb-song" title="将那花瓣扬起了">将那花瓣扬起了</div>
-            <div class="tb-seek" id="tb-seek" tabindex="0"
-                 aria-label="播放进度，左右方向键快进快退">
-                <div class="tb-seek-track">
-                    <div class="tb-seek-fill" id="tb-fill"></div>
-                </div>
-            </div>
-        </div>
-        <span class="tb-time" id="tb-time">0:00 / 0:00</span>
-    </div>
+    <a class="tb-checkin" href="/checkin" title="每日签到">签到</a>
 
     <nav class="tb-nav">
         <a href="index.html">主页</a>
@@ -1140,143 +1142,7 @@
             .catch(function () { /* 未登录或接口异常，保持隐藏 */ });
     }
 
-    /* ---------- 2. 播放器显示开关（默认隐藏，记住上次选择） ---------- */
-    var KEY = 'qiu_player_open';
-    var musicBtn = document.getElementById('tb-music');
-    var playerEl = document.getElementById('tb-player');
-
-    function applyPlayer(open) {
-        if (!playerEl) { return; }
-        playerEl.hidden = !open;
-        if (musicBtn) { musicBtn.classList.toggle('is-on', open); }
-    }
-
-    if (playerEl) {
-        var saved = '0';
-        try { saved = localStorage.getItem(KEY) || '0'; } catch (e) {}
-        applyPlayer(saved === '1');
-
-        if (musicBtn) {
-            musicBtn.addEventListener('click', function () {
-                var open = playerEl.hidden;
-                applyPlayer(open);
-                try { localStorage.setItem(KEY, open ? '1' : '0'); } catch (e) {}
-            });
-        }
-    }
-
-    /* ---------- 3. 播放器本体 ---------- */
-    var audio = document.getElementById('tb-audio');
-    var btn = document.getElementById('tb-play');
-    var seek = document.getElementById('tb-seek');
-    var fill = document.getElementById('tb-fill');
-    var timeEl = document.getElementById('tb-time');
-    if (!audio || !btn || !seek || !fill) { return; }
-
-    function fmt(sec) {
-        if (!isFinite(sec) || sec < 0) { sec = 0; }
-        var m = Math.floor(sec / 60);
-        var s = Math.floor(sec % 60);
-        return m + ':' + (s < 10 ? '0' : '') + s;
-    }
-
-    function paint() {
-        var d = audio.duration;
-        var r = (isFinite(d) && d > 0) ? (audio.currentTime / d) : 0;
-        fill.style.width = (r * 100).toFixed(2) + '%';
-        timeEl.textContent = fmt(audio.currentTime) + ' / ' + fmt(d);
-    }
-
-    function setState(playing) {
-        btn.dataset.state = playing ? 'playing' : 'paused';
-        btn.setAttribute('aria-label', playing ? '暂停' : '播放');
-    }
-
-    btn.addEventListener('click', function () {
-        if (audio.paused) {
-            var p = audio.play();
-            if (p && typeof p.catch === 'function') {
-                p.catch(function (err) {
-                    console.warn('[player] 播放被拒绝:', err);
-                    setState(false);
-                });
-            }
-        } else {
-            audio.pause();
-        }
-    });
-
-    audio.addEventListener('play', function () { setState(true); });
-    audio.addEventListener('pause', function () { setState(false); });
-    audio.addEventListener('timeupdate', paint);
-    audio.addEventListener('loadedmetadata', paint);
-    audio.addEventListener('durationchange', paint);
-    audio.addEventListener('ended', function () { setState(false); paint(); });
-
-    var dragging = false;
-
-    function seekTo(clientX) {
-        var rect = seek.getBoundingClientRect();
-        if (!rect.width) { return; }
-        var ratio = (clientX - rect.left) / rect.width;
-        ratio = Math.min(1, Math.max(0, ratio));
-        if (isFinite(audio.duration) && audio.duration > 0) {
-            audio.currentTime = ratio * audio.duration;
-            fill.style.width = (ratio * 100).toFixed(2) + '%';
-        }
-    }
-
-    seek.addEventListener('pointerdown', function (e) {
-        dragging = true;
-        try { seek.setPointerCapture(e.pointerId); } catch (err) {}
-        seekTo(e.clientX);
-    });
-
-    seek.addEventListener('pointermove', function (e) {
-        if (dragging) { seekTo(e.clientX); }
-    });
-
-    ['pointerup', 'pointercancel'].forEach(function (type) {
-        seek.addEventListener(type, function (e) {
-            dragging = false;
-            try { seek.releasePointerCapture(e.pointerId); } catch (err) {}
-        });
-    });
-
-    seek.addEventListener('keydown', function (e) {
-        var d = audio.duration || 0;
-        if (e.key === 'ArrowLeft') {
-            audio.currentTime = Math.max(0, audio.currentTime - 5);
-            e.preventDefault();
-        } else if (e.key === 'ArrowRight') {
-            audio.currentTime = Math.min(d, audio.currentTime + 5);
-            e.preventDefault();
-        } else if (e.key === ' ' || e.key === 'Enter') {
-            btn.click();
-            e.preventDefault();
-        }
-    });
-
-    /* 页面里如果还有原版播放器（index.html 的黑胶），两边互斥 */
-    function bindMutex() {
-        var other = document.getElementById('myAudio');
-        if (!other || other === audio) { return; }
-        audio.addEventListener('play', function () {
-            if (!other.paused) { other.pause(); }
-        });
-        other.addEventListener('play', function () {
-            if (!audio.paused) { audio.pause(); }
-        });
-    }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', bindMutex);
-    } else {
-        bindMutex();
-    }
-
-    paint();
-})();
+    })();
 </script>
 
 <script>
