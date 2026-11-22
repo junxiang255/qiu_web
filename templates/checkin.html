@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>签到 · 小秋的垃圾站</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/font.css') }}">
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 16px 16px 60px;
+            background: linear-gradient(rgba(255, 255, 255, .2), rgba(255, 255, 255, .3)),
+                        url("{{ url_for('static', filename='img/background.png') }}") center/cover no-repeat fixed;
+            font-family: "筑紫A圆体D", system-ui, sans-serif;
+            color: #1f1f1f;
+        }
+
+        .wrap { width: min(640px, 100%); margin: 0 auto; }
+
+        .bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, .8);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, .66);
+            box-shadow: rgb(0 0 0 / 0.12) 0px 8px 28px 0px;
+        }
+
+        .back {
+            font-size: .8rem;
+            color: #333;
+            text-decoration: none;
+            padding: 6px 14px;
+            border-radius: 11px;
+            background: rgba(255, 255, 255, .6);
+            border: 1px solid rgba(0, 0, 0, .07);
+            transition: all .3s ease;
+        }
+
+        .back:hover { background: #789bfa71; box-shadow: 0 0 18px #e6b5e6; }
+
+        .title { font-size: .9rem; font-weight: 700; letter-spacing: 3px; }
+
+        .who {
+            margin-left: auto;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-size: .76rem;
+            color: #444;
+            text-decoration: none;
+        }
+
+        .who img {
+            width: 26px; height: 26px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 8px rgb(0 0 0 / .18);
+        }
+
+        /* 主卡片 */
+        .card {
+            margin-top: 14px;
+            padding: 28px 24px 26px;
+            border-radius: 22px;
+            background: rgba(255, 255, 255, .82);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, .68);
+            box-shadow: rgb(0 0 0 / 0.13) 0px 12px 36px 0px;
+            text-align: center;
+            animation: fade_in .5s ease-out both;
+        }
+
+        .lv-badge {
+            display: inline-block;
+            padding: 4px 16px;
+            font-size: .9rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, .07);
+            color: #6b7280;
+        }
+
+        .lv-badge.green { background: rgba(52, 211, 153, .22); color: #047857; }
+        .lv-badge.blue { background: rgba(96, 165, 250, .22); color: #1d4ed8; }
+        .lv-badge.purple { background: rgba(167, 139, 250, .25); color: #6d28d9; }
+        .lv-badge.gold {
+            background: linear-gradient(135deg, #fde68a, #fbbf24);
+            color: #78350f;
+            box-shadow: 0 3px 12px rgba(251, 191, 36, .55);
+        }
+        .lv-badge.dev {
+            color: #fff;
+            background: linear-gradient(90deg, #789bfa, #b48ce0, #ff9ec7, #789bfa);
+            background-size: 300% 100%;
+            animation: tag_flow 4s linear infinite;
+            box-shadow: 0 3px 12px rgba(120, 155, 250, .5);
+        }
+
+        @keyframes tag_flow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 300% 50%; }
+        }
+
+        /* 经验条 */
+        .exp-wrap { margin-top: 16px; }
+
+        .exp-bar {
+            height: 10px;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, .07);
+            overflow: hidden;
+        }
+
+        .exp-fill {
+            height: 100%;
+            width: 0;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #789bfa, #b48ce0);
+            box-shadow: 0 0 12px rgba(120, 155, 250, .6);
+            transition: width .6s cubic-bezier(.22, 1, .36, 1);
+        }
+
+        .exp-text {
+            margin-top: 8px;
+            font-size: .74rem;
+            color: #8d9299;
+        }
+
+        /* 签到按钮 */
+        .sign-btn {
+            margin-top: 24px;
+            width: 100%;
+            padding: 16px;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 4px;
+            color: #fff;
+            border: none;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #789bfa, #b48ce0);
+            box-shadow: 0 8px 26px rgb(120 155 250 / .45);
+            cursor: pointer;
+            transition: all .3s ease;
+        }
+
+        .sign-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgb(120 155 250 / .55);
+        }
+
+        .sign-btn:disabled {
+            background: rgba(0, 0, 0, .08);
+            color: #9aa0a8;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        .sign-tip {
+            margin-top: 12px;
+            min-height: 20px;
+            font-size: .78rem;
+            color: #8d9299;
+        }
+
+        .sign-tip.ok { color: #2f855a; font-weight: 700; }
+        .sign-tip.err { color: #c53030; }
+
+        /* 数据 */
+        .stats {
+            display: flex;
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .stat {
+            flex: 1 1 0;
+            padding: 14px 8px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, .68);
+            border: 1px solid rgba(255, 255, 255, .55);
+        }
+
+        .stat .num {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #33479c;
+            line-height: 1.2;
+        }
+
+        .stat .lbl {
+            margin-top: 4px;
+            font-size: .7rem;
+            color: #8d9299;
+            letter-spacing: 1px;
+        }
+
+        /* 打卡格子 */
+        .grid-card {
+            margin-top: 14px;
+            padding: 20px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, .8);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, .66);
+            box-shadow: rgb(0 0 0 / 0.1) 0px 8px 26px 0px;
+        }
+
+        .grid-title {
+            margin: 0 0 14px;
+            font-size: .84rem;
+            letter-spacing: 2px;
+            text-align: center;
+            color: #444;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 6px;
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, .06);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .62rem;
+            color: #b0b4ba;
+            transition: all .3s ease;
+        }
+
+        .cell.on {
+            background: linear-gradient(135deg, #789bfa, #b48ce0);
+            color: #fff;
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(120, 155, 250, .4);
+        }
+
+        .cell.today { outline: 2px solid #ffb347; outline-offset: 1px; }
+
+        .rule {
+            margin-top: 16px;
+            font-size: .72rem;
+            line-height: 2;
+            color: #8d9299;
+            text-align: center;
+        }
+
+        @keyframes fade_in {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: none; }
+        }
+
+        @media (max-width: 520px) {
+            body { padding: 10px 10px 40px; }
+            .card { padding: 22px 16px; }
+            .grid { grid-template-columns: repeat(7, 1fr); }
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+
+    <header class="bar">
+        <a class="back" href="/index.html">← 首页</a>
+        <span class="title">签到</span>
+        {% if user %}
+        <a class="who" href="/account">
+            {% if user.qq_id %}
+            <img src="https://q.qlogo.cn/headimg_dl?dst_uin={{ user.qq_id }}&spec=640&img_type=jpg"
+                 onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/qun_avatar.jpg') }}';" alt="">
+            {% endif %}
+            {{ user.display_name }}
+        </a>
+        {% else %}
+        <a class="back" style="margin-left:auto;" href="/login">登录后签到</a>
+        {% endif %}
+    </header>
+
+    <section class="card">
+        <div class="lv-badge" id="lv-badge">LV1</div>
+
+        <div class="exp-wrap">
+            <div class="exp-bar"><div class="exp-fill" id="exp-fill"></div></div>
+            <div class="exp-text" id="exp-text">经验 0 / 100</div>
+        </div>
+
+        <button class="sign-btn" id="sign-btn" type="button" {% if not user %}disabled{% endif %}>
+            {% if user %}今日签到{% else %}登录后签到{% endif %}
+        </button>
+        <div class="sign-tip" id="sign-tip">{% if not user %}先去登录吧{% endif %}</div>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="num" id="st-streak">0</div>
+                <div class="lbl">连续签到</div>
+            </div>
+            <div class="stat">
+                <div class="num" id="st-total">0</div>
+                <div class="lbl">累计签到</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid-card">
+        <h2 class="grid-title">最近 30 次签到</h2>
+        <div class="grid" id="grid"></div>
+        <p class="rule">
+            每天可签到一次 · 基础 +10 经验<br>
+            连续 7 天额外 +20 · 连续 30 天额外 +50
+        </p>
+    </section>
+
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    var LOGGED = {{ 'true' if user else 'false' }};
+    var MYNAME = '{{ user.display_name if user else '' }}';
+
+    var badge = document.getElementById('lv-badge');
+    var fill = document.getElementById('exp-fill');
+    var expText = document.getElementById('exp-text');
+    var btn = document.getElementById('sign-btn');
+    var tip = document.getElementById('sign-tip');
+    var stStreak = document.getElementById('st-streak');
+    var stTotal = document.getElementById('st-total');
+    var grid = document.getElementById('grid');
+
+    function setTip(text, cls) {
+        tip.textContent = text || '';
+        tip.className = 'sign-tip' + (cls ? ' ' + cls : '');
+    }
+
+    function paintLevel(level, tier, percent, exp, cap) {
+        if (level === undefined || level === null) { return; }
+        badge.textContent = 'LV' + level + (cap && level >= cap ? ' 满级' : '');
+        badge.className = 'lv-badge ' + (tier || 'gray');
+        fill.style.width = (percent || 0) + '%';
+        expText.textContent = '经验 ' + (exp || 0) + ' / ' + (cap || 100);
+    }
+
+    function paintGrid(days, today) {
+        var set = {};
+        (days || []).forEach(function (d) { set[d] = true; });
+
+        grid.innerHTML = '';
+        for (var i = 0; i < 30; i++) {
+            var cell = document.createElement('div');
+            cell.className = 'cell';
+            var d = days && days[i];
+            if (d) {
+                cell.classList.add('on');
+                cell.textContent = d.slice(8);   // 只显示日
+                cell.title = d;
+            } else {
+                cell.textContent = '·';
+            }
+            grid.appendChild(cell);
+        }
+        if (set[today]) {
+            var first = grid.firstChild;
+            if (first) { first.classList.add('today'); }
+        }
+    }
+
+    function applyInfo(info) {
+        if (!info) { return; }
+        stStreak.textContent = info.streak || 0;
+        stTotal.textContent = info.total || 0;
+        paintGrid(info.days, info.today);
+
+        if (info.done_today) {
+            btn.disabled = true;
+            btn.textContent = '今天已签到';
+        } else {
+            btn.disabled = false;
+            btn.textContent = '今日签到';
+        }
+    }
+
+    if (!LOGGED) { return; }
+
+    /* 拉状态 */
+    fetch('/api/checkin/status', { cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+            if (!d.logged_in) { return; }
+            paintLevel(d.level, d.level_tier, d.level_percent, d.exp, d.level_cap);
+            applyInfo(d);
+        })
+        .catch(function () { setTip('加载失败', 'err'); });
+
+    /* 签到 */
+    btn.addEventListener('click', function () {
+        btn.disabled = true;
+        setTip('签到中…');
+
+        fetch('/api/checkin', { method: 'POST', cache: 'no-store' })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (!d.ok) {
+                    setTip(d.msg || '签到失败', 'err');
+                    btn.disabled = false;
+                    return;
+                }
+                var msg = '签到成功，+ ' + d.gained + ' 经验';
+                if (d.bonus > 0) { msg += '（连续 ' + d.streak + ' 天，额外 +' + d.bonus + '）'; }
+                setTip(msg, 'ok');
+
+                paintLevel(d.level, d.level_tier, d.level_percent, d.exp);
+                applyInfo(d.info);
+                stStreak.textContent = d.streak || 0;
+            })
+            .catch(function () {
+                setTip('网络错误，请稍后再试', 'err');
+                btn.disabled = false;
+            });
+    });
+})();
+</script>
+</body>
+</html>

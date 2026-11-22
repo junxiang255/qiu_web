@@ -10,8 +10,8 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
 from sqlalchemy import MetaData, Integer, String, UniqueConstraint
-from sqlalchemy import Text, Boolean, DateTime, func
-from datetime import datetime, timedelta
+from sqlalchemy import Text, Boolean, DateTime, Date, func
+from datetime import datetime, timedelta, date
 import random
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -612,6 +612,23 @@ class GuestbookEntry(db.Model):
 
     def __repr__(self) -> str:
         return f"<GuestbookEntry {self.id} user={self.user_id}>"
+
+
+class CheckIn(db.Model):
+    """每日签到记录，一个用户一天一条。"""
+    __tablename__ = 'checkin'
+    __table_args__ = (
+        UniqueConstraint("user_id", "checkin_date", name="uq_checkin_user_date"),
+    )
+    id:Mapped[int]=mapped_column(Integer,primary_key=True,autoincrement=True)
+    user_id:Mapped[int]=mapped_column(Integer,nullable=False,index=True)
+    checkin_date:Mapped[date]=mapped_column(Date,nullable=False,index=True)
+    exp_gained:Mapped[int]=mapped_column(Integer,nullable=False,default=0)
+    streak:Mapped[int]=mapped_column(Integer,nullable=False,default=1)
+    created_at:Mapped[datetime|None]=mapped_column(DateTime,nullable=True,default=datetime.now)
+
+    def __repr__(self) -> str:
+        return f"<CheckIn user={self.user_id} {self.checkin_date}>"
 
 
 class User(db.Model):
@@ -1523,6 +1540,111 @@ def guestbook_reply(eid):
 
     return jsonify(ok=True, reply=text, reply_by=row.reply_by,
                    when=humanize_time(row.replied_at))
+
+
+CHECKIN_BASE_EXP = 10          # 每天签到 +10
+CHECKIN_WEEK_BONUS = 20        # 连续第 7 天额外 +20
+CHECKIN_MONTH_BONUS = 50       # 连续第 30 天额外 +50
+
+
+def _checkin_info(uid):
+    """返回某个用户的签到概况。"""
+    today = date.today()
+    mine = db.session.scalars(
+        db.select(CheckIn).where(CheckIn.user_id == uid).order_by(CheckIn.checkin_date.desc())
+    ).all()
+
+    done_today = any(c.checkin_date == today for c in mine)
+
+    # 连续天数：从今天或昨天往前数
+    streak = 0
+    if mine:
+        cur = mine[0].checkin_date
+        if cur == today or cur == today - timedelta(days=1):
+            streak = 1
+            for prev in mine[1:]:
+                if prev.checkin_date == cur - timedelta(days=1):
+                    streak += 1
+                    cur = prev.checkin_date
+                else:
+                    break
+
+    # 最近 30 天的打卡日期，给前端画格子
+    days = [c.checkin_date.strftime("%Y-%m-%d") for c in mine[:30]]
+
+    return {
+        "done_today": done_today,
+        "streak": streak,
+        "total": len(mine),
+        "days": days,
+        "today": today.strftime("%Y-%m-%d"),
+    }
+
+
+@app.route("/checkin")
+def checkin_page():
+    """签到页。"""
+    return render_template("checkin.html")
+
+
+@app.get("/api/checkin/status")
+def checkin_status():
+    if not g.user:
+        return jsonify(ok=True, logged_in=False)
+
+    info = _checkin_info(g.user.id)
+    info.update({
+        "ok": True,
+        "logged_in": True,
+        "level": g.user.level,
+        "level_cap": g.user.level_cap,
+        "level_tier": g.user.level_tier,
+        "exp": int(g.user.exp or 0),
+        "level_percent": g.user.level_percent,
+        "percent_in_level": g.user.level_exp_in,
+    })
+    return jsonify(**info)
+
+
+@app.post("/api/checkin")
+def checkin_do():
+    if not g.user:
+        return jsonify(ok=False, msg="请先登录再签到"), 401
+
+    today = date.today()
+    exists = db.session.scalar(
+        db.select(CheckIn).where(CheckIn.user_id == g.user.id,
+                                 CheckIn.checkin_date == today)
+    )
+    if exists is not None:
+        return jsonify(ok=False, msg="今天已经签过啦，明天再来")
+
+    # 算连续天数
+    yday = db.session.scalar(
+        db.select(CheckIn).where(CheckIn.user_id == g.user.id,
+                                 CheckIn.checkin_date == today - timedelta(days=1))
+    )
+    prev_streak = int(yday.streak) if yday is not None else 0
+    streak = prev_streak + 1
+
+    # 算奖励
+    gain = CHECKIN_BASE_EXP
+    bonus = 0
+    if streak % 30 == 0:
+        bonus = CHECKIN_MONTH_BONUS
+    elif streak % 7 == 0:
+        bonus = CHECKIN_WEEK_BONUS
+    gain += bonus
+
+    row = CheckIn(user_id=g.user.id, checkin_date=today, exp_gained=gain, streak=streak)
+    db.session.add(row)
+    gained = g.user.add_exp(gain)
+    db.session.commit()
+
+    return jsonify(ok=True, gained=gained, bonus=bonus, streak=streak,
+                   exp=int(g.user.exp or 0), level=g.user.level,
+                   level_tier=g.user.level_tier, level_percent=g.user.level_percent,
+                   info=_checkin_info(g.user.id))
 
 
 @app.route("/api/me")
