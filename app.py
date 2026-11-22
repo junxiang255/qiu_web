@@ -1542,9 +1542,7 @@ def guestbook_reply(eid):
                    when=humanize_time(row.replied_at))
 
 
-CHECKIN_BASE_EXP = 10          # 每天签到 +10
-CHECKIN_WEEK_BONUS = 20        # 连续第 7 天额外 +20
-CHECKIN_MONTH_BONUS = 50       # 连续第 30 天额外 +50
+CHECKIN_BASE_EXP = 10          # 每天签到固定 +10，没有连续奖励
 
 
 def _checkin_info(uid):
@@ -1627,24 +1625,20 @@ def checkin_do():
     prev_streak = int(yday.streak) if yday is not None else 0
     streak = prev_streak + 1
 
-    # 算奖励
+    # 固定 +10，不再有连续奖励
     gain = CHECKIN_BASE_EXP
-    bonus = 0
-    if streak % 30 == 0:
-        bonus = CHECKIN_MONTH_BONUS
-    elif streak % 7 == 0:
-        bonus = CHECKIN_WEEK_BONUS
-    gain += bonus
 
     row = CheckIn(user_id=g.user.id, checkin_date=today, exp_gained=gain, streak=streak)
     db.session.add(row)
     gained = g.user.add_exp(gain)
     db.session.commit()
 
-    return jsonify(ok=True, gained=gained, bonus=bonus, streak=streak,
+    info = _checkin_info(g.user.id)
+
+    return jsonify(ok=True, gained=gained, streak=info["streak"],
                    exp=int(g.user.exp or 0), level=g.user.level,
                    level_tier=g.user.level_tier, level_percent=g.user.level_percent,
-                   info=_checkin_info(g.user.id))
+                   info=info)
 
 
 @app.route("/api/me")

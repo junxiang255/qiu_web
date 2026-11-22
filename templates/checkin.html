@@ -322,8 +322,7 @@
         <h2 class="grid-title">最近 30 次签到</h2>
         <div class="grid" id="grid"></div>
         <p class="rule">
-            每天可签到一次 · 基础 +10 经验<br>
-            连续 7 天额外 +20 · 连续 30 天额外 +50
+            每天可签到一次 · 每次 +10 经验
         </p>
     </section>
 
@@ -422,9 +421,7 @@
                     btn.disabled = false;
                     return;
                 }
-                var msg = '签到成功，+ ' + d.gained + ' 经验';
-                if (d.bonus > 0) { msg += '（连续 ' + d.streak + ' 天，额外 +' + d.bonus + '）'; }
-                setTip(msg, 'ok');
+                setTip('签到成功，+ ' + d.gained + ' 经验（连续 ' + d.streak + ' 天）', 'ok');
 
                 paintLevel(d.level, d.level_tier, d.level_percent, d.exp);
                 applyInfo(d.info);
