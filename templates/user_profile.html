@@ -451,10 +451,17 @@
                 <div class="exp-bar">
                     <div class="exp-fill" style="width: {{ u.level_percent }}%"></div>
                 </div>
-                <span class="exp-num">{{ u.exp }} / {{ u.level_cap * 100 }}</span>
+                {% if u.level >= u.level_cap %}
+                <span class="exp-num">满级</span>
+                {% else %}
+                <span class="exp-num">{{ (u.level - 1) * 100 }} - {{ u.level * 100 }}</span>
+                {% endif %}
             </div>
 
-            <div class="uid">UID: {{ '%05d' % u.id }}　·　{{ u.created_at.strftime('%Y-%m-%d') if u.created_at else '' }} 加入</div>
+            <div class="uid">
+                UID: {{ '%05d' % u.id }}　·　{{ u.created_at.strftime('%Y-%m-%d') if u.created_at else '' }} 加入
+                　·　{% if u.level >= u.level_cap %}经验已满{% else %}本级 {{ u.level_exp_in }} / 100{% endif %}
+            </div>
 
             {% if u.bio %}
             <p class="bio">{{ u.bio }}</p>

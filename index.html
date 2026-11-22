@@ -1336,7 +1336,10 @@
                     var lv = document.createElement('span');
                     lv.className = 'lv ' + (u.level_tier || 'gray');
                     lv.textContent = 'LV' + u.level;
-                    lv.title = '经验 ' + (u.exp || 0) + ' / 上限 LV' + (u.level_cap || 100);
+                    lv.title = (u.level >= (u.level_cap || 100))
+                        ? ('已满级（' + (u.exp || 0) + ' 经验）')
+                        : ('LV' + u.level + ' 区间 ' + ((u.level - 1) * 100) + ' - ' + (u.level * 100) +
+                           '，当前 ' + (u.exp || 0));
                     card.appendChild(lv);
                 }
 

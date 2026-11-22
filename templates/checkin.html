@@ -351,10 +351,16 @@
 
     function paintLevel(level, tier, percent, exp, cap) {
         if (level === undefined || level === null) { return; }
-        badge.textContent = 'LV' + level + (cap && level >= cap ? ' 满级' : '');
+        var full = cap && level >= cap;
+        badge.textContent = 'LV' + level + (full ? ' 满级' : '');
         badge.className = 'lv-badge ' + (tier || 'gray');
         fill.style.width = (percent || 0) + '%';
-        expText.textContent = '经验 ' + (exp || 0) + ' / ' + (cap || 100);
+        if (full) {
+            expText.textContent = '经验已满（' + (cap * 100) + '）';
+        } else {
+            expText.textContent = 'LV' + level + ' 需 ' + ((level - 1) * 100) + ' - ' + (level * 100) +
+                '　当前 ' + (exp || 0);
+        }
     }
 
     function paintGrid(days, today) {
