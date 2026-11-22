@@ -878,7 +878,7 @@ def register():
 
     u = User(username=username, nickname=nick, qq_id=qq_id, role=role, status=status)
     u.password = password
-    u.exp = 100 if status == "active" else 0    # 注册通过就送 100 经验（LV2）
+    u.exp = 0                                   # 新账号从 LV1 开始，靠活跃慢慢涨
 
     try:
         db.session.add(u)
