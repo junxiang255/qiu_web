@@ -1090,6 +1090,24 @@ def work_add_comment(rid):
     })
 
 
+@app.post("/api/comments/<int:cid>/delete")
+def delete_comment(cid):
+    """删评论：自己的能删，管理员能删所有。"""
+    if not g.user:
+        return jsonify(ok=False, msg="请先登录"), 401
+
+    row = db.session.get(WorkComment, cid)
+    if row is None:
+        return jsonify(ok=False, msg="评论不存在，可能已经被删了"), 404
+
+    if row.user_id != g.user.id and not g.user.is_admin:
+        return jsonify(ok=False, msg="只能删除自己的评论"), 403
+
+    db.session.delete(row)
+    db.session.commit()
+    return jsonify(ok=True)
+
+
 @app.route("/api/me")
 def api_me():
     """给静态页顶栏用：告诉前端当前有没有登录、头像用哪个 QQ。"""

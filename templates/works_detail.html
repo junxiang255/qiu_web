@@ -254,6 +254,25 @@
 
         .cm-main { flex: 1 1 auto; min-width: 0; }
 
+        .cm-del {
+            margin-left: auto;
+            padding: 3px 10px;
+            font-family: inherit;
+            font-size: .7rem;
+            color: #9aa0a8;
+            border: 1px solid rgba(0, 0, 0, .08);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, .7);
+            cursor: pointer;
+            transition: all .25s ease;
+        }
+
+        .cm-del:hover {
+            color: #b42318;
+            border-color: rgba(180, 35, 24, .25);
+            background: rgba(255, 241, 241, .9);
+        }
+
         .cm-meta {
             display: flex;
             align-items: baseline;
@@ -357,6 +376,9 @@
                     <div class="cm-meta">
                         <b>{{ c.nickname or '匿名' }}</b>
                         <time>{{ c.created_at | humanize if c.created_at else '' }}</time>
+                        {% if user and (c.user_id == user.id or user.is_admin) %}
+                        <button class="cm-del" type="button" data-cid="{{ c.id }}">删除</button>
+                        {% endif %}
                     </div>
                     <p class="cm-text">{{ c.content }}</p>
                 </div>
@@ -405,6 +427,32 @@
     var countEl = document.getElementById('cm-count');
 
     if (!form || !input || !submit) { return; }
+
+    /* ---- 删除自己的评论（事件委托，新插入的也能用） ---- */
+    list.addEventListener('click', function (e) {
+        var btn = e.target.closest ? e.target.closest('.cm-del') : null;
+        if (!btn) { return; }
+        var cid = btn.getAttribute('data-cid');
+        if (!cid || !confirm('删除这条评论？')) { return; }
+
+        btn.disabled = true;
+        fetch('/api/comments/' + cid + '/delete', { method: 'POST', cache: 'no-store' })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (!d.ok) {
+                    alert(d.msg || '删除失败');
+                    btn.disabled = false;
+                    return;
+                }
+                var li = btn.closest('.cm-item');
+                if (li) { li.remove(); }
+                countEl.textContent = Math.max(0, (parseInt(countEl.textContent, 10) || 0) - 1);
+            })
+            .catch(function () {
+                alert('网络错误，请稍后再试');
+                btn.disabled = false;
+            });
+    });
 
     function setTip(text, cls) {
         tip.textContent = text;
@@ -469,6 +517,13 @@
                 tm.textContent = d.comment.when || d.comment.created_at || '';
                 meta.appendChild(who);
                 meta.appendChild(tm);
+
+                var del = document.createElement('button');
+                del.className = 'cm-del';
+                del.type = 'button';
+                del.setAttribute('data-cid', d.comment.id);
+                del.textContent = '删除';
+                meta.appendChild(del);
 
                 var p = document.createElement('p');
                 p.className = 'cm-text';
