@@ -10,6 +10,8 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
 from sqlalchemy import MetaData, Integer, String, UniqueConstraint
+from sqlalchemy import Text, Boolean, DateTime, func
+from datetime import datetime
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import Text
@@ -380,30 +382,226 @@ def recworks_edit(rid):
 class User(db.Model):
     __tablename__='user'
     id:Mapped[int]=mapped_column(Integer,primary_key=True,autoincrement=True)
-    username:Mapped[str]=mapped_column(String(50))
-    password_hash:Mapped[str]=mapped_column(String(200))
+    username:Mapped[str]=mapped_column(String(50),unique=True,nullable=False)
+    nickname:Mapped[str|None]=mapped_column(String(50),nullable=True)
+    password_hash:Mapped[str]=mapped_column(String(200),nullable=False)
+    role:Mapped[str]=mapped_column(String(20),nullable=False,default="user")
+    is_active:Mapped[bool]=mapped_column(Boolean,nullable=False,default=True)
+    created_at:Mapped[datetime|None]=mapped_column(DateTime,nullable=True,default=datetime.now)
+    last_login:Mapped[datetime|None]=mapped_column(DateTime,nullable=True)
 
     def __init__(self,*args,**kwargs):
-        password = kwargs.get("password")
-        if password:
-            kwargs.pop("password")
+        password = kwargs.pop("password", None)
         super().__init__(*args,**kwargs)
-        self.password=password
+        if password:
+            self.password=password
 
     @property
     def password(self):
         return self.password_hash
-            
-
-
 
     @password.setter
     def password(self,raw_password):
         self.password_hash=generate_password_hash(raw_password)
 
-
     def check_password(self,raw_password):
-        return check_password_hash(self.password,raw_password)
+        return check_password_hash(self.password_hash,raw_password)
+
+    @property
+    def display_name(self):
+        return self.nickname or self.username
+
+    @property
+    def is_admin(self):
+        return self.role == "admin"
+
+
+def admin_required(func):
+    """在 login_required 之上再加一层管理员校验。"""
+    @wraps(func)
+    def inner(*args,**kwargs):
+        if not g.user:
+            return redirect(url_for("login"))
+        if not g.user.is_admin:
+            flash("这个操作需要管理员权限", "error")
+            return redirect(url_for("manager"))
+        return func(*args,**kwargs)
+    return inner
+
+
+# 注册是否开放（环境变量 QIU_ALLOW_REGISTER=0 可关闭）
+REGISTER_OPEN = os.environ.get("QIU_ALLOW_REGISTER", "1") != "0"
+
+
+@app.route("/register", methods=["GET","POST"])
+def register():
+    if not REGISTER_OPEN:
+        return render_template("register.html", closed=True), 403
+    if g.user:
+        return redirect(url_for("manager"))
+
+    if request.method == "GET":
+        return render_template("register.html", closed=False)
+
+    username = (request.form.get("username") or "").strip()
+    nickname = (request.form.get("nickname") or "").strip()
+    password = request.form.get("password") or ""
+    password2 = request.form.get("password2") or ""
+
+    if not re.fullmatch(r"[A-Za-z0-9_]{3,20}", username):
+        flash("用户名只能是 3-20 位字母、数字或下划线", "error")
+        return redirect(url_for("register"))
+    if len(password) < 6:
+        flash("密码至少 6 位", "error")
+        return redirect(url_for("register"))
+    if password != password2:
+        flash("两次输入的密码不一致", "error")
+        return redirect(url_for("register"))
+
+    dup = db.session.scalar(db.select(User).where(User.username == username))
+    if dup:
+        flash("这个用户名已经被注册了", "error")
+        return redirect(url_for("register"))
+
+    total = db.session.scalar(db.select(func.count()).select_from(User)) or 0
+    u = User(username=username, nickname=nickname or None,
+             role="admin" if total == 0 else "user")
+    u.password = password
+
+    try:
+        db.session.add(u)
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        flash("这个用户名已经被注册了", "error")
+        return redirect(url_for("register"))
+
+    session.clear()
+    session["user_id"] = u.id
+    flash("注册成功，欢迎 %s" % u.display_name, "success")
+    return redirect(url_for("manager"))
+
+
+@app.route("/account", methods=["GET","POST"])
+@login_required
+def account():
+    if request.method == "GET":
+        return render_template("account.html")
+
+    action = request.form.get("action")
+
+    if action == "profile":
+        nickname = (request.form.get("nickname") or "").strip()
+        if len(nickname) > 50:
+            flash("昵称最多 50 个字", "error")
+            return redirect(url_for("account"))
+        g.user.nickname = nickname or None
+        db.session.commit()
+        flash("昵称已更新", "success")
+        return redirect(url_for("account"))
+
+    if action == "password":
+        old = request.form.get("old_password") or ""
+        new = request.form.get("new_password") or ""
+        new2 = request.form.get("new_password2") or ""
+        if not g.user.check_password(old):
+            flash("原密码不对", "error")
+            return redirect(url_for("account"))
+        if len(new) < 6:
+            flash("新密码至少 6 位", "error")
+            return redirect(url_for("account"))
+        if new != new2:
+            flash("两次输入的新密码不一致", "error")
+            return redirect(url_for("account"))
+        g.user.password = new
+        db.session.commit()
+        flash("密码已修改", "success")
+        return redirect(url_for("account"))
+
+    flash("无效的请求", "error")
+    return redirect(url_for("account"))
+
+
+@app.route("/manager/users")
+@admin_required
+def users_admin():
+    items = db.session.scalars(db.select(User).order_by(User.id)).all()
+    return render_template("users.html", items=items)
+
+
+@app.post("/manager/users/<int:uid>/role")
+@admin_required
+def users_role(uid):
+    u = db.session.get(User, uid)
+    if u is None:
+        flash("用户不存在", "warning")
+        return redirect(url_for("users_admin"))
+    if u.id == g.user.id:
+        flash("不能修改自己的角色", "warning")
+        return redirect(url_for("users_admin"))
+    u.role = "user" if u.is_admin else "admin"
+    db.session.commit()
+    flash("%s 现在是%s" % (u.display_name, "管理员" if u.is_admin else "普通用户"), "success")
+    return redirect(url_for("users_admin"))
+
+
+@app.post("/manager/users/<int:uid>/toggle")
+@admin_required
+def users_toggle(uid):
+    u = db.session.get(User, uid)
+    if u is None:
+        flash("用户不存在", "warning")
+        return redirect(url_for("users_admin"))
+    if u.id == g.user.id:
+        flash("不能停用自己的账号", "warning")
+        return redirect(url_for("users_admin"))
+    u.is_active = not u.is_active
+    db.session.commit()
+    flash("%s 已%s" % (u.display_name, "启用" if u.is_active else "停用"), "success")
+    return redirect(url_for("users_admin"))
+
+
+@app.post("/manager/users/<int:uid>/reset")
+@admin_required
+def users_reset(uid):
+    u = db.session.get(User, uid)
+    if u is None:
+        flash("用户不存在", "warning")
+        return redirect(url_for("users_admin"))
+    new = request.form.get("new_password") or ""
+    if len(new) < 6:
+        flash("新密码至少 6 位", "error")
+        return redirect(url_for("users_admin"))
+    u.password = new
+    db.session.commit()
+    flash("已重置 %s 的密码" % u.display_name, "success")
+    return redirect(url_for("users_admin"))
+
+
+@app.post("/manager/users/<int:uid>/delete")
+@admin_required
+def users_delete(uid):
+    u = db.session.get(User, uid)
+    if u is None:
+        flash("用户不存在", "warning")
+        return redirect(url_for("users_admin"))
+    if u.id == g.user.id:
+        flash("不能删除自己的账号", "warning")
+        return redirect(url_for("users_admin"))
+
+    other_admins = db.session.scalar(
+        db.select(func.count()).select_from(User)
+        .where(User.role == "admin", User.id != uid)
+    ) or 0
+    if u.is_admin and other_admins == 0:
+        flash("至少要保留一个管理员", "warning")
+        return redirect(url_for("users_admin"))
+
+    name = u.username
+    db.session.delete(u)
+    db.session.commit()
+    flash("已删除账号 %s" % name, "success")
+    return redirect(url_for("users_admin"))
 
 
 
@@ -520,17 +718,28 @@ def background():
 
 @app.route("/login",methods=["GET","POST"])
 def login():
-    
     if request.method == "GET":
+        if g.user:
+            return redirect(url_for('manager'))
         return render_template("login.html")
 
-    username=request.form.get("username")
-    password=request.form.get("password")
-    user=db.session.scalar(db.select(User).where(User.username==username))
-    if user and user.check_password(password):
-        session['user_id']=user.id
-        return redirect(url_for('manager'))
-    return redirect(url_for('login'))
+    username = (request.form.get("username") or "").strip()
+    password = request.form.get("password") or ""
+    user = db.session.scalar(db.select(User).where(User.username == username))
+
+    if user is None or not user.check_password(password):
+        flash("用户名或密码不对", "error")
+        return redirect(url_for('login'))
+    if not user.is_active:
+        flash("这个账号已被停用，请联系管理员", "error")
+        return redirect(url_for('login'))
+
+    user.last_login = datetime.now()
+    db.session.commit()
+
+    session.clear()
+    session['user_id'] = user.id
+    return redirect(url_for('manager'))
 
 
 @app.post("/logout")

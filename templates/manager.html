@@ -569,21 +569,19 @@ a:hover{	/*悬浮状态*/
 }
 
     </script>
-    <div>
+    <div class="user-bar">
         {% if user %}
-            <div>
-                <h1>欢迎您：{{user.username}}</h1>
-            </div>
-            <div>
-                <form action="/logout"method="POST">
-                    <button type="submit">
-                        退出登录
-                    </button>
-
+            <h1 class="welcome">欢迎您：{{ user.display_name }}</h1>
+            <div class="user-actions">
+                {% if user.is_admin %}
+                <a class="ubtn" href="{{ url_for('users_admin') }}">用户管理</a>
+                {% endif %}
+                <a class="ubtn" href="{{ url_for('account') }}">个人设置</a>
+                <form action="{{ url_for('logout') }}" method="post">
+                    <button class="ubtn" type="submit">退出登录</button>
                 </form>
             </div>
         {% endif %}
-
     </div>
     <div class="Introduction_3">
         <h2>本周乐色王的后台</h2>
@@ -861,6 +859,63 @@ a:hover{	/*悬浮状态*/
         }
 
         .admin-link-row a:hover {
+            color: #333;
+            text-decoration: none;
+            background: #789bfa71;
+            box-shadow: 0 0 18px #e6b5e6;
+        }
+
+        /* 顶部用户栏 */
+        .user-bar {
+            width: min(760px, 92vw);
+            margin: 18px auto 0;
+            padding: 12px 18px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, .74);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, .6);
+            box-shadow: rgb(0 0 0 / 0.1) 0px 6px 22px 0px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            box-sizing: border-box;
+        }
+
+        .user-bar .welcome {
+            margin: 0;
+            font-size: .92rem;
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+
+        .user-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .user-actions form { display: inline; margin: 0; }
+
+        .ubtn {
+            display: inline-block;
+            padding: 7px 15px;
+            font-family: inherit;
+            font-size: .76rem;
+            color: #333;
+            text-decoration: none;
+            border: 1px solid rgba(0, 0, 0, .07);
+            border-radius: 11px;
+            background: rgba(255, 255, 255, .6);
+            box-shadow: rgb(0 0 0 / 0.08) 0px 3px 12px 0px;
+            cursor: pointer;
+            transition: all .3s ease;
+        }
+
+        .ubtn:hover {
             color: #333;
             text-decoration: none;
             background: #789bfa71;

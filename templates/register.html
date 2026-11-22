@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 · 小秋的垃圾站</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/font.css') }}">
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+            box-sizing: border-box;
+            background: linear-gradient(rgba(255, 255, 255, .2), rgba(255, 255, 255, .3)),
+                        url("{{ url_for('static', filename='img/background.png') }}") center/cover no-repeat fixed;
+            font-family: "筑紫A圆体D", system-ui, sans-serif;
+            color: #1f1f1f;
+        }
+
+        .card {
+            width: min(400px, 100%);
+            padding: 30px 28px 28px;
+            border-radius: 22px;
+            background: rgba(255, 255, 255, .8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, .66);
+            box-shadow: rgb(0 0 0 / 0.16) 0px 14px 44px 0px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            margin: 0 0 6px;
+            font-size: 1.3rem;
+            letter-spacing: 3px;
+            text-align: center;
+        }
+
+        .sub {
+            margin: 0 0 22px;
+            font-size: .76rem;
+            color: #8d9299;
+            text-align: center;
+        }
+
+        .flash-wrap { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+
+        .flash {
+            padding: 10px 14px;
+            font-size: .78rem;
+            line-height: 1.6;
+            border-radius: 12px;
+            border-left: 4px solid #999;
+            background: rgba(255, 255, 255, .85);
+            box-shadow: rgb(0 0 0 / 0.1) 0px 5px 18px 0px;
+        }
+
+        .flash-success { border-left-color: #38a169; background: rgba(237, 250, 242, .94); }
+        .flash-warning { border-left-color: #d69e2e; background: rgba(255, 250, 235, .94); }
+        .flash-error   { border-left-color: #e53e3e; background: rgba(255, 241, 241, .95); }
+
+        form { display: flex; flex-direction: column; gap: 14px; }
+
+        .field { display: flex; flex-direction: column; gap: 6px; }
+
+        .field label { font-size: .78rem; font-weight: 700; color: #4b5563; }
+
+        .field input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 11px 13px;
+            font-family: inherit;
+            font-size: .84rem;
+            color: #1f1f1f;
+            background: rgba(255, 255, 255, .88);
+            border: 1px solid rgba(0, 0, 0, .09);
+            border-radius: 12px;
+            outline: none;
+            transition: border-color .25s ease, box-shadow .25s ease;
+        }
+
+        .field input:focus {
+            background: #fff;
+            border-color: rgba(120, 155, 250, .6);
+            box-shadow: 0 0 0 3px #789bfa52;
+        }
+
+        .field .hint { font-size: .68rem; color: #8d9299; }
+
+        .btn {
+            width: 100%;
+            padding: 13px 0;
+            font-family: inherit;
+            font-size: .9rem;
+            letter-spacing: 4px;
+            color: #fff;
+            border: none;
+            border-radius: 13px;
+            background: linear-gradient(135deg, #789bfa, #b48ce0);
+            box-shadow: 0 8px 22px rgb(120 155 250 / 0.4);
+            cursor: pointer;
+            transition: all .3s ease;
+        }
+
+        .btn:hover { box-shadow: 0 10px 28px rgb(120 155 250 / 0.5); transform: translateY(-1px); }
+
+        .foot {
+            margin-top: 16px;
+            font-size: .76rem;
+            color: #7d838c;
+            text-align: center;
+        }
+
+        .foot a { color: #5b7fe0; text-decoration: none; }
+        .foot a:hover { text-decoration: underline; }
+
+        .closed {
+            padding: 26px 10px;
+            text-align: center;
+            font-size: .86rem;
+            line-height: 1.9;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1>注册</h1>
+
+    {% if closed %}
+    <p class="closed">
+        本站目前关闭了公开注册。<br>
+        需要账号的话请联系群里的管理员。
+    </p>
+    <p class="foot"><a href="{{ url_for('login') }}">← 返回登录</a></p>
+    {% else %}
+
+    <p class="sub">注册后即可登录后台</p>
+
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% if msgs %}
+    <div class="flash-wrap">
+        {% for cat, msg in msgs %}
+        <div class="flash flash-{{ cat }}">{{ msg }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <form method="post" action="{{ url_for('register') }}">
+        <div class="field">
+            <label for="username">用户名</label>
+            <input id="username" name="username" type="text" maxlength="20"
+                   autocomplete="username" required>
+            <span class="hint">3-20 位字母、数字或下划线，登录时用</span>
+        </div>
+
+        <div class="field">
+            <label for="nickname">昵称（可选）</label>
+            <input id="nickname" name="nickname" type="text" maxlength="50"
+                   autocomplete="nickname">
+            <span class="hint">显示用的名字，留空就用用户名</span>
+        </div>
+
+        <div class="field">
+            <label for="password">密码</label>
+            <input id="password" name="password" type="password" minlength="6"
+                   autocomplete="new-password" required>
+            <span class="hint">至少 6 位</span>
+        </div>
+
+        <div class="field">
+            <label for="password2">再输一次密码</label>
+            <input id="password2" name="password2" type="password" minlength="6"
+                   autocomplete="new-password" required>
+        </div>
+
+        <button class="btn" type="submit">注册</button>
+    </form>
+
+    <p class="foot">已经有账号了？<a href="{{ url_for('login') }}">去登录</a></p>
+    {% endif %}
+</div>
+
+<script>
+(function () {
+    'use strict';
+    var form = document.querySelector('form');
+    if (!form) { return; }
+    form.addEventListener('submit', function (e) {
+        var p1 = document.getElementById('password');
+        var p2 = document.getElementById('password2');
+        if (p1.value.length < 6) {
+            e.preventDefault();
+            p1.focus();
+            alert('密码至少 6 位');
+            return;
+        }
+        if (p1.value !== p2.value) {
+            e.preventDefault();
+            p2.focus();
+            alert('两次输入的密码不一致');
+        }
+    });
+})();
+</script>
+</body>
+</html>

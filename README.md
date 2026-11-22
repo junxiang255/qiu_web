@@ -20,6 +20,9 @@ Flask 3 + MySQL，线上由 uWSGI 托管、nginx 反向代理；前端是原生 
 | `templates/login.html` | `/login` | 登录页（Jinja2 渲染） |
 | `templates/manager.html` | `/manager` | 后台：榜单录入 + 作品推荐录入（含图片上传），需登录 |
 | `templates/recworks_admin.html` | `/manager/recWorks` | 推荐管理：列表、筛选、勾选批量删除，需登录 |
+| `templates/register.html` | `/register` | 注册（首个注册的账号自动成为管理员） |
+| `templates/account.html` | `/account` | 个人设置：改昵称、改密码，需登录 |
+| `templates/users.html` | `/manager/users` | 用户管理：角色、启用停用、重置密码、删除，需管理员 |
 
 > `index.html`、`ew.html`、`RecWorks.html` 是纯静态页面，由 nginx 的 `try_files` 直接返回；
 > 只有 `templates/` 下的两个页面走 Jinja2 服务端渲染。
@@ -78,10 +81,31 @@ qiu_web/
 | GET | `/manager/recWorks` | 推荐管理页：列出全部推荐，可勾选批量删除，需登录 |
 | POST | `/manager/recWorks/delete` | 删除选中的推荐（连带 `recworksimg/` 里的图片并刷新 JSON），需登录 |
 | POST | `/manager/recWorks` | 提交作品推荐（`multipart/form-data`，含图片），需登录 |
+| GET / POST | `/register` | 注册，首个账号自动获得管理员权限 |
+| GET / POST | `/account` | 个人设置：`action=profile` 改昵称、`action=password` 改密码，需登录 |
+| GET | `/manager/users` | 用户列表，需管理员 |
+| POST | `/manager/users/<id>/role` | 切换管理员 / 普通用户，需管理员 |
+| POST | `/manager/users/<id>/toggle` | 启用 / 停用账号，需管理员 |
+| POST | `/manager/users/<id>/reset` | 重置密码，需管理员 |
+| POST | `/manager/users/<id>/delete` | 删除账号，需管理员 |
 
 `/api/*`、`/login`、`/manager` 由 nginx 转发到 `127.0.0.1:5000`，其余路径走静态文件。
 
 ---
+
+## 账号系统
+
+`user` 表带 `username`（唯一）、`nickname`、`password_hash`、`role`、`is_active`、
+`created_at`、`last_login`。密码用 `werkzeug` 的 `generate_password_hash`（scrypt）存储。
+
+- **角色**：`admin` / `user`。注册时如果库里没有任何账号，第一个自动成为 `admin`；
+  其余都是 `user`。
+- **权限分层**：`@login_required` 挡未登录，`@admin_required` 在其上再挡一层，
+  后台所有写接口（榜单、推荐、用户管理）都需要登录。
+- **自我保护**：管理员不能改自己的角色、不能停用自己、不能删除自己；
+  系统至少保留一个管理员。
+- **注册开关**：环境变量 `QIU_ALLOW_REGISTER=0` 时 `/register` 直接返回 403，
+  页面提示「本站目前关闭了公开注册」，适合只留自己用的情况。
 
 ## 作品推荐的图片链路
 
@@ -138,6 +162,7 @@ python scripts/export_recworks.py
 | `QIU_DB_NAME` | 数据库名 | `qiu_web` |
 | `QIU_SECRET_KEY` | Flask session 密钥 | 见 `config.py` |
 | `QIU_PORT` | 本地调试端口 | `5000` |
+| `QIU_ALLOW_REGISTER` | 是否开放公开注册，`0` 关闭 | `1` |
 
 `config.py` 不入库，部署时从 `config.example.py` 复制一份填写。
 

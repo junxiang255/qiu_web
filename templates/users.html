@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理 · 小秋的垃圾站</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/font.css') }}">
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 20px 16px 60px;
+            box-sizing: border-box;
+            background: linear-gradient(rgba(255, 255, 255, .2), rgba(255, 255, 255, .3)),
+                        url("{{ url_for('static', filename='img/background.png') }}") center/cover no-repeat fixed;
+            font-family: "筑紫A圆体D", system-ui, sans-serif;
+            color: #1f1f1f;
+        }
+
+        .wrap { width: min(1000px, 100%); margin: 0 auto; }
+
+        .bar {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            padding: 14px 20px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, .78);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, .66);
+            box-shadow: rgb(0 0 0 / 0.12) 0px 8px 28px 0px;
+        }
+
+        .bar h1 { margin: 0; font-size: 1.05rem; letter-spacing: 3px; }
+        .bar .count { font-size: .78rem; color: #7d838c; }
+        .bar-right { margin-left: auto; display: flex; gap: 10px; }
+
+        .btn {
+            display: inline-block;
+            padding: 8px 18px;
+            font-family: inherit;
+            font-size: .82rem;
+            color: #333;
+            text-decoration: none;
+            border: 1px solid rgba(0, 0, 0, .07);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, .6);
+            box-shadow: rgb(0 0 0 / 0.08) 0px 3px 12px 0px;
+            cursor: pointer;
+            transition: all .3s ease;
+        }
+
+        .btn:hover { background: #789bfa71; box-shadow: 0 0 18px #e6b5e6; }
+
+        .btn.danger { color: #b42318; border-color: rgba(180, 35, 24, .18); }
+        .btn.danger:hover { color: #fff; background: #e53e3e; box-shadow: 0 0 18px rgba(229, 62, 62, .45); }
+
+        .btn.mini { padding: 5px 12px; font-size: .74rem; }
+        .btn:disabled { opacity: .4; cursor: not-allowed; box-shadow: none; }
+        .btn:disabled:hover { background: rgba(255, 255, 255, .6); color: #b42318; box-shadow: none; }
+
+        .flash-wrap { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+
+        .flash {
+            padding: 11px 16px;
+            font-size: .82rem;
+            line-height: 1.6;
+            border-radius: 12px;
+            border-left: 4px solid #999;
+            background: rgba(255, 255, 255, .8);
+            backdrop-filter: blur(16px);
+            box-shadow: rgb(0 0 0 / 0.1) 0px 6px 20px 0px;
+        }
+
+        .flash-success { border-left-color: #38a169; background: rgba(237, 250, 242, .92); }
+        .flash-warning { border-left-color: #d69e2e; background: rgba(255, 250, 235, .92); }
+        .flash-error   { border-left-color: #e53e3e; background: rgba(255, 241, 241, .94); }
+
+        .table-wrap {
+            margin-top: 14px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, .82);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, .66);
+            box-shadow: rgb(0 0 0 / 0.12) 0px 10px 32px 0px;
+            overflow-x: auto;
+        }
+
+        table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+
+        thead th {
+            padding: 12px 12px;
+            text-align: left;
+            font-size: .76rem;
+            color: #4b5563;
+            white-space: nowrap;
+            background: rgba(246, 247, 251, .97);
+            border-bottom: 1px solid rgba(0, 0, 0, .07);
+        }
+
+        tbody td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(0, 0, 0, .05);
+            vertical-align: middle;
+        }
+
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover { background: rgba(120, 155, 250, .07); }
+        tbody tr.is-off { opacity: .6; }
+
+        .uname { font-weight: 700; color: #111; }
+        .meta { font-size: .74rem; color: #7d838c; white-space: nowrap; }
+
+        .tag {
+            display: inline-block;
+            padding: 3px 10px;
+            font-size: .7rem;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, .06);
+            color: #4b5563;
+        }
+
+        .tag.admin { background: rgba(56, 161, 105, .16); color: #276749; font-weight: 700; }
+        .tag.off { background: rgba(229, 62, 62, .14); color: #9b2c2c; }
+        .tag.me { background: rgba(120, 155, 250, .2); color: #33479c; }
+
+        .act { display: flex; gap: 6px; flex-wrap: wrap; }
+
+        .empty { padding: 44px 20px; text-align: center; color: #7d838c; font-size: .86rem; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+
+    <header class="bar">
+        <h1>用户管理</h1>
+        <span class="count">共 {{ items|length }} 个账号</span>
+        <div class="bar-right">
+            <a class="btn" href="{{ url_for('account') }}">个人设置</a>
+            <a class="btn" href="{{ url_for('manager') }}">返回后台</a>
+        </div>
+    </header>
+
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% if msgs %}
+    <div class="flash-wrap">
+        {% for cat, msg in msgs %}
+        <div class="flash flash-{{ cat }}">{{ msg }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:56px">ID</th>
+                    <th>用户名</th>
+                    <th>昵称</th>
+                    <th style="width:96px">角色</th>
+                    <th style="width:86px">状态</th>
+                    <th>注册</th>
+                    <th>最后登录</th>
+                    <th style="width:250px">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for it in items %}
+                {% set is_me = (it.id == user.id) %}
+                <tr class="{{ 'is-off' if not it.is_active else '' }}">
+                    <td class="meta">#{{ it.id }}</td>
+                    <td>
+                        <span class="uname">{{ it.username }}</span>
+                        {% if is_me %}<span class="tag me">我</span>{% endif %}
+                    </td>
+                    <td class="meta">{{ it.nickname or '—' }}</td>
+                    <td>
+                        <span class="tag {{ 'admin' if it.is_admin else '' }}">{{ '管理员' if it.is_admin else '普通用户' }}</span>
+                    </td>
+                    <td>
+                        {% if it.is_active %}
+                        <span class="tag">正常</span>
+                        {% else %}
+                        <span class="tag off">已停用</span>
+                        {% endif %}
+                    </td>
+                    <td class="meta">{{ it.created_at.strftime('%Y-%m-%d') if it.created_at else '—' }}</td>
+                    <td class="meta">{{ it.last_login.strftime('%m-%d %H:%M') if it.last_login else '从未' }}</td>
+                    <td>
+                        <div class="act">
+                            <button class="btn mini" type="button"
+                                    onclick="submitForm('role', {{ it.id }})"
+                                    {{ 'disabled' if is_me else '' }}>
+                                {{ '设为普通' if it.is_admin else '设为管理' }}
+                            </button>
+
+                            <button class="btn mini" type="button"
+                                    onclick="submitForm('toggle', {{ it.id }})"
+                                    {{ 'disabled' if is_me else '' }}>
+                                {{ '停用' if it.is_active else '启用' }}
+                            </button>
+
+                            <button class="btn mini" type="button"
+                                    onclick="resetPwd({{ it.id }}, '{{ it.username }}')">
+                                重置密码
+                            </button>
+
+                            <button class="btn mini danger" type="button"
+                                    onclick="delUser({{ it.id }}, '{{ it.username }}')"
+                                    {{ 'disabled' if is_me else '' }}>
+                                删除
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<form id="act-form" method="post" style="display:none;">
+    <input type="hidden" name="new_password" id="act-pwd" value="">
+</form>
+
+<script>
+(function () {
+    'use strict';
+
+    var form = document.getElementById('act-form');
+    var pwdInput = document.getElementById('act-pwd');
+
+    window.submitForm = function (kind, uid) {
+        var labels = { role: '切换这个用户的角色', toggle: '切换这个账号的启用状态' };
+        if (!confirm(labels[kind] + '？')) { return; }
+        pwdInput.value = '';
+        form.action = '/manager/users/' + uid + '/' + kind;
+        form.submit();
+    };
+
+    window.resetPwd = function (uid, name) {
+        var pwd = prompt('给「' + name + '」设置新密码（至少 6 位）：');
+        if (pwd === null) { return; }
+        if (pwd.length < 6) { alert('新密码至少 6 位'); return; }
+        pwdInput.value = pwd;
+        form.action = '/manager/users/' + uid + '/reset';
+        form.submit();
+    };
+
+    window.delUser = function (uid, name) {
+        if (!confirm('确定删除账号「' + name + '」吗？删掉之后无法恢复。')) { return; }
+        pwdInput.value = '';
+        form.action = '/manager/users/' + uid + '/delete';
+        form.submit();
+    };
+})();
+</script>
+</body>
+</html>
