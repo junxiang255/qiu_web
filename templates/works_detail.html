@@ -149,10 +149,18 @@
             color: #276749;
         }
 
+        /* 开发者标签：渐变流动 */
         .rec-status.dev {
-            background: linear-gradient(135deg, #789bfa, #b48ce0);
             color: #fff;
-            box-shadow: 0 2px 8px rgba(120, 155, 250, .45);
+            background: linear-gradient(90deg, #789bfa, #b48ce0, #ff9ec7, #789bfa);
+            background-size: 300% 100%;
+            box-shadow: 0 2px 10px rgba(120, 155, 250, .5);
+            animation: dev_flow 4s linear infinite;
+        }
+
+        @keyframes dev_flow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 300% 50%; }
         }
 
         .work-body {
