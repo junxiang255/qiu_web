@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta HTTP-EQUIV="pragma" CONTENT="no-cache">
-    <title>赞助支持 · 小秋的垃圾站</title>
+    <title>赞助记录 · 小秋的垃圾站</title>
     <link rel="shortcut icon" href="static/img/favicon.ico">
     <link rel="stylesheet" href="static/css/font.css">
     <style>
@@ -68,92 +68,21 @@
             text-align: center;
         }
 
-        .sub {
-            margin: 0 0 24px;
-            text-align: center;
-            font-size: .78rem;
-            color: #8d9299;
-        }
 
-        .intro {
-            font-size: .88rem;
-            line-height: 2;
-            color: #444;
-            margin: 0 0 26px;
-            text-align: center;
-        }
 
         .intro b { color: #33479c; }
 
         /* 二维码 */
-        .qr-row {
-            display: flex;
-            gap: 28px;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-bottom: 26px;
-        }
 
-        .qr-box { text-align: center; }
 
-        .qr-frame {
-            width: 200px;
-            height: 200px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 18px;
-            overflow: hidden;
-            background: rgba(255, 255, 255, .9);
-            border: 1px solid rgba(0, 0, 0, .08);
-            box-shadow: 0 6px 22px rgb(0 0 0 / 0.14);
-        }
 
-        .qr-frame img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            display: block;
-        }
 
-        .qr-tip {
-            padding: 16px;
-            font-size: .74rem;
-            line-height: 1.8;
-            color: #9aa0a8;
-        }
 
-        .qr-label {
-            margin: 12px 0 0;
-            font-size: .84rem;
-            font-weight: 700;
-            letter-spacing: 1px;
-        }
 
-        .qr-label.wechat { color: #07c160; }
-        .qr-label.alipay { color: #1677ff; }
 
         /* 说明 */
-        .notes {
-            margin-top: 8px;
-            padding: 18px 20px;
-            border-radius: 16px;
-            background: rgba(255, 255, 255, .6);
-            border: 1px dashed rgba(0, 0, 0, .1);
-            font-size: .8rem;
-            line-height: 2;
-            color: #5a5a5a;
-        }
 
-        .notes h2 {
-            margin: 0 0 8px;
-            font-size: .86rem;
-            letter-spacing: 1px;
-            color: #1f1f1f;
-        }
 
-        .notes ul { margin: 0; padding-left: 20px; }
-        .notes li { margin: 2px 0; }
 
         /* 赞助记录 */
         .records {
@@ -267,7 +196,6 @@
         }
 
         @media (max-width: 560px) {
-            .qr-frame { width: 160px; height: 160px; }
             .card { padding: 24px 18px; }
         }
     </style>
@@ -281,47 +209,9 @@
     </header>
 
     <section class="card">
-        <h1>赞助支持</h1>
-        <p class="sub">如果这个小站帮到你了，可以请我喝杯奶茶</p>
-
-        <p class="intro">
-            服务器、域名、备份都是<b>自己掏钱</b>在维护的，<br>
-            你的一点心意能让这个站点活得更久一点。
-        </p>
-
-        <div class="qr-row">
-            <div class="qr-box">
-                <div class="qr-frame">
-                    <img src="static/img/sponsor_wechat.png" alt="微信收款码"
-                         onerror="this.style.display='none';this.nextElementSibling.hidden=false;">
-                    <div class="qr-tip" hidden>收款码待补充<br><small>static/img/sponsor_wechat.png</small></div>
-                </div>
-                <p class="qr-label wechat">微信</p>
-            </div>
-
-            <div class="qr-box">
-                <div class="qr-frame">
-                    <img src="static/img/sponsor_alipay.png" alt="支付宝收款码"
-                         onerror="this.style.display='none';this.nextElementSibling.hidden=false;">
-                    <div class="qr-tip" hidden>收款码待补充<br><small>static/img/sponsor_alipay.png</small></div>
-                </div>
-                <p class="qr-label alipay">支付宝</p>
-            </div>
-        </div>
-
-        <div class="notes">
-            <h2>一点说明</h2>
-            <ul>
-                <li>赞助完全自愿，<b>不影响任何功能</b>，不赞助也能正常使用；</li>
-                <li>金额随意，一杯奶茶的钱就很开心了；</li>
-                <li>赞助后想留名的话，在群里说一声，我把你记进下面的赞助记录；</li>
-                <li>不想留名也可以，我都记在心里。</li>
-            </ul>
-        </div>
+        <h1>赞助记录</h1>
 
         <div class="records">
-            <h2>赞助记录</h2>
-
             <ol class="rec-list">
 
                 <li class="rec">
