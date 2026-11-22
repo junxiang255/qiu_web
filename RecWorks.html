@@ -233,11 +233,14 @@
             white-space: nowrap;
         }
 
-        .rec-status.joined { background: rgba(56, 161, 105, .15); color: #276749; }
-
         .rec-status.absent {
             background: rgba(0, 0, 0, .05);
             color: #9aa0a8;
+        }
+
+        .rec-status.member {
+            background: rgba(120, 155, 250, .16);
+            color: #33479c;
         }
 
         .rec-status.anon {
@@ -1151,13 +1154,6 @@
             if (it.author_label) {
                 byRow.appendChild(el('span', 'rec-status ' + (it.author_state || ''),
                     it.author_label));
-            }
-            if (it.author_dev) {
-                byRow.appendChild(el('span', 'rec-status dev', '开发者'));
-            } else if (it.author_owner) {
-                byRow.appendChild(el('span', 'rec-status owner', '群主'));
-            } else if (it.author_role === 'admin') {
-                byRow.appendChild(el('span', 'rec-status admin', '管理员'));
             }
             main.appendChild(byRow);
 

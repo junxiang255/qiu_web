@@ -65,7 +65,14 @@ def main():
         if qq in ANON_QQS:
             author_state, author_label = 'anon', '匿名'
         elif qq in users:
-            author_state, author_label = 'joined', '已入站'
+            if qq in DEVELOPER_QQS:
+                author_state, author_label = 'dev', '开发者'
+            elif gm_roles.get(qq) == 'owner':
+                author_state, author_label = 'owner', '群主'
+            elif users[qq] == 'admin':
+                author_state, author_label = 'admin', '管理员'
+            else:
+                author_state, author_label = 'member', '成员'
         else:
             author_state, author_label = 'absent', '未入站'
 

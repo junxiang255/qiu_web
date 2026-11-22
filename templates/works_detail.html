@@ -131,11 +131,14 @@
             white-space: nowrap;
         }
 
-        .rec-status.joined { background: rgba(56, 161, 105, .15); color: #276749; }
-
         .rec-status.absent {
             background: rgba(0, 0, 0, .05);
             color: #9aa0a8;
+        }
+
+        .rec-status.member {
+            background: rgba(120, 155, 250, .16);
+            color: #33479c;
         }
 
         .rec-status.anon {
@@ -375,7 +378,7 @@
                     <span class="work-tag">{{ t }}</span>
                     {% endfor %}
                 </div>
-                <p class="by">推荐人：{{ item.rw_qq_name or '匿名' }}<span class="rec-status {{ author_state }}">{{ author_label }}</span>{% if author_dev %}<span class="rec-status dev">开发者</span>{% elif author_owner %}<span class="rec-status owner">群主</span>{% elif author_role == 'admin' %}<span class="rec-status admin">管理员</span>{% endif %}</p>
+                <p class="by">推荐人：{{ item.rw_qq_name or '匿名' }}<span class="rec-status {{ author_state }}">{{ author_label }}</span></p>
             </div>
         </div>
 

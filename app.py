@@ -1082,29 +1082,28 @@ def work_detail(rid):
 
     # 推荐人的入站状态
     qq = (item.rw_qq_id or "").strip()
-    author_role = ""
-    author_dev = qq in DEVELOPER_QQS
-    author_owner = False
     if qq in ("", "9999999", "99999999"):
         author_state, author_label = "anon", "匿名"
     else:
         au = db.session.scalar(db.select(User).where(User.qq_id == qq))
-        if au is not None:
-            author_state, author_label = "joined", "已入站"
-            author_role = au.role
-        else:
+        if au is None:
             author_state, author_label = "absent", "未入站"
-
-        gm = db.session.scalar(
-            db.select(GroupMember).where(GroupMember.qq_id == qq)
-        )
-        author_owner = gm is not None and gm.role == "owner"
+        elif qq in DEVELOPER_QQS:
+            author_state, author_label = "dev", "开发者"
+        else:
+            gm = db.session.scalar(
+                db.select(GroupMember).where(GroupMember.qq_id == qq)
+            )
+            if gm is not None and gm.role == "owner":
+                author_state, author_label = "owner", "群主"
+            elif au.role == "admin":
+                author_state, author_label = "admin", "管理员"
+            else:
+                author_state, author_label = "member", "成员"
 
     return render_template("works_detail.html", item=item,
                            comments=comments,
-                           author_state=author_state, author_label=author_label,
-                           author_role=author_role, author_owner=author_owner,
-                           author_dev=author_dev)
+                           author_state=author_state, author_label=author_label)
 
 
 @app.post("/api/works/<int:rid>/comment")
