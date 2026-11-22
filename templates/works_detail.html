@@ -118,6 +118,32 @@
 
         .work-head .by { margin: 0; font-size: .8rem; color: #8d9299; }
 
+        /* 推荐人的入站状态 */
+        .rec-status {
+            display: inline-block;
+            margin-left: 6px;
+            padding: 1px 8px;
+            font-size: .66rem;
+            font-weight: 700;
+            line-height: 1.7;
+            border-radius: 999px;
+            vertical-align: 1px;
+            white-space: nowrap;
+        }
+
+        .rec-status.joined { background: rgba(56, 161, 105, .15); color: #276749; }
+
+        .rec-status.absent {
+            background: rgba(0, 0, 0, .05);
+            color: #9aa0a8;
+        }
+
+        .rec-status.anon {
+            background: rgba(0, 0, 0, .03);
+            color: #b0b4ba;
+            border: 1px dashed rgba(0, 0, 0, .12);
+        }
+
         .work-body {
             margin-top: 20px;
             padding-top: 18px;
@@ -348,7 +374,7 @@
                     <h1>{{ item.rw_work_name or '未命名作品' }}</h1>
                     {% if item.rw_tag %}<span class="work-tag">{{ item.rw_tag }}</span>{% endif %}
                 </div>
-                <p class="by">推荐人：{{ item.rw_qq_name or '匿名' }}</p>
+                <p class="by">推荐人：{{ item.rw_qq_name or '匿名' }}<span class="rec-status {{ author_state }}">{{ author_label }}</span></p>
             </div>
         </div>
 

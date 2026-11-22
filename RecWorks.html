@@ -207,6 +207,32 @@
             word-break: break-word;
         }
 
+        /* 推荐人的入站状态 */
+        .rec-status {
+            display: inline-block;
+            margin-left: 6px;
+            padding: 1px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1.7;
+            border-radius: 999px;
+            vertical-align: 1px;
+            white-space: nowrap;
+        }
+
+        .rec-status.joined { background: rgba(56, 161, 105, .15); color: #276749; }
+
+        .rec-status.absent {
+            background: rgba(0, 0, 0, .05);
+            color: #9aa0a8;
+        }
+
+        .rec-status.anon {
+            background: rgba(0, 0, 0, .03);
+            color: #b0b4ba;
+            border: 1px dashed rgba(0, 0, 0, .12);
+        }
+
         /* 展开区 */
         .rec-body {
             margin-top: 14px;
@@ -1072,7 +1098,13 @@
             }
             main.appendChild(titleRow);
 
-            main.appendChild(el('p', 'rec-by', '推荐人：' + (it.qq_name || '匿名')));
+            var byRow = el('p', 'rec-by');
+            byRow.appendChild(document.createTextNode('推荐人：' + (it.qq_name || '匿名')));
+            if (it.author_label) {
+                byRow.appendChild(el('span', 'rec-status ' + (it.author_state || ''),
+                    it.author_label));
+            }
+            main.appendChild(byRow);
 
             /* ---- 正文摘要（完整内容与评论在详情页） ---- */
             var body = el('div', 'rec-body is-preview');

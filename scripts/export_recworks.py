@@ -32,6 +32,9 @@ OUT = os.path.join(BASE, 'static', 'data', 'recworks.json')
 def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
 
+    # 这些 QQ 号是后台填的占位，算匿名
+    ANON_QQS = {'', '9999999', '99999999'}
+
     conn = pymysql.connect(**DB_CONFIG)
     try:
         with conn.cursor() as cur:
@@ -40,21 +43,36 @@ def main():
                 "FROM rec_Works ORDER BY id DESC"
             )
             rows = cur.fetchall()
+
+            # 已经注册过账号的 QQ
+            cur.execute("SELECT qq_id FROM user WHERE qq_id IS NOT NULL AND qq_id <> ''")
+            joined = {str(q) for (q,) in cur.fetchall()}
     finally:
         conn.close()
 
     items = []
     for r in rows:
         img = (r[5] or '').strip()
+        qq = str(r[1] or '').strip()
+
+        if qq in ANON_QQS:
+            author_state, author_label = 'anon', '匿名'
+        elif qq in joined:
+            author_state, author_label = 'joined', '已入站'
+        else:
+            author_state, author_label = 'absent', '未入站'
+
         items.append({
             'id': r[0],
-            'qq_id': r[1] or '',
+            'qq_id': qq,
             'qq_name': r[2] or '',
             'work_name': r[3] or '',
             'recwork': r[4] or '',
             # 后台传的图落在项目根目录的 recworksimg/，nginx 按静态文件直接发
             'images': ['/recworksimg/' + img] if img else [],
             'tag': (r[6] or '').strip(),
+            'author_state': author_state,
+            'author_label': author_label,
         })
 
     payload = {
