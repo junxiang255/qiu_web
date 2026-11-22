@@ -63,6 +63,17 @@
 
         .btn.primary:hover { box-shadow: 0 10px 28px rgb(120 155 250 / 0.5); }
 
+        .btn.danger {
+            color: #b42318;
+            border-color: rgba(180, 35, 24, .18);
+        }
+
+        .btn.danger:hover {
+            color: #fff;
+            background: #e53e3e;
+            box-shadow: 0 0 18px rgba(229, 62, 62, .45);
+        }
+
         .flash-wrap { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
 
         .flash {
@@ -180,6 +191,9 @@
             <a class="btn" href="{{ url_for('users_admin') }}">用户管理</a>
             {% endif %}
             <a class="btn" href="{{ url_for('manager') }}">返回后台</a>
+            <form method="post" action="{{ url_for('logout') }}" style="display:inline;margin:0;">
+                <button class="btn danger" type="submit">退出登录</button>
+            </form>
         </div>
     </header>
 
