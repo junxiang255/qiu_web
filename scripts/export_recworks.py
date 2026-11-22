@@ -47,6 +47,10 @@ def main():
             # 已经注册过账号的 QQ，顺便带上角色
             cur.execute("SELECT qq_id, role FROM user WHERE qq_id IS NOT NULL AND qq_id <> ''")
             users = {str(q): (r or 'user') for q, r in cur.fetchall()}
+
+            # 群主 / 管理员要看群成员表
+            cur.execute("SELECT qq_id, role FROM group_member")
+            gm_roles = {str(q): (r or 'member') for q, r in cur.fetchall()}
     finally:
         conn.close()
 
@@ -79,6 +83,7 @@ def main():
             'author_state': author_state,
             'author_label': author_label,
             'author_role': users.get(qq, ''),
+            'author_owner': gm_roles.get(qq) == 'owner',
             'author_dev': qq in DEVELOPER_QQS,
         })
 

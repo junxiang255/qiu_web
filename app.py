@@ -1084,6 +1084,7 @@ def work_detail(rid):
     qq = (item.rw_qq_id or "").strip()
     author_role = ""
     author_dev = qq in DEVELOPER_QQS
+    author_owner = False
     if qq in ("", "9999999", "99999999"):
         author_state, author_label = "anon", "匿名"
     else:
@@ -1094,10 +1095,16 @@ def work_detail(rid):
         else:
             author_state, author_label = "absent", "未入站"
 
+        gm = db.session.scalar(
+            db.select(GroupMember).where(GroupMember.qq_id == qq)
+        )
+        author_owner = gm is not None and gm.role == "owner"
+
     return render_template("works_detail.html", item=item,
                            comments=comments,
                            author_state=author_state, author_label=author_label,
-                           author_role=author_role, author_dev=author_dev)
+                           author_role=author_role, author_owner=author_owner,
+                           author_dev=author_dev)
 
 
 @app.post("/api/works/<int:rid>/comment")
@@ -1156,20 +1163,40 @@ def api_users_list():
         db.select(User).where(User.status == "active", User.is_active == True)
     ).all()
 
+    # 群主身份只在 group_member 里有
+    owners = set()
+    for qq_id, role in db.session.execute(
+        db.select(GroupMember.qq_id, GroupMember.role)
+    ).all():
+        if role == "owner":
+            owners.add(qq_id)
+
     rows = sorted(rows, key=lambda u: (
         0 if u.is_developer else 1,
+        0 if (u.qq_id in owners) else 1,
         0 if u.is_admin else 1,
         u.id,
     ))
 
     users = []
     for u in rows:
+        is_owner = (u.qq_id in owners)
+        if u.is_developer:
+            role_label = "开发者"
+        elif is_owner:
+            role_label = "群主"
+        elif u.is_admin:
+            role_label = "管理员"
+        else:
+            role_label = "成员"
+
         users.append({
             "id": u.id,
             "nickname": u.display_name,
             "qq_id": u.qq_id or "",
             "role": u.role,
-            "role_label": "管理员" if u.is_admin else "成员",
+            "role_label": role_label,
+            "is_owner": is_owner,
             "is_developer": u.is_developer,
             "joined": u.created_at.strftime("%Y-%m-%d") if u.created_at else "",
         })
