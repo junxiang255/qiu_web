@@ -230,7 +230,9 @@
                 <label for="nickname">昵称</label>
                 <input id="nickname" name="nickname" type="text" maxlength="50"
                        value="{{ user.nickname or '' }}" placeholder="留空则显示用户名">
-            </div>
+            <label for="bio" style="margin-top:14px;">个性签名</label>
+            <input id="bio" name="bio" type="text" maxlength="200"
+                   value="{{ user.bio or '' }}" placeholder="这个人很懒，什么都没留下">
             <div style="text-align:right;">
                 <button class="btn primary" type="submit">保存昵称</button>
             </div>

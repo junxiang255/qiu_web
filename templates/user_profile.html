@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ u.display_name }} 的主页 · 小秋的垃圾站</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/font.css') }}">
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 16px 16px 60px;
+            background: linear-gradient(rgba(255, 255, 255, .2), rgba(255, 255, 255, .3)),
+                        url("{{ url_for('static', filename='img/background.png') }}") center/cover no-repeat fixed;
+            font-family: "筑紫A圆体D", system-ui, sans-serif;
+            color: #1f1f1f;
+        }
+
+        .wrap { width: min(680px, 100%); margin: 0 auto; }
+
+        .bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, .8);
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, .66);
+            box-shadow: rgb(0 0 0 / 0.12) 0px 8px 28px 0px;
+        }
+
+        .back {
+            font-size: .8rem;
+            color: #333;
+            text-decoration: none;
+            padding: 6px 14px;
+            border-radius: 11px;
+            background: rgba(255, 255, 255, .6);
+            border: 1px solid rgba(0, 0, 0, .07);
+            transition: all .3s ease;
+        }
+
+        .back:hover { background: #789bfa71; box-shadow: 0 0 18px #e6b5e6; }
+
+        .bar .t { font-size: .9rem; font-weight: 700; letter-spacing: 2px; }
+
+        /* ===== 顶部个人信息卡 ===== */
+        .hero {
+            position: relative;
+            margin-top: 14px;
+            border-radius: 22px;
+            overflow: hidden;
+            box-shadow: rgb(0 0 0 / 0.16) 0px 12px 38px 0px;
+            animation: fade_in .5s ease-out both;
+        }
+
+        .hero-bg {
+            height: 140px;
+            background:
+                linear-gradient(135deg, rgba(120, 155, 250, .55), rgba(180, 140, 224, .55)),
+                url("{{ url_for('static', filename='img/background.png') }}") center/cover no-repeat;
+        }
+
+        .hero-body {
+            position: relative;
+            padding: 0 22px 22px;
+            background: rgba(255, 255, 255, .88);
+            backdrop-filter: blur(18px);
+        }
+
+        .avatar-wrap {
+            width: 92px;
+            height: 92px;
+            margin-top: -46px;
+            border-radius: 50%;
+            padding: 4px;
+            background: rgba(255, 255, 255, .92);
+            box-shadow: 0 6px 20px rgb(0 0 0 / .18);
+        }
+
+        .avatar-wrap img,
+        .avatar-wrap .fb {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 700;
+            color: #7d8798;
+            background: linear-gradient(135deg, #e7ecf7, #cfd9ec);
+        }
+
+        .name-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .name-row h1 {
+            margin: 0;
+            font-size: 1.35rem;
+            letter-spacing: 1px;
+        }
+
+        .badge {
+            padding: 2px 10px;
+            font-size: .68rem;
+            font-weight: 700;
+            line-height: 1.8;
+            border-radius: 999px;
+            white-space: nowrap;
+        }
+
+        .badge.dev {
+            color: #fff;
+            background: linear-gradient(90deg, #789bfa, #b48ce0, #ff9ec7, #789bfa);
+            background-size: 300% 100%;
+            animation: tag_flow 4s linear infinite;
+            box-shadow: 0 2px 10px rgba(120, 155, 250, .5);
+        }
+        .badge.owner {
+            color: #6b4a00;
+            background: linear-gradient(90deg, #ffe08a, #ffc233, #fff3c4, #ffc233, #ffe08a);
+            background-size: 300% 100%;
+            animation: tag_flow 5s linear infinite;
+        }
+        .badge.admin {
+            color: #047857;
+            background: linear-gradient(90deg, #d1fae5, #a7f3d0, #ecfdf5, #a7f3d0, #d1fae5);
+            background-size: 300% 100%;
+            animation: tag_flow 6s linear infinite;
+        }
+        .badge.member { background: rgba(120, 155, 250, .16); color: #33479c; }
+
+        @keyframes tag_flow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 300% 50%; }
+        }
+
+        .lv-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .lv-chip {
+            padding: 3px 12px;
+            font-size: .76rem;
+            font-weight: 700;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, .07);
+            color: #6b7280;
+            white-space: nowrap;
+        }
+        .lv-chip.green { background: rgba(52, 211, 153, .22); color: #047857; }
+        .lv-chip.blue { background: rgba(96, 165, 250, .22); color: #1d4ed8; }
+        .lv-chip.purple { background: rgba(167, 139, 250, .25); color: #6d28d9; }
+        .lv-chip.gold { background: linear-gradient(135deg, #fde68a, #fbbf24); color: #78350f; }
+        .lv-chip.dev {
+            color: #fff;
+            background: linear-gradient(90deg, #789bfa, #b48ce0, #ff9ec7, #789bfa);
+            background-size: 300% 100%;
+            animation: tag_flow 4s linear infinite;
+        }
+
+        .exp-bar {
+            flex: 1 1 auto;
+            height: 9px;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, .07);
+            overflow: hidden;
+        }
+
+        .exp-fill {
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #789bfa, #b48ce0);
+            box-shadow: 0 0 10px rgba(120, 155, 250, .55);
+        }
+
+        .exp-num { font-size: .7rem; color: #8d9299; white-space: nowrap; }
+
+        .uid { margin-top: 10px; font-size: .74rem; color: #8d9299; }
+
+        .bio {
+            margin-top: 10px;
+            font-size: .82rem;
+            line-height: 1.8;
+            color: #5a5a5a;
+            word-break: break-word;
+        }
+
+        .bio.empty { color: #b0b4ba; font-style: italic; }
+
+        .edit-btn {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            padding: 6px 16px;
+            font-family: inherit;
+            font-size: .74rem;
+            color: #333;
+            text-decoration: none;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .9);
+            border: 1px solid rgba(0, 0, 0, .08);
+            box-shadow: 0 2px 10px rgb(0 0 0 / .1);
+            transition: all .25s ease;
+        }
+
+        .edit-btn:hover { background: #fff; box-shadow: 0 4px 16px rgb(0 0 0 / .16); }
+
+        /* ===== 统计 ===== */
+        .stats {
+            display: flex;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .stat {
+            flex: 1 1 0;
+            padding: 14px 6px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, .8);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, .6);
+            box-shadow: rgb(0 0 0 / 0.08) 0px 5px 18px 0px;
+            text-align: center;
+        }
+
+        .stat .n {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #33479c;
+            line-height: 1.2;
+        }
+
+        .stat .l { margin-top: 3px; font-size: .68rem; color: #8d9299; }
+
+        /* ===== Tab ===== */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-top: 16px;
+            padding: 5px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, .7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, .55);
+            box-shadow: rgb(0 0 0 / 0.08) 0px 5px 18px 0px;
+        }
+
+        .tab {
+            flex: 1 1 0;
+            padding: 9px 4px;
+            font-family: inherit;
+            font-size: .8rem;
+            color: #6b7280;
+            border: none;
+            border-radius: 10px;
+            background: transparent;
+            cursor: pointer;
+            transition: all .25s ease;
+            white-space: nowrap;
+        }
+
+        .tab:hover { background: rgba(120, 155, 250, .12); }
+
+        .tab.on {
+            color: #fff;
+            font-weight: 700;
+            background: linear-gradient(135deg, #789bfa, #b48ce0);
+            box-shadow: 0 4px 14px rgb(120 155 250 / .4);
+        }
+
+        .panel { display: none; margin-top: 12px; }
+        .panel.on { display: block; }
+
+        .item {
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, .82);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, .58);
+            box-shadow: rgb(0 0 0 / 0.08) 0px 5px 18px 0px;
+            animation: fade_in .35s ease-out both;
+        }
+
+        .item-title {
+            font-size: .88rem;
+            font-weight: 700;
+            color: #1f1f1f;
+            margin-bottom: 6px;
+            word-break: break-word;
+        }
+
+        .item-title a { color: inherit; text-decoration: none; }
+        .item-title a:hover { color: #33479c; text-decoration: underline; }
+
+        .item-text {
+            font-size: .8rem;
+            line-height: 1.8;
+            color: #5a5a5a;
+            white-space: pre-wrap;
+            word-break: break-word;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .item-meta {
+            margin-top: 8px;
+            font-size: .68rem;
+            color: #9aa0a8;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .none {
+            padding: 36px 0;
+            text-align: center;
+            font-size: .8rem;
+            color: #9aa0a8;
+        }
+
+        @keyframes fade_in {
+            0% { opacity: 0; transform: translateY(8px); }
+            100% { opacity: 1; transform: none; }
+        }
+
+        @media (max-width: 520px) {
+            body { padding: 10px 10px 40px; }
+            .hero-bg { height: 110px; }
+            .avatar-wrap { width: 76px; height: 76px; margin-top: -38px; }
+            .stat .n { font-size: 1.05rem; }
+            .tab { font-size: .74rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+
+    <header class="bar">
+        <a class="back" href="/index.html">← 首页</a>
+        <span class="t">个人主页</span>
+    </header>
+
+    <section class="hero">
+        <div class="hero-bg"></div>
+        {% if is_me %}
+        <a class="edit-btn" href="/account">编辑资料</a>
+        {% endif %}
+
+        <div class="hero-body">
+            <div class="avatar-wrap">
+                {% if u.qq_id %}
+                <img src="https://q.qlogo.cn/headimg_dl?dst_uin={{ u.qq_id }}&spec=640&img_type=jpg"
+                     onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/qun_avatar.jpg') }}';"
+                     alt="{{ u.display_name }}">
+                {% else %}
+                <span class="fb">{{ u.display_name[:1] }}</span>
+                {% endif %}
+            </div>
+
+            <div class="name-row">
+                <h1>{{ u.display_name }}</h1>
+                <span class="badge {{ role_tier }}">{{ role_label }}</span>
+            </div>
+
+            <div class="lv-row">
+                <span class="lv-chip {{ u.level_tier }}">LV{{ u.level }}</span>
+                <div class="exp-bar">
+                    <div class="exp-fill" style="width: {{ u.level_percent }}%"></div>
+                </div>
+                <span class="exp-num">{{ u.exp }} / {{ u.level_cap * 100 }}</span>
+            </div>
+
+            <div class="uid">UID: {{ '%05d' % u.id }}　·　{{ u.created_at.strftime('%Y-%m-%d') if u.created_at else '' }} 加入</div>
+
+            {% if u.bio %}
+            <p class="bio">{{ u.bio }}</p>
+            {% else %}
+            <p class="bio empty">这个人很懒，什么都没留下</p>
+            {% endif %}
+        </div>
+    </section>
+
+    <div class="stats">
+        <div class="stat"><div class="n">{{ n_rec }}</div><div class="l">推荐作品</div></div>
+        <div class="stat"><div class="n">{{ n_comment }}</div><div class="l">评论</div></div>
+        <div class="stat"><div class="n">{{ n_guest }}</div><div class="l">留言</div></div>
+        <div class="stat"><div class="n">{{ n_checkin }}</div><div class="l">签到</div></div>
+    </div>
+
+    <div class="tabs">
+        <button class="tab on" type="button" data-p="rec">推荐</button>
+        <button class="tab" type="button" data-p="cm">评论</button>
+        <button class="tab" type="button" data-p="gb">留言</button>
+    </div>
+
+    <div class="panel on" id="p-rec">
+        {% for it in my_recs %}
+        <article class="item">
+            <div class="item-title">
+                <a href="/works/{{ it.id }}">{{ it.rw_work_name or '未命名作品' }}</a>
+                {% for t in (it.rw_tag or '').split() %}<span class="badge member" style="margin-left:5px;">{{ t }}</span>{% endfor %}
+            </div>
+            <div class="item-text">{{ it.rw_recwork or '（没有正文）' }}</div>
+            <div class="item-meta"><span>#{{ it.id }}</span></div>
+        </article>
+        {% else %}
+        <p class="none">还没有推荐过作品</p>
+        {% endfor %}
+    </div>
+
+    <div class="panel" id="p-cm">
+        {% for c in my_comments %}
+        <article class="item">
+            <div class="item-title">
+                <a href="/works/{{ c.work_id }}">{{ work_titles.get(c.work_id, '作品') }}</a>
+            </div>
+            <div class="item-text">{{ c.content }}</div>
+            <div class="item-meta">
+                <span>{{ c.created_at | humanize if c.created_at else '' }}</span>
+            </div>
+        </article>
+        {% else %}
+        <p class="none">还没有发表过评论</p>
+        {% endfor %}
+    </div>
+
+    <div class="panel" id="p-gb">
+        {% for e in my_guests %}
+        <article class="item">
+            <div class="item-text">{{ e.content }}</div>
+            <div class="item-meta">
+                <span>{{ e.created_at | humanize if e.created_at else '' }}</span>
+                {% if e.reply %}<span>已回复</span>{% endif %}
+            </div>
+        </article>
+        {% else %}
+        <p class="none">还没有在留言板留过言</p>
+        {% endfor %}
+    </div>
+
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    var tabs = document.querySelectorAll('.tab');
+    var panels = {
+        rec: document.getElementById('p-rec'),
+        cm: document.getElementById('p-cm'),
+        gb: document.getElementById('p-gb'),
+    };
+
+    tabs.forEach(function (t) {
+        t.addEventListener('click', function () {
+            tabs.forEach(function (x) { x.classList.remove('on'); });
+            t.classList.add('on');
+            Object.keys(panels).forEach(function (k) {
+                if (panels[k]) { panels[k].classList.toggle('on', k === t.getAttribute('data-p')); }
+            });
+        });
+    });
+})();
+</script>
+</body>
+</html>

@@ -1287,8 +1287,9 @@
             if (emptyEl) { emptyEl.hidden = true; }
 
             users.forEach(function (u) {
-                var card = document.createElement('div');
+                var card = document.createElement('a');
                 card.className = 'member';
+                card.href = '/u/' + u.id;
                 card.title = u.nickname + (u.joined ? ' · ' + u.joined + ' 加入' : '');
 
                 if (u.qq_id) {

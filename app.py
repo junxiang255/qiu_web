@@ -648,6 +648,7 @@ class User(db.Model):
     created_at:Mapped[datetime|None]=mapped_column(DateTime,nullable=True,default=datetime.now)
     last_login:Mapped[datetime|None]=mapped_column(DateTime,nullable=True)
     exp:Mapped[int]=mapped_column(Integer,nullable=False,default=0,server_default="0")
+    bio:Mapped[str|None]=mapped_column(String(200),nullable=True)
 
     def __init__(self,*args,**kwargs):
         password = kwargs.pop("password", None)
@@ -932,12 +933,17 @@ def account():
 
     if action == "profile":
         nickname = (request.form.get("nickname") or "").strip()
+        bio = (request.form.get("bio") or "").strip()
         if len(nickname) > 50:
             flash("昵称最多 50 个字", "error")
             return redirect(url_for("account"))
+        if len(bio) > 200:
+            flash("个性签名最多 200 字", "error")
+            return redirect(url_for("account"))
         g.user.nickname = nickname or None
+        g.user.bio = bio or None
         db.session.commit()
-        flash("昵称已更新", "success")
+        flash("资料已更新", "success")
         return redirect(url_for("account"))
 
     if action == "password":
@@ -1643,6 +1649,75 @@ def checkin_do():
                    exp=int(g.user.exp or 0), level=g.user.level,
                    level_tier=g.user.level_tier, level_percent=g.user.level_percent,
                    info=info)
+
+
+@app.route("/u/<int:uid>")
+def user_profile(uid):
+    """公开的个人主页。"""
+    u = db.session.get(User, uid)
+    if u is None or not u.is_active:
+        abort(404)
+
+    # 统计数据
+    n_rec = db.session.scalar(
+        db.select(func.count()).select_from(recWorks).where(recWorks.rw_qq_id == (u.qq_id or ""))
+    ) or 0
+    n_comment = db.session.scalar(
+        db.select(func.count()).select_from(WorkComment)
+        .where(WorkComment.user_id == uid, WorkComment.status == "visible")
+    ) or 0
+    n_guest = db.session.scalar(
+        db.select(func.count()).select_from(GuestbookEntry)
+        .where(GuestbookEntry.user_id == uid, GuestbookEntry.status == "visible")
+    ) or 0
+    n_chat = db.session.scalar(
+        db.select(func.count()).select_from(ChatMessage)
+        .where(ChatMessage.user_id == uid, ChatMessage.status == "visible")
+    ) or 0
+    n_checkin = db.session.scalar(
+        db.select(func.count()).select_from(CheckIn).where(CheckIn.user_id == uid)
+    ) or 0
+
+    # 三个 tab 的内容
+    my_recs = db.session.scalars(
+        db.select(recWorks).where(recWorks.rw_qq_id == (u.qq_id or ""))
+        .order_by(recWorks.id.desc()).limit(20)
+    ).all()
+    my_comments = db.session.scalars(
+        db.select(WorkComment)
+        .where(WorkComment.user_id == uid, WorkComment.status == "visible")
+        .order_by(WorkComment.id.desc()).limit(20)
+    ).all()
+    my_guests = db.session.scalars(
+        db.select(GuestbookEntry)
+        .where(GuestbookEntry.user_id == uid, GuestbookEntry.status == "visible")
+        .order_by(GuestbookEntry.id.desc()).limit(20)
+    ).all()
+
+    # 身份
+    gm = db.session.scalar(db.select(GroupMember).where(GroupMember.qq_id == (u.qq_id or "")))
+    if u.is_developer:
+        role_label, role_tier = "开发者", "dev"
+    elif gm is not None and gm.role == "owner":
+        role_label, role_tier = "群主", "owner"
+    elif u.is_admin:
+        role_label, role_tier = "管理员", "admin"
+    else:
+        role_label, role_tier = "成员", "member"
+
+    # 评论所属的作品标题
+    work_titles = {}
+    if my_comments:
+        ids = {c.work_id for c in my_comments}
+        for w in db.session.scalars(db.select(recWorks).where(recWorks.id.in_(ids))).all():
+            work_titles[w.id] = w.rw_work_name or "未命名作品"
+
+    return render_template("user_profile.html", u=u, is_me=(g.user is not None and g.user.id == uid),
+                           role_label=role_label, role_tier=role_tier,
+                           n_rec=n_rec, n_comment=n_comment, n_guest=n_guest,
+                           n_chat=n_chat, n_checkin=n_checkin,
+                           my_recs=my_recs, my_comments=my_comments, my_guests=my_guests,
+                           work_titles=work_titles)
 
 
 @app.route("/api/me")
