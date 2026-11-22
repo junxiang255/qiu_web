@@ -45,8 +45,10 @@ def main():
             rows = cur.fetchall()
 
             # 已经注册过账号的 QQ，顺便带上角色
-            cur.execute("SELECT qq_id, role FROM user WHERE qq_id IS NOT NULL AND qq_id <> ''")
-            users = {str(q): (r or 'user') for q, r in cur.fetchall()}
+            cur.execute("SELECT qq_id, role, exp FROM user WHERE qq_id IS NOT NULL AND qq_id <> ''")
+            rows_u = cur.fetchall()
+            users = {str(q): (r or 'user') for q, r, _e in rows_u}
+            user_exp = {str(q): int(e or 0) for q, _r, e in rows_u}
 
             # 群主 / 管理员要看群成员表
             cur.execute("SELECT qq_id, role FROM group_member")
@@ -92,6 +94,9 @@ def main():
             'author_role': users.get(qq, ''),
             'author_owner': gm_roles.get(qq) == 'owner',
             'author_dev': qq in DEVELOPER_QQS,
+            'author_exp': user_exp.get(qq, 0),
+            'author_level': min(user_exp.get(qq, 0) // 100 + 1,
+                                255 if qq in DEVELOPER_QQS else 100) if qq in users else 0,
         })
 
     payload = {

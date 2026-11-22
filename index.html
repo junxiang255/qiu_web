@@ -403,6 +403,33 @@
             color: #7d838c;
         }
 
+        /* 等级徽章 */
+        .member .lv {
+            font-size: .62rem;
+            font-weight: 700;
+            line-height: 1.7;
+            padding: 1px 8px;
+            border-radius: 7px;
+            letter-spacing: .5px;
+            white-space: nowrap;
+        }
+
+        .member .lv.gray { background: rgba(0, 0, 0, .07); color: #6b7280; }
+        .member .lv.green { background: rgba(52, 211, 153, .22); color: #047857; }
+        .member .lv.blue { background: rgba(96, 165, 250, .22); color: #1d4ed8; }
+        .member .lv.purple { background: rgba(167, 139, 250, .25); color: #6d28d9; }
+        .member .lv.gold {
+            background: linear-gradient(135deg, #fde68a, #fbbf24);
+            color: #78350f;
+            box-shadow: 0 2px 8px rgba(251, 191, 36, .5);
+        }
+        .member .lv.dev {
+            color: #fff;
+            background: linear-gradient(90deg, #789bfa, #b48ce0, #ff9ec7, #789bfa);
+            background-size: 300% 100%;
+            animation: tag_flow 4s linear infinite;
+            box-shadow: 0 2px 8px rgba(120, 155, 250, .5);
+        }
         /* 群友 */
         .members {
             padding: 24px;
@@ -1281,6 +1308,14 @@
                 nm.className = 'nm';
                 nm.textContent = u.nickname || '匿名';
                 card.appendChild(nm);
+
+                if (u.level) {
+                    var lv = document.createElement('span');
+                    lv.className = 'lv ' + (u.level_tier || 'gray');
+                    lv.textContent = 'LV' + u.level;
+                    lv.title = '经验 ' + (u.exp || 0) + ' / 上限 LV' + (u.level_cap || 100);
+                    card.appendChild(lv);
+                }
 
                 var tag = document.createElement('span');
                 tag.className = 'tag2' +

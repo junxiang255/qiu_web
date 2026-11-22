@@ -488,6 +488,68 @@ class GroupMember(db.Model):
     def is_developer(self):
         return self.qq_id in DEVELOPER_QQS
 
+    # ---- 等级 ----
+    # 每 100 经验升一级，普通用户封顶 LV100，开发者可以到 LV255
+    EXP_PER_LEVEL = 100
+    LEVEL_CAP_NORMAL = 100
+    LEVEL_CAP_DEV = 255
+
+    @property
+    def level(self) -> int:
+        raw = int(self.exp or 0) // self.EXP_PER_LEVEL + 1
+        cap = self.LEVEL_CAP_DEV if self.is_developer else self.LEVEL_CAP_NORMAL
+        return max(1, min(raw, cap))
+
+    @property
+    def level_cap(self) -> int:
+        return self.LEVEL_CAP_DEV if self.is_developer else self.LEVEL_CAP_NORMAL
+
+    @property
+    def level_exp_in(self) -> int:
+        """当前等级内已积累的经验（0-99），满级时固定 0。"""
+        if self.level >= self.level_cap:
+            return 0
+        return int(self.exp or 0) % self.EXP_PER_LEVEL
+
+    @property
+    def level_exp_need(self) -> int:
+        return self.EXP_PER_LEVEL
+
+    @property
+    def level_percent(self) -> int:
+        if self.level >= self.level_cap:
+            return 100
+        return int(self.level_exp_in * 100 / self.EXP_PER_LEVEL)
+
+    @property
+    def level_tier(self) -> str:
+        """给前端上色用。"""
+        lv = self.level
+        if self.is_developer:
+            return "dev"
+        if lv >= 90:
+            return "gold"
+        if lv >= 60:
+            return "purple"
+        if lv >= 30:
+            return "blue"
+        if lv >= 10:
+            return "green"
+        return "gray"
+
+    def add_exp(self, amount: int) -> int:
+        """加经验，返回实际加了多少（封顶后不再增加）。"""
+        if amount <= 0:
+            return 0
+        cap_exp = self.level_cap * self.EXP_PER_LEVEL
+        cur = int(self.exp or 0)
+        if cur >= cap_exp:
+            return 0
+        new_exp = min(cur + amount, cap_exp)
+        gained = new_exp - cur
+        self.exp = new_exp
+        return gained
+
 
 class WorkLike(db.Model):
     """作品点赞（已停用，前端入口已移除；表先留着，需要时可恢复）。"""
@@ -564,6 +626,7 @@ class User(db.Model):
     is_active:Mapped[bool]=mapped_column(Boolean,nullable=False,default=True)
     created_at:Mapped[datetime|None]=mapped_column(DateTime,nullable=True,default=datetime.now)
     last_login:Mapped[datetime|None]=mapped_column(DateTime,nullable=True)
+    exp:Mapped[int]=mapped_column(Integer,nullable=False,default=0,server_default="0")
 
     def __init__(self,*args,**kwargs):
         password = kwargs.pop("password", None)
@@ -593,6 +656,68 @@ class User(db.Model):
     @property
     def is_developer(self):
         return self.qq_id in DEVELOPER_QQS
+
+    # ---- 等级 ----
+    # 每 100 经验升一级，普通用户封顶 LV100，开发者可以到 LV255
+    EXP_PER_LEVEL = 100
+    LEVEL_CAP_NORMAL = 100
+    LEVEL_CAP_DEV = 255
+
+    @property
+    def level(self) -> int:
+        raw = int(self.exp or 0) // self.EXP_PER_LEVEL + 1
+        cap = self.LEVEL_CAP_DEV if self.is_developer else self.LEVEL_CAP_NORMAL
+        return max(1, min(raw, cap))
+
+    @property
+    def level_cap(self) -> int:
+        return self.LEVEL_CAP_DEV if self.is_developer else self.LEVEL_CAP_NORMAL
+
+    @property
+    def level_exp_in(self) -> int:
+        """当前等级内已积累的经验（0-99），满级时固定 0。"""
+        if self.level >= self.level_cap:
+            return 0
+        return int(self.exp or 0) % self.EXP_PER_LEVEL
+
+    @property
+    def level_exp_need(self) -> int:
+        return self.EXP_PER_LEVEL
+
+    @property
+    def level_percent(self) -> int:
+        if self.level >= self.level_cap:
+            return 100
+        return int(self.level_exp_in * 100 / self.EXP_PER_LEVEL)
+
+    @property
+    def level_tier(self) -> str:
+        """给前端上色用。"""
+        lv = self.level
+        if self.is_developer:
+            return "dev"
+        if lv >= 90:
+            return "gold"
+        if lv >= 60:
+            return "purple"
+        if lv >= 30:
+            return "blue"
+        if lv >= 10:
+            return "green"
+        return "gray"
+
+    def add_exp(self, amount: int) -> int:
+        """加经验，返回实际加了多少（封顶后不再增加）。"""
+        if amount <= 0:
+            return 0
+        cap_exp = self.level_cap * self.EXP_PER_LEVEL
+        cur = int(self.exp or 0)
+        if cur >= cap_exp:
+            return 0
+        new_exp = min(cur + amount, cap_exp)
+        gained = new_exp - cur
+        self.exp = new_exp
+        return gained
 
     @property
     def is_pending(self):
@@ -753,6 +878,7 @@ def register():
 
     u = User(username=username, nickname=nick, qq_id=qq_id, role=role, status=status)
     u.password = password
+    u.exp = 100 if status == "active" else 0    # 注册通过就送 100 经验（LV2）
 
     try:
         db.session.add(u)
@@ -1132,6 +1258,7 @@ def work_add_comment(rid):
     row = WorkComment(work_id=rid, user_id=g.user.id, nickname=g.user.display_name,
                       qq_id=g.user.qq_id, content=content)
     db.session.add(row)
+    g.user.add_exp(10)          # 发评论 +10 经验
     db.session.commit()
 
     return jsonify(ok=True, comment={
@@ -1204,6 +1331,10 @@ def api_users_list():
             "role_label": role_label,
             "is_owner": is_owner,
             "is_developer": u.is_developer,
+            "level": u.level,
+            "level_cap": u.level_cap,
+            "level_tier": u.level_tier,
+            "exp": int(u.exp or 0),
             "joined": u.created_at.strftime("%Y-%m-%d") if u.created_at else "",
         })
     return jsonify(count=len(users), users=users)
@@ -1273,6 +1404,7 @@ def chat_send():
     row = ChatMessage(user_id=g.user.id, nickname=g.user.display_name,
                       qq_id=g.user.qq_id, content=content)
     db.session.add(row)
+    g.user.add_exp(2)           # 聊天 +2 经验
     db.session.commit()
 
     return jsonify(ok=True, message=_chat_payload(row))
@@ -1337,6 +1469,7 @@ def guestbook_post():
     row = GuestbookEntry(user_id=g.user.id, nickname=g.user.display_name,
                          qq_id=g.user.qq_id, content=content)
     db.session.add(row)
+    g.user.add_exp(20)          # 留言 +20 经验
     db.session.commit()
 
     return jsonify(ok=True, entry={
@@ -1410,6 +1543,11 @@ def api_me():
         role=u.role,
         is_admin=u.is_admin,
         is_developer=u.is_developer,
+        level=u.level,
+        level_cap=u.level_cap,
+        level_tier=u.level_tier,
+        exp=int(u.exp or 0),
+        level_percent=u.level_percent,
     )
 
 

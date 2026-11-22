@@ -220,6 +220,36 @@
             word-break: break-word;
         }
 
+        /* 推荐人的等级徽章 */
+        .rec-lv {
+            display: inline-block;
+            margin-right: 6px;
+            padding: 1px 7px;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1.7;
+            border-radius: 6px;
+            white-space: nowrap;
+            vertical-align: 1px;
+            background: rgba(0, 0, 0, .07);
+            color: #6b7280;
+        }
+
+        .rec-lv.green { background: rgba(52, 211, 153, .22); color: #047857; }
+        .rec-lv.blue { background: rgba(96, 165, 250, .22); color: #1d4ed8; }
+        .rec-lv.purple { background: rgba(167, 139, 250, .25); color: #6d28d9; }
+        .rec-lv.gold {
+            background: linear-gradient(135deg, #fde68a, #fbbf24);
+            color: #78350f;
+            box-shadow: 0 2px 8px rgba(251, 191, 36, .5);
+        }
+        .rec-lv.dev {
+            color: #fff;
+            background: linear-gradient(90deg, #789bfa, #b48ce0, #ff9ec7, #789bfa);
+            background-size: 300% 100%;
+            animation: tag_flow 4s linear infinite;
+            box-shadow: 0 2px 8px rgba(120, 155, 250, .5);
+        }
         /* 推荐人的入站状态 */
         .rec-status {
             display: inline-block;
@@ -1150,6 +1180,16 @@
             main.appendChild(titleRow);
 
             var byRow = el('p', 'rec-by');
+            if (it.author_level) {
+                var tier = it.author_dev ? 'dev'
+                    : (it.author_level >= 90 ? 'gold'
+                    : (it.author_level >= 60 ? 'purple'
+                    : (it.author_level >= 30 ? 'blue'
+                    : (it.author_level >= 10 ? 'green' : 'gray'))));
+                var lvEl = el('span', 'rec-lv ' + tier, 'LV' + it.author_level);
+                lvEl.title = '经验 ' + (it.author_exp || 0);
+                byRow.appendChild(lvEl);
+            }
             byRow.appendChild(document.createTextNode('推荐人：' + (it.qq_name || '匿名')));
             if (it.author_label) {
                 byRow.appendChild(el('span', 'rec-status ' + (it.author_state || ''),
