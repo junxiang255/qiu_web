@@ -547,7 +547,96 @@
             .hero-title { font-size: 1.5rem; letter-spacing: 2px; }
             .hero-btn { padding: 12px 34px; }
         }
-    </style>
+    
+        /* ===== 顶栏 v2：账号区 + 播放器开关 ===== */
+        .tb-account {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+        }
+
+        .tb-user {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 14px 4px 4px;
+            border-radius: 999px;
+            text-decoration: none;
+            transition: background .3s ease, box-shadow .3s ease;
+        }
+
+        .tb-user:hover,
+        .tb-user:focus {
+            background: rgba(255, 255, 255, .6);
+            box-shadow: 0 0 18px #e6b5e6;
+            text-decoration: none;
+        }
+
+        .tb-user-avatar {
+            width: 34px;
+            height: 34px;
+            flex: 0 0 34px;
+            display: block;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 3px 10px rgb(0 0 0 / 0.2);
+            background: linear-gradient(135deg, #e7ecf7, #cfd9ec);
+        }
+
+        .tb-user-name {
+            font-size: .82rem;
+            font-weight: 700;
+            color: #1f1f1f;
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .tb-music {
+            flex: 0 0 auto;
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(0, 0, 0, .06);
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .9);
+            color: #3a3a3a;
+            cursor: pointer;
+            transition: all .3s ease;
+        }
+
+        .tb-music:hover,
+        .tb-music:focus-visible {
+            background: #789bfa71;
+            box-shadow: 0 0 18px #e6b5e6;
+            outline: none;
+        }
+
+        .tb-music.is-on {
+            background: linear-gradient(135deg, #789bfa, #b48ce0);
+            color: #fff;
+            box-shadow: 0 4px 14px rgb(120 155 250 / 0.45);
+        }
+
+        .tb-player { margin: 0; }
+
+        .tb-player[hidden] { display: none; }
+
+        @media (max-width: 1080px) {
+            .tb-user-name { max-width: 80px; }
+        }
+
+        @media (max-width: 760px) {
+            .tb-user-name { display: none; }
+            .tb-user { padding: 4px; }
+            .tb-player { max-width: 240px; }
+        }
+</style>
 </head>
 <body>
 <script type="text/javascript">
@@ -734,7 +823,21 @@
         </a>
     </nav>
 
-    <div class="tb-player" id="tb-player">
+    <div class="tb-account" id="tb-account" hidden>
+        <a class="tb-user" id="tb-user" href="/account" title="个人设置">
+            <img class="tb-user-avatar" id="tb-user-avatar" alt="" width="34" height="34">
+            <span class="tb-user-name" id="tb-user-name"></span>
+        </a>
+    </div>
+
+    <button class="tb-music" id="tb-music" type="button"
+            aria-label="音乐" title="显示 / 隐藏播放器">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+            <path fill="currentColor" d="M6.5 12.2V4.1l7-1.6v7.9a2.2 2.2 0 1 1-1.1-1.9V4.6l-4.8 1.1v6.5a2.2 2.2 0 1 1-1.1-1.9z"/>
+        </svg>
+    </button>
+
+    <div class="tb-player" id="tb-player" hidden>
         <audio id="tb-audio" preload="metadata"
                src="static/media/将那花瓣扬起了.mp3"></audio>
         <button class="tb-play" id="tb-play" type="button"
@@ -755,6 +858,7 @@
         <a href="index.html">主页</a>
     </nav>
 </header>
+
 
 <main class="home-main">
 
@@ -876,10 +980,72 @@
 </main>
 
 <script>
-/* 顶部栏迷你播放器 */
+/* 顶栏 v2：账号区 + 播放器开关 + 播放器本体 */
 (function () {
     'use strict';
 
+    /* ---------- 1. 账号区（未登录就保持隐藏） ---------- */
+    var accEl = document.getElementById('tb-account');
+    if (accEl) {
+        fetch('/api/me', { cache: 'no-store' })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (!d || !d.logged_in) { return; }
+
+                var img = document.getElementById('tb-user-avatar');
+                var nameEl = document.getElementById('tb-user-name');
+                var link = document.getElementById('tb-user');
+                var fallback = 'static/img/qun_avatar.jpg';
+
+                if (img) {
+                    if (d.qq_id) {
+                        img.src = 'https://q.qlogo.cn/headimg_dl?dst_uin=' +
+                            encodeURIComponent(d.qq_id) + '&spec=640&img_type=jpg';
+                    } else {
+                        img.src = fallback;
+                    }
+                    img.addEventListener('error', function () {
+                        this.onerror = null;
+                        this.src = fallback;
+                    });
+                }
+                if (nameEl) {
+                    nameEl.textContent = d.display_name || d.username || '账号';
+                }
+                if (link && (d.display_name || d.username)) {
+                    link.title = (d.display_name || d.username) + ' · 个人设置';
+                }
+                accEl.hidden = false;
+            })
+            .catch(function () { /* 未登录或接口异常，保持隐藏 */ });
+    }
+
+    /* ---------- 2. 播放器显示开关（默认隐藏，记住上次选择） ---------- */
+    var KEY = 'qiu_player_open';
+    var musicBtn = document.getElementById('tb-music');
+    var playerEl = document.getElementById('tb-player');
+
+    function applyPlayer(open) {
+        if (!playerEl) { return; }
+        playerEl.hidden = !open;
+        if (musicBtn) { musicBtn.classList.toggle('is-on', open); }
+    }
+
+    if (playerEl) {
+        var saved = '0';
+        try { saved = localStorage.getItem(KEY) || '0'; } catch (e) {}
+        applyPlayer(saved === '1');
+
+        if (musicBtn) {
+            musicBtn.addEventListener('click', function () {
+                var open = playerEl.hidden;
+                applyPlayer(open);
+                try { localStorage.setItem(KEY, open ? '1' : '0'); } catch (e) {}
+            });
+        }
+    }
+
+    /* ---------- 3. 播放器本体 ---------- */
     var audio = document.getElementById('tb-audio');
     var btn = document.getElementById('tb-play');
     var seek = document.getElementById('tb-seek');
@@ -971,8 +1137,27 @@
         }
     });
 
+    /* 页面里如果还有原版播放器（index.html 的黑胶），两边互斥 */
+    function bindMutex() {
+        var other = document.getElementById('myAudio');
+        if (!other || other === audio) { return; }
+        audio.addEventListener('play', function () {
+            if (!other.paused) { other.pause(); }
+        });
+        other.addEventListener('play', function () {
+            if (!audio.paused) { audio.pause(); }
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bindMutex);
+    } else {
+        bindMutex();
+    }
+
     paint();
 })();
 </script>
+
 </body>
 </html>

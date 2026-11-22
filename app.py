@@ -814,6 +814,24 @@ def get_top_qqid():
                 conn.close()
 
 
+@app.route("/api/me")
+def api_me():
+    """给静态页顶栏用：告诉前端当前有没有登录、头像用哪个 QQ。"""
+    if not g.user:
+        return jsonify(logged_in=False)
+    u = g.user
+    return jsonify(
+        logged_in=True,
+        username=u.username,
+        display_name=u.display_name,
+        nickname=u.nickname or "",
+        qq_id=u.qq_id or "",
+        role=u.role,
+        is_admin=u.is_admin,
+        is_developer=u.is_developer,
+    )
+
+
 @app.route("/manager/top_name" ,methods=["POST"])
 @login_required
 def manager_top_name():
