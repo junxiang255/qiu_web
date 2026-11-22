@@ -190,6 +190,7 @@
 
         /* 输入区 */
         .composer {
+            position: relative;
             flex: 0 0 auto;
             margin-top: 12px;
             display: flex;
@@ -247,11 +248,18 @@
         .send:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
 
         .tip {
-            flex: 0 0 100%;
+            position: absolute;
+            top: -20px;
+            left: 0;
+            right: 0;
             font-size: .7rem;
             color: #9aa0a8;
             text-align: center;
+            pointer-events: none;
+            transition: opacity .25s ease;
         }
+
+        .tip:empty { opacity: 0; }
 
         .tip.err { color: #c53030; }
 
