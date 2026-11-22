@@ -244,9 +244,11 @@
             flex: 0 0 96px;
             width: 96px;
             height: 96px;
+            display: block;
             align-self: center;
             overflow: hidden;
             border-radius: 14px;
+            text-decoration: none;
             background: rgba(255, 255, 255, .55);
             border: 1px solid rgba(0, 0, 0, .07);
             box-shadow: 0 4px 14px rgb(0 0 0 / 0.16);
@@ -291,6 +293,45 @@
         .rec-toggle.is-open {
             background: #789bfa71;
             box-shadow: 0 0 18px #e6b5e6;
+        }
+
+        /* 进详情页的链接 */
+        .rec-more {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 18px;
+            font-size: 14px;
+            color: #33479c;
+            text-decoration: none;
+            border-radius: 12px;
+            background: rgba(120, 155, 250, .14);
+            border: 1px solid rgba(120, 155, 250, .28);
+            transition: all .3s ease;
+        }
+
+        .rec-more:hover,
+        .rec-more:focus {
+            background: #789bfa71;
+            box-shadow: 0 0 18px #e6b5e6;
+            text-decoration: none;
+            color: #33479c;
+        }
+
+        /* 列表里的正文摘要：最多三行 */
+        .rec-body.is-preview {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed rgba(0, 0, 0, .08);
+        }
+
+        .rec-body.is-preview .rec-text {
+            font-size: 14px;
+            line-height: 1.75;
+            color: #5a5a5a;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
 
         /* 空态 / 失败 */
@@ -1010,62 +1051,29 @@
             main.appendChild(el('h2', 'rec-title', it.work_name || '未命名作品'));
             main.appendChild(el('p', 'rec-by', '推荐人：' + (it.qq_name || '匿名')));
 
-            /* ---- 展开区 ---- */
-            var body = el('div', 'rec-body');
-            body.hidden = true;
+            /* ---- 正文摘要（完整内容与评论在详情页） ---- */
+            var body = el('div', 'rec-body is-preview');
             body.appendChild(el('p', 'rec-text', it.recwork || '（这位朋友还没写推荐内容）'));
-
-            var gallery = el('div', 'rec-gallery');
-            var images = Array.isArray(it.images) ? it.images : [];
-            if (images.length) {
-                images.forEach(function (src) {
-                    var pic = el('img', '');
-                    pic.src = src;
-                    pic.alt = it.work_name || '作品配图';
-                    pic.loading = 'lazy';
-                    gallery.appendChild(pic);
-                });
-            } else {
-                gallery.appendChild(el('div', 'rec-slot', '图片位（后续补充）'));
-            }
-            body.appendChild(gallery);
-
-            var toggle = el('button', 'rec-toggle', '展开推荐');
-            toggle.type = 'button';
-
-            function toggleBody() {
-                var willOpen = body.hidden;
-                body.hidden = !willOpen;
-                toggle.textContent = willOpen ? '收起' : '展开推荐';
-                toggle.classList.toggle('is-open', willOpen);
-            }
-
-            toggle.addEventListener('click', toggleBody);
-
             main.appendChild(body);
-            main.appendChild(toggle);
+
+            var detail = el('a', 'rec-more', '查看详情与评论 →');
+            detail.href = '/works/' + it.id;
+            main.appendChild(detail);
 
             card.appendChild(wrap);
             card.appendChild(main);
 
-            /* ---- 右侧小预览图：有配图才显示，点一下等同点「展开推荐」 ---- */
+            /* ---- 右侧缩略图，点了也进详情页 ---- */
+            var images = Array.isArray(it.images) ? it.images : [];
             if (images.length) {
-                var thumb = el('div', 'rec-thumb');
+                var thumb = el('a', 'rec-thumb');
+                thumb.href = '/works/' + it.id;
+                thumb.setAttribute('title', '进入详情页');
                 var thumbImg = el('img', '');
                 thumbImg.src = images[0];
                 thumbImg.alt = (it.work_name || '作品') + ' 预览';
                 thumbImg.loading = 'lazy';
                 thumb.appendChild(thumbImg);
-                thumb.setAttribute('title', '点击展开推荐');
-                thumb.setAttribute('tabindex', '0');
-                thumb.setAttribute('role', 'button');
-                thumb.addEventListener('click', toggleBody);
-                thumb.addEventListener('keydown', function (e) {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        toggleBody();
-                    }
-                });
                 card.appendChild(thumb);
             }
 

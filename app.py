@@ -461,6 +461,35 @@ class GroupMember(db.Model):
         return self.qq_id in DEVELOPER_QQS
 
 
+class WorkLike(db.Model):
+    """作品点赞：按 IP 去重，登录了也顺便记一下 user_id。"""
+    __tablename__ = 'work_like'
+    id:Mapped[int]=mapped_column(Integer,primary_key=True,autoincrement=True)
+    work_id:Mapped[int]=mapped_column(Integer,nullable=False,index=True)
+    ip:Mapped[str]=mapped_column(String(64),nullable=False)
+    user_id:Mapped[int|None]=mapped_column(Integer,nullable=True)
+    created_at:Mapped[datetime|None]=mapped_column(DateTime,nullable=True,default=datetime.now)
+
+    __table_args__ = (
+        UniqueConstraint("work_id", "ip", name="uq_work_like_work_ip"),
+    )
+
+
+class WorkComment(db.Model):
+    """作品评论：要登录才能发。"""
+    __tablename__ = 'work_comment'
+    id:Mapped[int]=mapped_column(Integer,primary_key=True,autoincrement=True)
+    work_id:Mapped[int]=mapped_column(Integer,nullable=False,index=True)
+    user_id:Mapped[int|None]=mapped_column(Integer,nullable=True)
+    nickname:Mapped[str|None]=mapped_column(String(50),nullable=True)
+    content:Mapped[str]=mapped_column(Text,nullable=False)
+    status:Mapped[str]=mapped_column(String(20),nullable=False,default="visible")
+    created_at:Mapped[datetime|None]=mapped_column(DateTime,nullable=True,default=datetime.now)
+
+    def __repr__(self) -> str:
+        return f"<WorkComment {self.id} work={self.work_id}>"
+
+
 class User(db.Model):
     __tablename__='user'
     id:Mapped[int]=mapped_column(Integer,primary_key=True,autoincrement=True)
@@ -941,6 +970,99 @@ def get_top_qqid():
                 cursor.close()
             if conn:
                 conn.close()
+
+
+def client_ip():
+    """nginx 反代后 remote_addr 是 127.0.0.1，真实 IP 在 X-Real-IP 里。"""
+    return (request.headers.get("X-Real-IP") or request.remote_addr or "").strip()
+
+
+@app.route("/works/<int:rid>")
+def work_detail(rid):
+    """作品详情页：正文、配图、点赞、评论。"""
+    item = db.session.get(recWorks, rid)
+    if item is None:
+        abort(404)
+
+    likes = db.session.scalar(
+        db.select(func.count()).select_from(WorkLike).where(WorkLike.work_id == rid)
+    ) or 0
+
+    comments = db.session.scalars(
+        db.select(WorkComment)
+        .where(WorkComment.work_id == rid, WorkComment.status == "visible")
+        .order_by(WorkComment.id.desc())
+    ).all()
+
+    ip = client_ip()
+    liked = False
+    if ip:
+        liked = db.session.scalar(
+            db.select(WorkLike).where(WorkLike.work_id == rid, WorkLike.ip == ip)
+        ) is not None
+
+    return render_template("works_detail.html", item=item, likes=likes,
+                           comments=comments, liked=liked)
+
+
+@app.post("/api/works/<int:rid>/like")
+def work_like(rid):
+    """点赞 / 取消点赞，按 IP 去重。"""
+    item = db.session.get(recWorks, rid)
+    if item is None:
+        return jsonify(ok=False, msg="作品不存在"), 404
+
+    ip = client_ip() or "unknown"
+    existing = db.session.scalar(
+        db.select(WorkLike).where(WorkLike.work_id == rid, WorkLike.ip == ip)
+    )
+
+    if existing is not None:
+        db.session.delete(existing)
+        db.session.commit()
+        liked = False
+    else:
+        db.session.add(WorkLike(work_id=rid, ip=ip,
+                                user_id=(g.user.id if g.user else None)))
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+        liked = True
+
+    count = db.session.scalar(
+        db.select(func.count()).select_from(WorkLike).where(WorkLike.work_id == rid)
+    ) or 0
+    return jsonify(ok=True, liked=liked, likes=count)
+
+
+@app.post("/api/works/<int:rid>/comment")
+def work_add_comment(rid):
+    """发评论，必须登录。"""
+    if not g.user:
+        return jsonify(ok=False, msg="请先登录再评论"), 401
+
+    item = db.session.get(recWorks, rid)
+    if item is None:
+        return jsonify(ok=False, msg="作品不存在"), 404
+
+    content = (request.form.get("content") or "").strip()
+    if not content:
+        return jsonify(ok=False, msg="评论不能为空")
+    if len(content) > 1000:
+        return jsonify(ok=False, msg="评论最多 1000 字")
+
+    row = WorkComment(work_id=rid, user_id=g.user.id,
+                      nickname=g.user.display_name, content=content)
+    db.session.add(row)
+    db.session.commit()
+
+    return jsonify(ok=True, comment={
+        "id": row.id,
+        "nickname": row.nickname,
+        "content": row.content,
+        "created_at": row.created_at.strftime("%Y-%m-%d %H:%M"),
+    })
 
 
 @app.route("/api/me")

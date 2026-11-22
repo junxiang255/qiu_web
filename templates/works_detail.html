@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ item.rw_work_name or '作品' }} · 小秋的垃圾站</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/font.css') }}">
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 20px 16px 60px;
+            box-sizing: border-box;
+            background: linear-gradient(rgba(255, 255, 255, .2), rgba(255, 255, 255, .3)),
+                        url("{{ url_for('static', filename='img/background.png') }}") center/cover no-repeat fixed;
+            font-family: "筑紫A圆体D", system-ui, sans-serif;
+            color: #1f1f1f;
+        }
+
+        .wrap { width: min(760px, 100%); margin: 0 auto; }
+
+        .bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 18px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, .78);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, .66);
+            box-shadow: rgb(0 0 0 / 0.12) 0px 8px 28px 0px;
+        }
+
+        .back {
+            font-size: .84rem;
+            color: #333;
+            text-decoration: none;
+            padding: 7px 15px;
+            border-radius: 11px;
+            background: rgba(255, 255, 255, .6);
+            border: 1px solid rgba(0, 0, 0, .07);
+            transition: all .3s ease;
+        }
+
+        .back:hover { background: #789bfa71; box-shadow: 0 0 18px #e6b5e6; }
+
+        .bar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+        .who {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: .8rem;
+            color: #333;
+            text-decoration: none;
+        }
+
+        .who img {
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 8px rgb(0 0 0 / 0.18);
+        }
+
+        /* 作品卡 */
+        .work {
+            margin-top: 16px;
+            padding: 26px 26px 28px;
+            border-radius: 22px;
+            background: rgba(255, 255, 255, .84);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, .68);
+            box-shadow: rgb(0 0 0 / 0.14) 0px 12px 40px 0px;
+        }
+
+        .work-head { display: flex; gap: 14px; align-items: center; }
+
+        .work-head img.avatar {
+            width: 64px; height: 64px;
+            flex: 0 0 64px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #fff;
+            box-shadow: 0 4px 14px rgb(0 0 0 / 0.18);
+            background: linear-gradient(135deg, #e7ecf7, #cfd9ec);
+        }
+
+        .work-head h1 {
+            margin: 0 0 6px;
+            font-size: 1.5rem;
+            line-height: 1.3;
+            letter-spacing: 1px;
+        }
+
+        .work-head .by { margin: 0; font-size: .8rem; color: #8d9299; }
+
+        .work-body {
+            margin-top: 20px;
+            padding-top: 18px;
+            border-top: 1px dashed rgba(0, 0, 0, .1);
+            font-size: .9rem;
+            line-height: 2;
+            color: #3a3a3a;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .work-img {
+            width: 100%;
+            display: block;
+            margin-top: 18px;
+            border-radius: 14px;
+            box-shadow: 0 6px 22px rgb(0 0 0 / 0.16);
+        }
+
+        /* 点赞 */
+        .actions { margin-top: 16px; display: flex; justify-content: center; }
+
+        .like-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 26px;
+            font-family: inherit;
+            font-size: .88rem;
+            color: #333;
+            border: 1px solid rgba(0, 0, 0, .07);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .8);
+            box-shadow: rgb(0 0 0 / 0.1) 0px 6px 20px 0px;
+            cursor: pointer;
+            transition: all .3s ease;
+        }
+
+        .like-btn:hover { background: rgba(255, 255, 255, .95); box-shadow: 0 0 18px #e6b5e6; }
+
+        .like-btn .heart { font-size: 1rem; color: #cbd0d8; transition: color .3s ease, transform .3s ease; }
+
+        .like-btn.is-on {
+            background: #ffe9f0;
+            border-color: rgba(255, 45, 120, .3);
+            color: #b4235f;
+        }
+
+        .like-btn.is-on .heart { color: #ff2d78; transform: scale(1.15); }
+
+        /* 评论 */
+        .comments {
+            margin-top: 16px;
+            padding: 22px 24px 26px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, .8);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, .66);
+            box-shadow: rgb(0 0 0 / 0.12) 0px 10px 32px 0px;
+        }
+
+        .comments h2 {
+            margin: 0 0 16px;
+            font-size: .95rem;
+            letter-spacing: 2px;
+        }
+
+        .comments h2 span { color: #8d9299; font-size: .8rem; }
+
+        .cm-form { display: flex; flex-direction: column; gap: 10px; }
+
+        .cm-form textarea {
+            width: 100%;
+            box-sizing: border-box;
+            min-height: 84px;
+            padding: 12px 14px;
+            font-family: inherit;
+            font-size: .86rem;
+            line-height: 1.8;
+            color: #1f1f1f;
+            background: rgba(255, 255, 255, .9);
+            border: 1px solid rgba(0, 0, 0, .09);
+            border-radius: 14px;
+            outline: none;
+            resize: vertical;
+            transition: border-color .25s ease, box-shadow .25s ease;
+        }
+
+        .cm-form textarea:focus {
+            border-color: rgba(120, 155, 250, .6);
+            box-shadow: 0 0 0 3px #789bfa52;
+        }
+
+        .cm-form textarea:disabled { background: rgba(0, 0, 0, .04); color: #999; }
+
+        .cm-row { display: flex; align-items: center; gap: 12px; }
+
+        .cm-tip { font-size: .74rem; color: #8d9299; }
+        .cm-tip.err { color: #c53030; }
+        .cm-tip.ok { color: #2f855a; }
+
+        .cm-btn {
+            margin-left: auto;
+            padding: 9px 24px;
+            font-family: inherit;
+            font-size: .84rem;
+            letter-spacing: 2px;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #789bfa, #b48ce0);
+            box-shadow: 0 6px 18px rgb(120 155 250 / 0.4);
+            cursor: pointer;
+            transition: all .3s ease;
+        }
+
+        .cm-btn:hover { box-shadow: 0 8px 24px rgb(120 155 250 / 0.5); }
+        .cm-btn:disabled { opacity: .55; cursor: not-allowed; box-shadow: none; }
+
+        .cm-list { list-style: none; margin: 18px 0 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+
+        .cm-item {
+            padding: 14px 16px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, .72);
+            border: 1px solid rgba(0, 0, 0, .05);
+        }
+
+        .cm-meta {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            margin-bottom: 6px;
+            font-size: .76rem;
+        }
+
+        .cm-meta b { color: #33479c; }
+        .cm-meta time { color: #9aa0a8; }
+
+        .cm-text {
+            margin: 0;
+            font-size: .86rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .cm-empty { color: #9aa0a8; font-size: .8rem; text-align: center; padding: 18px 0; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+
+    <header class="bar">
+        <a class="back" href="/RecWorks.html">← 返回作品列表</a>
+        <div class="bar-right">
+            {% if user %}
+                <a class="who" href="/account">
+                    {% if user.qq_id %}
+                    <img src="https://q.qlogo.cn/headimg_dl?dst_uin={{ user.qq_id }}&spec=640&img_type=jpg"
+                         onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/qun_avatar.jpg') }}';" alt="">
+                    {% endif %}
+                    {{ user.display_name }}
+                </a>
+            {% else %}
+                <a class="back" href="/login">登录</a>
+            {% endif %}
+        </div>
+    </header>
+
+    <article class="work">
+        <div class="work-head">
+            {% if item.rw_qq_id %}
+            <img class="avatar" src="https://q.qlogo.cn/headimg_dl?dst_uin={{ item.rw_qq_id }}&spec=640&img_type=jpg"
+                 onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/qun_avatar.jpg') }}';"
+                 alt="{{ item.rw_qq_name or '' }}">
+            {% endif %}
+            <div>
+                <h1>{{ item.rw_work_name or '未命名作品' }}</h1>
+                <p class="by">推荐人：{{ item.rw_qq_name or '匿名' }}</p>
+            </div>
+        </div>
+
+        <div class="work-body">{{ item.rw_recwork or '（没有正文）' }}</div>
+
+        {% if item.rw_img_path %}
+        <img class="work-img" src="/recworksimg/{{ item.rw_img_path }}" alt="{{ item.rw_work_name or '' }}">
+        {% endif %}
+    </article>
+
+    <div class="actions">
+        <button class="like-btn {{ 'is-on' if liked }}" id="like-btn" type="button"
+                data-rid="{{ item.id }}">
+            <span class="heart">♥</span>
+            <span id="like-count">{{ likes }}</span>
+        </button>
+    </div>
+
+    <section class="comments">
+        <h2>评论 <span id="cm-count">{{ comments|length }}</span></h2>
+
+        <form class="cm-form" id="cm-form">
+            <textarea id="cm-content" maxlength="1000"
+                      placeholder="{{ '说点什么…' if user else '登录后才能评论' }}"
+                      {% if not user %}disabled{% endif %}></textarea>
+            <div class="cm-row">
+                <span class="cm-tip" id="cm-tip">{% if not user %}点右上角登录后就能评论{% endif %}</span>
+                {% if user %}
+                <button class="cm-btn" type="submit" id="cm-submit">发表评论</button>
+                {% else %}
+                <a class="cm-btn" href="/login" style="text-decoration:none;display:inline-block;">去登录</a>
+                {% endif %}
+            </div>
+        </form>
+
+        <ul class="cm-list" id="cm-list">
+            {% for c in comments %}
+            <li class="cm-item">
+                <div class="cm-meta">
+                    <b>{{ c.nickname or '匿名' }}</b>
+                    <time>{{ c.created_at.strftime('%Y-%m-%d %H:%M') if c.created_at else '' }}</time>
+                </div>
+                <p class="cm-text">{{ c.content }}</p>
+            </li>
+            {% endfor %}
+            {% if not comments %}
+            <li class="cm-empty" id="cm-empty">还没有评论，来说第一句吧</li>
+            {% endif %}
+        </ul>
+    </section>
+
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    var RID = {{ item.id }};
+
+    /* ---- 点赞 ---- */
+    var likeBtn = document.getElementById('like-btn');
+    var likeCount = document.getElementById('like-count');
+
+    if (likeBtn) {
+        likeBtn.addEventListener('click', function () {
+            likeBtn.disabled = true;
+            fetch('/api/works/' + RID + '/like', { method: 'POST', cache: 'no-store' })
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    if (d.ok) {
+                        likeCount.textContent = d.likes;
+                        likeBtn.classList.toggle('is-on', d.liked);
+                    }
+                })
+                .catch(function () {})
+                .then(function () { likeBtn.disabled = false; });
+        });
+    }
+
+    /* ---- 发评论 ---- */
+    var form = document.getElementById('cm-form');
+    var input = document.getElementById('cm-content');
+    var tip = document.getElementById('cm-tip');
+    var submit = document.getElementById('cm-submit');
+    var list = document.getElementById('cm-list');
+    var countEl = document.getElementById('cm-count');
+
+    if (!form || !input || !submit) { return; }
+
+    function setTip(text, cls) {
+        tip.textContent = text;
+        tip.className = 'cm-tip' + (cls ? ' ' + cls : '');
+    }
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var content = (input.value || '').trim();
+        if (!content) {
+            setTip('评论不能为空', 'err');
+            input.focus();
+            return;
+        }
+        submit.disabled = true;
+        setTip('发送中…');
+
+        var fd = new FormData();
+        fd.append('content', content);
+
+        fetch('/api/works/' + RID + '/comment', { method: 'POST', body: fd })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (!d.ok) {
+                    setTip(d.msg || '发送失败', 'err');
+                    submit.disabled = false;
+                    return;
+                }
+                var empty = document.getElementById('cm-empty');
+                if (empty) { empty.remove(); }
+
+                var li = document.createElement('li');
+                li.className = 'cm-item';
+
+                var meta = document.createElement('div');
+                meta.className = 'cm-meta';
+                var who = document.createElement('b');
+                who.textContent = d.comment.nickname || '匿名';
+                var tm = document.createElement('time');
+                tm.textContent = d.comment.created_at || '';
+                meta.appendChild(who);
+                meta.appendChild(tm);
+
+                var p = document.createElement('p');
+                p.className = 'cm-text';
+                p.textContent = d.comment.content;
+
+                li.appendChild(meta);
+                li.appendChild(p);
+                list.insertBefore(li, list.firstChild);
+
+                input.value = '';
+                setTip('评论已发布', 'ok');
+                countEl.textContent = (parseInt(countEl.textContent, 10) || 0) + 1;
+                submit.disabled = false;
+            })
+            .catch(function () {
+                setTip('网络错误，请稍后再试', 'err');
+                submit.disabled = false;
+            });
+    });
+})();
+</script>
+</body>
+</html>
