@@ -74,6 +74,7 @@ def main():
             # 后台传的图落在项目根目录的 recworksimg/，nginx 按静态文件直接发
             'images': ['/recworksimg/' + img] if img else [],
             'tag': (r[6] or '').strip(),
+            'tags': [t for t in (r[6] or '').split() if t],
             'pinned': bool(r[7]),
             'author_state': author_state,
             'author_label': author_label,

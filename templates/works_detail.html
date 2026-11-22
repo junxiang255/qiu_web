@@ -383,7 +383,9 @@
             <div>
                 <div class="title-row">
                     <h1>{{ item.rw_work_name or '未命名作品' }}</h1>
-                    {% if item.rw_tag %}<span class="work-tag">{{ item.rw_tag }}</span>{% endif %}
+                    {% for t in (item.rw_tag or '').split() %}
+                    <span class="work-tag">{{ t }}</span>
+                    {% endfor %}
                 </div>
                 <p class="by">推荐人：{{ item.rw_qq_name or '匿名' }}<span class="rec-status {{ author_state }}">{{ author_label }}</span>{% if author_dev %}<span class="rec-status dev">开发者</span>{% elif author_role == 'admin' %}<span class="rec-status admin">管理员</span>{% endif %}</p>
             </div>

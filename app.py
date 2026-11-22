@@ -127,7 +127,7 @@ class recWorks(db.Model):
     rw_work_name:Mapped[str| None]=mapped_column("rw_work_name",String(255),nullable=True)
     rw_recwork:Mapped[str] = mapped_column( "rw_recwork", Text().with_variant(MEDIUMTEXT, "mysql"), nullable=False) 
     rw_img_path:Mapped[str | None]=mapped_column("rw_img_Path",String(500),nullable=True)
-    rw_tag:Mapped[str | None]=mapped_column("rw_tag",String(30),nullable=True)
+    rw_tag:Mapped[str | None]=mapped_column("rw_tag",String(120),nullable=True)
     pinned:Mapped[bool]=mapped_column(Boolean,nullable=False,default=False,server_default="0")
  
     def __init__(self,qq_id: str | None = None, qq_name: str | None = None,
@@ -163,7 +163,7 @@ def recWorks_get():
     qq_name   = (request.form.get("rw_qq_name") or "").strip()
     work_name = (request.form.get("rw_work_name") or "").strip()
     recwork   = (request.form.get("rw_recwork") or "").strip()
-    tag       = (request.form.get("rw_tag") or "").strip()[:30]
+    tag       = normalize_tags(request.form.get("rw_tag"))
 
     # ---- 1. 去重前置 ----
     dup = db.session.query(recWorks.id).filter_by(
@@ -308,7 +308,7 @@ def recworks_edit(rid):
     qq_name = (request.form.get("rw_qq_name") or "").strip()
     work_name = (request.form.get("rw_work_name") or "").strip()
     recwork = (request.form.get("rw_recwork") or "").strip()
-    tag = (request.form.get("rw_tag") or "").strip()[:30]
+    tag = normalize_tags(request.form.get("rw_tag"))
 
     if not (qq_id and qq_name and work_name and recwork):
         flash("QQ 号、昵称、作品标题、推荐内容都不能为空", "error")
@@ -1015,6 +1015,16 @@ def humanize_time(dt):
 @app.template_filter("humanize")
 def _humanize_filter(dt):
     return humanize_time(dt)
+
+
+def normalize_tags(raw: str | None) -> str:
+    """把「妹系,治愈 战斗」统一成「妹系 治愈 战斗」，最多保留 6 个。"""
+    parts = [p.strip() for p in re.split(r"[\s,，、/|／｜]+", raw or "") if p.strip()]
+    seen = []
+    for p in parts:
+        if p not in seen:
+            seen.append(p)
+    return " ".join(seen[:6])[:120]
 
 
 def client_ip():

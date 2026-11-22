@@ -214,7 +214,32 @@
 
         .counter { text-align: right; font-size: .7rem; color: #8d9299; }
         .counter.is-over { color: #c53030; font-weight: 700; }
-    </style>
+            /* 标签选择器 */
+        .tag-picker { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+
+        .tag-chip {
+            padding: 4px 13px;
+            font-family: inherit;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #6b7280;
+            border-radius: 999px;
+            border: 1px solid rgba(0, 0, 0, .1);
+            background: rgba(255, 255, 255, .8);
+            cursor: pointer;
+            transition: all .25s ease;
+        }
+
+        .tag-chip:hover { background: #789bfa71; color: #333; }
+
+        .tag-chip.on {
+            color: #fff;
+            font-weight: 700;
+            border-color: transparent;
+            background: linear-gradient(135deg, #789bfa, #b48ce0);
+            box-shadow: 0 2px 10px rgba(120, 155, 250, .45);
+        }
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -259,23 +284,25 @@
         </div>
 
         <div class="field">
-            <label for="rw-tag">作品标签</label>
-            <input id="rw-tag" name="rw_tag" type="text" maxlength="30"
-                   list="tag-options" value="{{ item.rw_tag or '' }}"
-                   placeholder="例如 妹系 / 治愈 / 战斗">
-            <datalist id="tag-options">
-                <option value="妹系"></option>
-                <option value="治愈"></option>
-                <option value="战斗"></option>
-                <option value="悬疑"></option>
-                <option value="校园"></option>
-                <option value="日常"></option>
-                <option value="催泪"></option>
-                <option value="科幻"></option>
-                <option value="奇幻"></option>
-                <option value="恋爱"></option>
-            </datalist>
-            <span class="hint">留空就不显示标签，最多 30 字</span>
+            <label for="rw-tag">作品标签（可多选）</label>
+            <input id="rw-tag" name="rw_tag" type="text" maxlength="120"
+                   value="{{ item.rw_tag or '' }}"
+                   placeholder="点下面的标签，或直接输入（用空格分隔）">
+            <div class="tag-picker" id="tag-picker">
+            <button type="button" class="tag-chip" data-tag="妹系">妹系</button>
+            <button type="button" class="tag-chip" data-tag="治愈">治愈</button>
+            <button type="button" class="tag-chip" data-tag="战斗">战斗</button>
+            <button type="button" class="tag-chip" data-tag="悬疑">悬疑</button>
+            <button type="button" class="tag-chip" data-tag="校园">校园</button>
+            <button type="button" class="tag-chip" data-tag="日常">日常</button>
+            <button type="button" class="tag-chip" data-tag="催泪">催泪</button>
+            <button type="button" class="tag-chip" data-tag="科幻">科幻</button>
+            <button type="button" class="tag-chip" data-tag="奇幻">奇幻</button>
+            <button type="button" class="tag-chip" data-tag="恋爱">恋爱</button>
+            <button type="button" class="tag-chip" data-tag="姐系">姐系</button>
+            <button type="button" class="tag-chip" data-tag="废萌">废萌</button>
+            </div>
+            <span class="hint">最多 6 个，留空就不显示</span>
         </div>
 
         <div class="field">
@@ -393,6 +420,38 @@
             }
         });
     }
+})();
+
+/* 标签多选 */
+(function () {
+    var input = document.getElementById('rw-tag');
+    var picker = document.getElementById('tag-picker');
+    if (!input || !picker) { return; }
+
+    function parts() {
+        return (input.value || '').split(/[\s,，、\/|]+/).filter(Boolean);
+    }
+
+    function sync() {
+        var cur = parts();
+        Array.prototype.forEach.call(picker.querySelectorAll('.tag-chip'), function (b) {
+            b.classList.toggle('on', cur.indexOf(b.getAttribute('data-tag')) !== -1);
+        });
+    }
+
+    picker.addEventListener('click', function (e) {
+        var b = e.target.closest ? e.target.closest('.tag-chip') : null;
+        if (!b) { return; }
+        var tag = b.getAttribute('data-tag');
+        var cur = parts();
+        var i = cur.indexOf(tag);
+        if (i >= 0) { cur.splice(i, 1); } else { cur.push(tag); }
+        input.value = cur.join(' ');
+        sync();
+    });
+
+    input.addEventListener('input', sync);
+    sync();
 })();
 </script>
 </body>

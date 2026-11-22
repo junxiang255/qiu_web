@@ -1120,9 +1120,11 @@
                 titleRow.appendChild(el('span', 'rec-pin', '置顶'));
             }
             titleRow.appendChild(el('h2', 'rec-title', it.work_name || '未命名作品'));
-            if (it.tag) {
-                titleRow.appendChild(el('span', 'rec-tag', it.tag));
-            }
+
+            var tagList = Array.isArray(it.tags) ? it.tags : (it.tag ? [it.tag] : []);
+            tagList.forEach(function (t) {
+                titleRow.appendChild(el('span', 'rec-tag', t));
+            });
             main.appendChild(titleRow);
 
             var byRow = el('p', 'rec-by');
