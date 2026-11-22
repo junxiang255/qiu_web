@@ -484,7 +484,7 @@ class GroupMember(db.Model):
 
 
 class WorkLike(db.Model):
-    """作品点赞：按 IP 去重，登录了也顺便记一下 user_id。"""
+    """作品点赞（已停用，前端入口已移除；表先留着，需要时可恢复）。"""
     __tablename__ = 'work_like'
     id:Mapped[int]=mapped_column(Integer,primary_key=True,autoincrement=True)
     work_id:Mapped[int]=mapped_column(Integer,nullable=False,index=True)
@@ -1067,14 +1067,11 @@ def client_ip():
 
 @app.route("/works/<int:rid>")
 def work_detail(rid):
-    """作品详情页：正文、配图、点赞、评论。"""
+    """作品详情页：正文、配图、评论。"""
     item = db.session.get(recWorks, rid)
     if item is None:
         abort(404)
 
-    likes = db.session.scalar(
-        db.select(func.count()).select_from(WorkLike).where(WorkLike.work_id == rid)
-    ) or 0
 
     comments = db.session.scalars(
         db.select(WorkComment)
@@ -1082,12 +1079,6 @@ def work_detail(rid):
         .order_by(WorkComment.id.desc())
     ).all()
 
-    ip = client_ip()
-    liked = False
-    if ip:
-        liked = db.session.scalar(
-            db.select(WorkLike).where(WorkLike.work_id == rid, WorkLike.ip == ip)
-        ) is not None
 
     # 推荐人的入站状态
     qq = (item.rw_qq_id or "").strip()
@@ -1103,41 +1094,10 @@ def work_detail(rid):
         else:
             author_state, author_label = "absent", "未入站"
 
-    return render_template("works_detail.html", item=item, likes=likes,
-                           comments=comments, liked=liked,
+    return render_template("works_detail.html", item=item,
+                           comments=comments,
                            author_state=author_state, author_label=author_label,
                            author_role=author_role, author_dev=author_dev)
-
-
-@app.post("/api/works/<int:rid>/like")
-def work_like(rid):
-    """点赞 / 取消点赞，按 IP 去重。"""
-    item = db.session.get(recWorks, rid)
-    if item is None:
-        return jsonify(ok=False, msg="作品不存在"), 404
-
-    ip = client_ip() or "unknown"
-    existing = db.session.scalar(
-        db.select(WorkLike).where(WorkLike.work_id == rid, WorkLike.ip == ip)
-    )
-
-    if existing is not None:
-        db.session.delete(existing)
-        db.session.commit()
-        liked = False
-    else:
-        db.session.add(WorkLike(work_id=rid, ip=ip,
-                                user_id=(g.user.id if g.user else None)))
-        try:
-            db.session.commit()
-        except IntegrityError:
-            db.session.rollback()
-        liked = True
-
-    count = db.session.scalar(
-        db.select(func.count()).select_from(WorkLike).where(WorkLike.work_id == rid)
-    ) or 0
-    return jsonify(ok=True, liked=liked, likes=count)
 
 
 @app.post("/api/works/<int:rid>/comment")

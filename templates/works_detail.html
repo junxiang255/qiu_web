@@ -175,37 +175,6 @@
             box-shadow: 0 6px 22px rgb(0 0 0 / 0.16);
         }
 
-        /* 点赞 */
-        .actions { margin-top: 16px; display: flex; justify-content: center; }
-
-        .like-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 26px;
-            font-family: inherit;
-            font-size: .88rem;
-            color: #333;
-            border: 1px solid rgba(0, 0, 0, .07);
-            border-radius: 999px;
-            background: rgba(255, 255, 255, .8);
-            box-shadow: rgb(0 0 0 / 0.1) 0px 6px 20px 0px;
-            cursor: pointer;
-            transition: all .3s ease;
-        }
-
-        .like-btn:hover { background: rgba(255, 255, 255, .95); box-shadow: 0 0 18px #e6b5e6; }
-
-        .like-btn .heart { font-size: 1rem; color: #cbd0d8; transition: color .3s ease, transform .3s ease; }
-
-        .like-btn.is-on {
-            background: #ffe9f0;
-            border-color: rgba(255, 45, 120, .3);
-            color: #b4235f;
-        }
-
-        .like-btn.is-on .heart { color: #ff2d78; transform: scale(1.15); }
-
         /* 评论 */
         .comments {
             margin-top: 16px;
@@ -398,13 +367,6 @@
         {% endif %}
     </article>
 
-    <div class="actions">
-        <button class="like-btn {{ 'is-on' if liked }}" id="like-btn" type="button"
-                data-rid="{{ item.id }}">
-            <span class="heart">♥</span>
-            <span id="like-count">{{ likes }}</span>
-        </button>
-    </div>
 
     <section class="comments">
         <h2>评论 <span id="cm-count">{{ comments|length }}</span></h2>
@@ -459,26 +421,6 @@
     'use strict';
 
     var RID = {{ item.id }};
-
-    /* ---- 点赞 ---- */
-    var likeBtn = document.getElementById('like-btn');
-    var likeCount = document.getElementById('like-count');
-
-    if (likeBtn) {
-        likeBtn.addEventListener('click', function () {
-            likeBtn.disabled = true;
-            fetch('/api/works/' + RID + '/like', { method: 'POST', cache: 'no-store' })
-                .then(function (r) { return r.json(); })
-                .then(function (d) {
-                    if (d.ok) {
-                        likeCount.textContent = d.likes;
-                        likeBtn.classList.toggle('is-on', d.liked);
-                    }
-                })
-                .catch(function () {})
-                .then(function () { likeBtn.disabled = false; });
-        });
-    }
 
     /* ---- 发评论 ---- */
     var form = document.getElementById('cm-form');
