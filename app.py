@@ -482,6 +482,7 @@ class WorkComment(db.Model):
     work_id:Mapped[int]=mapped_column(Integer,nullable=False,index=True)
     user_id:Mapped[int|None]=mapped_column(Integer,nullable=True)
     nickname:Mapped[str|None]=mapped_column(String(50),nullable=True)
+    qq_id:Mapped[str|None]=mapped_column(String(20),nullable=True)
     content:Mapped[str]=mapped_column(Text,nullable=False)
     status:Mapped[str]=mapped_column(String(20),nullable=False,default="visible")
     created_at:Mapped[datetime|None]=mapped_column(DateTime,nullable=True,default=datetime.now)
@@ -972,6 +973,28 @@ def get_top_qqid():
                 conn.close()
 
 
+def humanize_time(dt):
+    """把时间变成「刚刚 / 8 分钟前 / 3 小时前 / 2 天前」这种。"""
+    if not dt:
+        return ""
+    delta = datetime.now() - dt
+    sec = delta.total_seconds()
+    if sec < 60:
+        return "刚刚"
+    if sec < 3600:
+        return "%d 分钟前" % int(sec // 60)
+    if sec < 86400:
+        return "%d 小时前" % int(sec // 3600)
+    if sec < 86400 * 7:
+        return "%d 天前" % int(sec // 86400)
+    return dt.strftime("%Y-%m-%d")
+
+
+@app.template_filter("humanize")
+def _humanize_filter(dt):
+    return humanize_time(dt)
+
+
 def client_ip():
     """nginx 反代后 remote_addr 是 127.0.0.1，真实 IP 在 X-Real-IP 里。"""
     return (request.headers.get("X-Real-IP") or request.remote_addr or "").strip()
@@ -1052,16 +1075,18 @@ def work_add_comment(rid):
     if len(content) > 1000:
         return jsonify(ok=False, msg="评论最多 1000 字")
 
-    row = WorkComment(work_id=rid, user_id=g.user.id,
-                      nickname=g.user.display_name, content=content)
+    row = WorkComment(work_id=rid, user_id=g.user.id, nickname=g.user.display_name,
+                      qq_id=g.user.qq_id, content=content)
     db.session.add(row)
     db.session.commit()
 
     return jsonify(ok=True, comment={
         "id": row.id,
         "nickname": row.nickname,
+        "qq_id": row.qq_id or "",
         "content": row.content,
         "created_at": row.created_at.strftime("%Y-%m-%d %H:%M"),
+        "when": humanize_time(row.created_at),
     })
 
 

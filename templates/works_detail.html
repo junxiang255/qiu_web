@@ -222,11 +222,37 @@
         .cm-list { list-style: none; margin: 18px 0 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
 
         .cm-item {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
             padding: 14px 16px;
             border-radius: 14px;
             background: rgba(255, 255, 255, .72);
             border: 1px solid rgba(0, 0, 0, .05);
         }
+
+        .cm-avatar {
+            width: 40px;
+            height: 40px;
+            flex: 0 0 40px;
+            display: block;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 8px rgb(0 0 0 / 0.16);
+            background: linear-gradient(135deg, #e7ecf7, #cfd9ec);
+        }
+
+        .cm-avatar-fb {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .92rem;
+            font-weight: 700;
+            color: #7d8798;
+        }
+
+        .cm-main { flex: 1 1 auto; min-width: 0; }
 
         .cm-meta {
             display: flex;
@@ -319,11 +345,21 @@
         <ul class="cm-list" id="cm-list">
             {% for c in comments %}
             <li class="cm-item">
-                <div class="cm-meta">
-                    <b>{{ c.nickname or '匿名' }}</b>
-                    <time>{{ c.created_at.strftime('%Y-%m-%d %H:%M') if c.created_at else '' }}</time>
+                {% if c.qq_id %}
+                <img class="cm-avatar"
+                     src="https://q.qlogo.cn/headimg_dl?dst_uin={{ c.qq_id }}&spec=640&img_type=jpg"
+                     onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/qun_avatar.jpg') }}';"
+                     alt="{{ c.nickname or '' }}" loading="lazy">
+                {% else %}
+                <span class="cm-avatar cm-avatar-fb">{{ (c.nickname or '?')[:1] }}</span>
+                {% endif %}
+                <div class="cm-main">
+                    <div class="cm-meta">
+                        <b>{{ c.nickname or '匿名' }}</b>
+                        <time>{{ c.created_at | humanize if c.created_at else '' }}</time>
+                    </div>
+                    <p class="cm-text">{{ c.content }}</p>
                 </div>
-                <p class="cm-text">{{ c.content }}</p>
             </li>
             {% endfor %}
             {% if not comments %}
@@ -403,12 +439,34 @@
                 var li = document.createElement('li');
                 li.className = 'cm-item';
 
+                if (d.comment.qq_id) {
+                    var av = document.createElement('img');
+                    av.className = 'cm-avatar';
+                    av.loading = 'lazy';
+                    av.alt = d.comment.nickname || '';
+                    av.src = 'https://q.qlogo.cn/headimg_dl?dst_uin=' +
+                        encodeURIComponent(d.comment.qq_id) + '&spec=640&img_type=jpg';
+                    av.addEventListener('error', function () {
+                        this.onerror = null;
+                        this.src = '{{ url_for('static', filename='img/qun_avatar.jpg') }}';
+                    });
+                    li.appendChild(av);
+                } else {
+                    var avf = document.createElement('span');
+                    avf.className = 'cm-avatar cm-avatar-fb';
+                    avf.textContent = (d.comment.nickname || '?').charAt(0);
+                    li.appendChild(avf);
+                }
+
+                var mainDiv = document.createElement('div');
+                mainDiv.className = 'cm-main';
+
                 var meta = document.createElement('div');
                 meta.className = 'cm-meta';
                 var who = document.createElement('b');
                 who.textContent = d.comment.nickname || '匿名';
                 var tm = document.createElement('time');
-                tm.textContent = d.comment.created_at || '';
+                tm.textContent = d.comment.when || d.comment.created_at || '';
                 meta.appendChild(who);
                 meta.appendChild(tm);
 
@@ -416,8 +474,10 @@
                 p.className = 'cm-text';
                 p.textContent = d.comment.content;
 
-                li.appendChild(meta);
-                li.appendChild(p);
+                mainDiv.appendChild(meta);
+                mainDiv.appendChild(p);
+                li.appendChild(mainDiv);
+
                 list.insertBefore(li, list.firstChild);
 
                 input.value = '';
