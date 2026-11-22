@@ -1108,6 +1108,33 @@ def delete_comment(cid):
     return jsonify(ok=True)
 
 
+@app.route("/api/users/list")
+def api_users_list():
+    """给首页的「群友」区块用：列出已激活的账号（不暴露 QQ 号）。"""
+    rows = db.session.scalars(
+        db.select(User).where(User.status == "active", User.is_active == True)
+    ).all()
+
+    rows = sorted(rows, key=lambda u: (
+        0 if u.is_developer else 1,
+        0 if u.is_admin else 1,
+        u.id,
+    ))
+
+    users = []
+    for u in rows:
+        users.append({
+            "id": u.id,
+            "nickname": u.display_name,
+            "qq_id": u.qq_id or "",
+            "role": u.role,
+            "role_label": "管理员" if u.is_admin else "成员",
+            "is_developer": u.is_developer,
+            "joined": u.created_at.strftime("%Y-%m-%d") if u.created_at else "",
+        })
+    return jsonify(count=len(users), users=users)
+
+
 @app.route("/api/me")
 def api_me():
     """给静态页顶栏用：告诉前端当前有没有登录、头像用哪个 QQ。"""
