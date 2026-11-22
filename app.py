@@ -528,6 +528,24 @@ class ChatMessage(db.Model):
         return f"<ChatMessage {self.id} user={self.user_id}>"
 
 
+class GuestbookEntry(db.Model):
+    """留言板的一条留言，管理员可以回复。"""
+    __tablename__ = 'guestbook_entry'
+    id:Mapped[int]=mapped_column(Integer,primary_key=True,autoincrement=True)
+    user_id:Mapped[int|None]=mapped_column(Integer,nullable=True,index=True)
+    nickname:Mapped[str|None]=mapped_column(String(50),nullable=True)
+    qq_id:Mapped[str|None]=mapped_column(String(20),nullable=True)
+    content:Mapped[str]=mapped_column(Text,nullable=False)
+    reply:Mapped[str|None]=mapped_column(Text,nullable=True)
+    reply_by:Mapped[str|None]=mapped_column(String(50),nullable=True)
+    replied_at:Mapped[datetime|None]=mapped_column(DateTime,nullable=True)
+    status:Mapped[str]=mapped_column(String(20),nullable=False,default="visible")
+    created_at:Mapped[datetime|None]=mapped_column(DateTime,nullable=True,default=datetime.now,index=True)
+
+    def __repr__(self) -> str:
+        return f"<GuestbookEntry {self.id} user={self.user_id}>"
+
+
 class User(db.Model):
     __tablename__='user'
     id:Mapped[int]=mapped_column(Integer,primary_key=True,autoincrement=True)
@@ -1283,6 +1301,105 @@ def chat_delete(cid):
     db.session.delete(row)
     db.session.commit()
     return jsonify(ok=True)
+
+
+@app.route("/guestbook")
+def guestbook_page():
+    """留言板。"""
+    rows = db.session.scalars(
+        db.select(GuestbookEntry)
+        .where(GuestbookEntry.status == "visible")
+        .order_by(GuestbookEntry.id.desc())
+        .limit(200)
+    ).all()
+    total = db.session.scalar(
+        db.select(func.count()).select_from(GuestbookEntry)
+        .where(GuestbookEntry.status == "visible")
+    ) or 0
+    return render_template("guestbook.html", entries=rows, total=total)
+
+
+@app.post("/api/guestbook/post")
+def guestbook_post():
+    if not g.user:
+        return jsonify(ok=False, msg="请先登录再留言"), 401
+
+    content = (request.form.get("content") or "").strip()
+    if not content:
+        return jsonify(ok=False, msg="留言不能为空")
+    if len(content) > 1000:
+        return jsonify(ok=False, msg="一条留言最多 1000 字")
+
+    # 防刷：同一个人 10 秒内只能留一条
+    last = db.session.scalar(
+        db.select(GuestbookEntry)
+        .where(GuestbookEntry.user_id == g.user.id)
+        .order_by(GuestbookEntry.id.desc())
+    )
+    if last is not None and last.created_at is not None:
+        gap = (datetime.now() - last.created_at).total_seconds()
+        if gap < 10:
+            return jsonify(ok=False, msg="留得有点勤，等 %d 秒再发" % max(1, int(10 - gap)))
+
+    row = GuestbookEntry(user_id=g.user.id, nickname=g.user.display_name,
+                         qq_id=g.user.qq_id, content=content)
+    db.session.add(row)
+    db.session.commit()
+
+    return jsonify(ok=True, entry={
+        "id": row.id,
+        "nickname": row.nickname,
+        "qq_id": row.qq_id or "",
+        "content": row.content,
+        "when": humanize_time(row.created_at),
+        "created_at": row.created_at.strftime("%Y-%m-%d %H:%M"),
+        "mine": True,
+        "reply": "",
+        "reply_by": "",
+    })
+
+
+@app.post("/api/guestbook/<int:eid>/delete")
+def guestbook_delete(eid):
+    if not g.user:
+        return jsonify(ok=False, msg="请先登录"), 401
+
+    row = db.session.get(GuestbookEntry, eid)
+    if row is None:
+        return jsonify(ok=False, msg="这条留言不存在"), 404
+    if row.user_id != g.user.id and not g.user.is_admin:
+        return jsonify(ok=False, msg="只能删自己的留言"), 403
+
+    db.session.delete(row)
+    db.session.commit()
+    return jsonify(ok=True)
+
+
+@app.post("/api/guestbook/<int:eid>/reply")
+def guestbook_reply(eid):
+    """管理员回复留言。"""
+    if not g.user:
+        return jsonify(ok=False, msg="请先登录"), 401
+    if not g.user.is_admin:
+        return jsonify(ok=False, msg="只有管理员能回复"), 403
+
+    row = db.session.get(GuestbookEntry, eid)
+    if row is None:
+        return jsonify(ok=False, msg="这条留言不存在"), 404
+
+    text = (request.form.get("reply") or "").strip()
+    if not text:
+        return jsonify(ok=False, msg="回复不能为空")
+    if len(text) > 1000:
+        return jsonify(ok=False, msg="回复最多 1000 字")
+
+    row.reply = text
+    row.reply_by = g.user.display_name
+    row.replied_at = datetime.now()
+    db.session.commit()
+
+    return jsonify(ok=True, reply=text, reply_by=row.reply_by,
+                   when=humanize_time(row.replied_at))
 
 
 @app.route("/api/me")

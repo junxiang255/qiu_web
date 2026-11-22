@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>留言板 · 小秋的垃圾站</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/font.css') }}">
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 16px 16px 60px;
+            background: linear-gradient(rgba(255, 255, 255, .2), rgba(255, 255, 255, .3)),
+                        url("{{ url_for('static', filename='img/background.png') }}") center/cover no-repeat fixed;
+            font-family: "筑紫A圆体D", system-ui, sans-serif;
+            color: #1f1f1f;
+        }
+
+        .wrap { width: min(760px, 100%); margin: 0 auto; }
+
+        .bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, .8);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, .66);
+            box-shadow: rgb(0 0 0 / 0.12) 0px 8px 28px 0px;
+        }
+
+        .back {
+            font-size: .8rem;
+            color: #333;
+            text-decoration: none;
+            padding: 6px 14px;
+            border-radius: 11px;
+            background: rgba(255, 255, 255, .6);
+            border: 1px solid rgba(0, 0, 0, .07);
+            transition: all .3s ease;
+        }
+
+        .back:hover { background: #789bfa71; box-shadow: 0 0 18px #e6b5e6; }
+
+        .title { font-size: .9rem; font-weight: 700; letter-spacing: 3px; }
+        .title span { color: #8d9299; font-size: .76rem; font-weight: 400; }
+
+        .who {
+            margin-left: auto;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-size: .76rem;
+            color: #444;
+            text-decoration: none;
+        }
+
+        .who img {
+            width: 26px; height: 26px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 8px rgb(0 0 0 / .18);
+        }
+
+        /* 写留言 */
+        .editor {
+            margin-top: 14px;
+            padding: 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, .8);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, .66);
+            box-shadow: rgb(0 0 0 / 0.12) 0px 8px 28px 0px;
+        }
+
+        .editor textarea {
+            width: 100%;
+            min-height: 76px;
+            padding: 12px 14px;
+            font-family: inherit;
+            font-size: .86rem;
+            line-height: 1.8;
+            color: #1f1f1f;
+            background: rgba(255, 255, 255, .92);
+            border: 1px solid rgba(0, 0, 0, .09);
+            border-radius: 14px;
+            outline: none;
+            resize: vertical;
+            transition: border-color .25s ease, box-shadow .25s ease;
+        }
+
+        .editor textarea:focus {
+            border-color: rgba(120, 155, 250, .6);
+            box-shadow: 0 0 0 3px #789bfa52;
+        }
+
+        .editor textarea:disabled { background: rgba(0, 0, 0, .04); color: #999; }
+
+        .editor-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .hint { font-size: .72rem; color: #9aa0a8; }
+        .hint.err { color: #c53030; }
+        .hint.ok { color: #2f855a; }
+
+        .btn {
+            margin-left: auto;
+            padding: 9px 24px;
+            font-family: inherit;
+            font-size: .84rem;
+            letter-spacing: 2px;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #789bfa, #b48ce0);
+            box-shadow: 0 5px 16px rgb(120 155 250 / .42);
+            cursor: pointer;
+            transition: all .3s ease;
+        }
+
+        .btn:hover { box-shadow: 0 7px 22px rgb(120 155 250 / .55); }
+        .btn:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
+
+        .btn.ghost {
+            color: #333;
+            background: rgba(255, 255, 255, .85);
+            border: 1px solid rgba(0, 0, 0, .08);
+            box-shadow: 0 3px 12px rgb(0 0 0 / .08);
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn.ghost:hover { background: #789bfa71; }
+
+        /* 留言列表 */
+        .list { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+        .entry {
+            padding: 16px 18px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, .8);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, .58);
+            box-shadow: rgb(0 0 0 / 0.1) 0px 6px 22px 0px;
+            animation: fade_in .4s ease-out both;
+        }
+
+        .entry-head {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            margin-bottom: 9px;
+        }
+
+        .entry-head img.av {
+            width: 32px; height: 32px;
+            flex: 0 0 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 8px rgb(0 0 0 / .16);
+        }
+
+        .entry-head .avf {
+            width: 32px; height: 32px;
+            flex: 0 0 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: .78rem;
+            font-weight: 700;
+            color: #7d8798;
+            background: linear-gradient(135deg, #e7ecf7, #cfd9ec);
+            border: 2px solid #fff;
+        }
+
+        .entry-head b { font-size: .82rem; color: #33479c; }
+        .entry-head time { font-size: .7rem; color: #9aa0a8; }
+
+        .entry-head .act {
+            margin-left: auto;
+            display: flex;
+            gap: 6px;
+            opacity: 0;
+            transition: opacity .2s ease;
+        }
+
+        .entry:hover .act { opacity: 1; }
+
+        .mini {
+            padding: 2px 10px;
+            font-family: inherit;
+            font-size: .68rem;
+            color: #9aa0a8;
+            border: 1px solid rgba(0, 0, 0, .08);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, .8);
+            cursor: pointer;
+            transition: all .25s ease;
+        }
+
+        .mini:hover { color: #333; background: #789bfa71; }
+        .mini.danger:hover { color: #b42318; border-color: rgba(180, 35, 24, .25); background: rgba(255, 241, 241, .9); }
+
+        .entry-body {
+            font-size: .87rem;
+            line-height: 1.9;
+            color: #3a3a3a;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* 管理员回复 */
+        .reply {
+            margin-top: 12px;
+            padding: 11px 14px;
+            border-radius: 12px;
+            font-size: .82rem;
+            line-height: 1.85;
+            background: rgba(219, 230, 255, .55);
+            border-left: 3px solid #789bfa;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .reply b { color: #33479c; margin-right: 6px; }
+        .reply .who-tag { font-size: .68rem; color: #8d9299; }
+
+        .reply-form {
+            margin-top: 10px;
+            display: none;
+            gap: 8px;
+            flex-direction: column;
+        }
+
+        .reply-form.on { display: flex; }
+
+        .reply-form textarea {
+            width: 100%;
+            min-height: 60px;
+            padding: 9px 12px;
+            font-family: inherit;
+            font-size: .82rem;
+            line-height: 1.8;
+            border: 1px solid rgba(0, 0, 0, .09);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, .95);
+            outline: none;
+            resize: vertical;
+        }
+
+        .reply-form textarea:focus { border-color: rgba(120, 155, 250, .6); }
+
+        .reply-form .row { display: flex; gap: 8px; justify-content: flex-end; }
+
+        .empty {
+            text-align: center;
+            color: #9aa0a8;
+            font-size: .82rem;
+            padding: 46px 0;
+        }
+
+        @keyframes fade_in {
+            0% { opacity: 0; transform: translateY(8px); }
+            100% { opacity: 1; transform: none; }
+        }
+
+        @media (max-width: 560px) {
+            body { padding: 10px 10px 40px; }
+            .entry-head .act { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+
+    <header class="bar">
+        <a class="back" href="/index.html">← 首页</a>
+        <span class="title">留言板 <span id="count">（{{ total }} 条）</span></span>
+        {% if user %}
+        <a class="who" href="/account">
+            {% if user.qq_id %}
+            <img src="https://q.qlogo.cn/headimg_dl?dst_uin={{ user.qq_id }}&spec=640&img_type=jpg"
+                 onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/qun_avatar.jpg') }}';" alt="">
+            {% endif %}
+            {{ user.display_name }}
+        </a>
+        {% else %}
+        <a class="back" style="margin-left:auto;" href="/login">登录后留言</a>
+        {% endif %}
+    </header>
+
+    <div class="editor">
+        <textarea id="content" maxlength="1000"
+                  placeholder="{{ '有什么想说的，写下来吧…' if user else '登录后才能留言' }}"
+                  {% if not user %}disabled{% endif %}></textarea>
+        <div class="editor-row">
+            <span class="hint" id="hint">{% if not user %}登录后就能留言啦{% endif %}</span>
+            {% if user %}
+            <button class="btn" id="post-btn" type="button">发表留言</button>
+            {% else %}
+            <a class="btn" href="/login">去登录</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="list" id="list">
+        {% for e in entries %}
+        <article class="entry" data-id="{{ e.id }}" data-uid="{{ e.user_id or '' }}">
+            <div class="entry-head">
+                {% if e.qq_id %}
+                <img class="av" src="https://q.qlogo.cn/headimg_dl?dst_uin={{ e.qq_id }}&spec=640&img_type=jpg"
+                     onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/qun_avatar.jpg') }}';"
+                     alt="{{ e.nickname or '' }}" loading="lazy">
+                {% else %}
+                <span class="avf">{{ (e.nickname or '?')[:1] }}</span>
+                {% endif %}
+                <b>{{ e.nickname or '匿名' }}</b>
+                <time>{{ e.created_at | humanize if e.created_at else '' }}</time>
+                <div class="act">
+                    {% if user and (e.user_id == user.id or user.is_admin) %}
+                    <button class="mini danger js-del" type="button" data-id="{{ e.id }}">删除</button>
+                    {% endif %}
+                    {% if user and user.is_admin %}
+                    <button class="mini js-reply" type="button" data-id="{{ e.id }}">回复</button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="entry-body">{{ e.content }}</div>
+
+            {% if e.reply %}
+            <div class="reply" data-reply-of="{{ e.id }}">
+                <b>{{ e.reply_by or '站长' }}：</b><span class="who-tag">{{ e.replied_at | humanize if e.replied_at else '' }}</span><br>{{ e.reply }}
+            </div>
+            {% endif %}
+
+            {% if user and user.is_admin %}
+            <div class="reply-form" id="rf-{{ e.id }}">
+                <textarea placeholder="回复这条留言…" maxlength="1000">{{ e.reply or '' }}</textarea>
+                <div class="row">
+                    <button class="mini js-cancel" type="button" data-id="{{ e.id }}">取消</button>
+                    <button class="mini js-send-reply" type="button" data-id="{{ e.id }}">提交回复</button>
+                </div>
+            </div>
+            {% endif %}
+        </article>
+        {% endfor %}
+
+        {% if not entries %}
+        <p class="empty" id="empty">还没有人留言，来写第一条吧</p>
+        {% endif %}
+    </div>
+
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    var LOGGED = {{ 'true' if user else 'false' }};
+    var IS_ADMIN = {{ 'true' if (user and user.is_admin) else 'false' }};
+    var MYID = {{ user.id if user else 'null' }};
+    var FALLBACK = '{{ url_for('static', filename='img/qun_avatar.jpg') }}';
+
+    var list = document.getElementById('list');
+    var countEl = document.getElementById('count');
+    var contentEl = document.getElementById('content');
+    var hint = document.getElementById('hint');
+    var postBtn = document.getElementById('post-btn');
+
+    function setHint(text, cls) {
+        if (!hint) { return; }
+        hint.textContent = text || '';
+        hint.className = 'hint' + (cls ? ' ' + cls : '');
+    }
+
+    function bumpCount(delta) {
+        if (!countEl) { return; }
+        var m = /(\d+)/.exec(countEl.textContent);
+        var n = Math.max(0, (m ? parseInt(m[1], 10) : 0) + delta);
+        countEl.textContent = '（' + n + ' 条）';
+    }
+
+    function entryNode(e) {
+        var art = document.createElement('article');
+        art.className = 'entry';
+        art.setAttribute('data-id', e.id);
+        art.setAttribute('data-uid', e.user_id || '');
+
+        var head = document.createElement('div');
+        head.className = 'entry-head';
+
+        if (e.qq_id) {
+            var av = document.createElement('img');
+            av.className = 'av';
+            av.loading = 'lazy';
+            av.alt = e.nickname || '';
+            av.src = 'https://q.qlogo.cn/headimg_dl?dst_uin=' + encodeURIComponent(e.qq_id) + '&spec=640&img_type=jpg';
+            av.addEventListener('error', function () { this.onerror = null; this.src = FALLBACK; });
+            head.appendChild(av);
+        } else {
+            var avf = document.createElement('span');
+            avf.className = 'avf';
+            avf.textContent = (e.nickname || '?').charAt(0);
+            head.appendChild(avf);
+        }
+
+        var nm = document.createElement('b');
+        nm.textContent = e.nickname || '匿名';
+        var tm = document.createElement('time');
+        tm.textContent = e.when || '';
+        head.appendChild(nm);
+        head.appendChild(tm);
+
+        var act = document.createElement('div');
+        act.className = 'act';
+
+        var del = document.createElement('button');
+        del.className = 'mini danger js-del';
+        del.type = 'button';
+        del.setAttribute('data-id', e.id);
+        del.textContent = '删除';
+        if (e.mine || IS_ADMIN) { act.appendChild(del); }
+
+        if (IS_ADMIN) {
+            var rp = document.createElement('button');
+            rp.className = 'mini js-reply';
+            rp.type = 'button';
+            rp.setAttribute('data-id', e.id);
+            rp.textContent = '回复';
+            act.appendChild(rp);
+        }
+        head.appendChild(act);
+
+        var body = document.createElement('div');
+        body.className = 'entry-body';
+        body.textContent = e.content;
+
+        art.appendChild(head);
+        art.appendChild(body);
+
+        if (IS_ADMIN) {
+            var rf = document.createElement('div');
+            rf.className = 'reply-form';
+            rf.id = 'rf-' + e.id;
+            var ta = document.createElement('textarea');
+            ta.placeholder = '回复这条留言…';
+            ta.maxLength = 1000;
+            var row = document.createElement('div');
+            row.className = 'row';
+            var cancel = document.createElement('button');
+            cancel.className = 'mini js-cancel';
+            cancel.type = 'button';
+            cancel.setAttribute('data-id', e.id);
+            cancel.textContent = '取消';
+            var send = document.createElement('button');
+            send.className = 'mini js-send-reply';
+            send.type = 'button';
+            send.setAttribute('data-id', e.id);
+            send.textContent = '提交回复';
+            row.appendChild(cancel);
+            row.appendChild(send);
+            rf.appendChild(ta);
+            rf.appendChild(row);
+            art.appendChild(rf);
+        }
+
+        return art;
+    }
+
+    /* ---- 发表留言 ---- */
+    if (postBtn) {
+        postBtn.addEventListener('click', function () {
+            var text = (contentEl.value || '').trim();
+            if (!text) { setHint('留言不能为空', 'err'); contentEl.focus(); return; }
+
+            postBtn.disabled = true;
+            setHint('发布中…');
+
+            fetch('/api/guestbook/post', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                body: 'content=' + encodeURIComponent(text),
+                cache: 'no-store'
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    if (!d.ok) { setHint(d.msg || '发布失败', 'err'); postBtn.disabled = false; return; }
+                    var empty = document.getElementById('empty');
+                    if (empty) { empty.remove(); }
+                    list.insertBefore(entryNode(d.entry), list.firstChild);
+                    contentEl.value = '';
+                    bumpCount(1);
+                    setHint('留言已发布', 'ok');
+                    postBtn.disabled = false;
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                })
+                .catch(function () {
+                    setHint('网络错误，请稍后再试', 'err');
+                    postBtn.disabled = false;
+                });
+        });
+    }
+
+    /* ---- 事件委托：删除 / 回复 / 取消 / 提交回复 ---- */
+    list.addEventListener('click', function (ev) {
+        var t = ev.target;
+
+        if (t.classList.contains('js-del')) {
+            var id = t.getAttribute('data-id');
+            if (!confirm('删除这条留言？')) { return; }
+            fetch('/api/guestbook/' + id + '/delete', { method: 'POST', cache: 'no-store' })
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    if (!d.ok) { alert(d.msg || '删除失败'); return; }
+                    var art = t.closest('.entry');
+                    if (art) { art.remove(); }
+                    bumpCount(-1);
+                    if (!list.querySelector('.entry')) {
+                        list.innerHTML = '<p class="empty">还没有人留言，来写第一条吧</p>';
+                    }
+                })
+                .catch(function () { alert('网络错误'); });
+            return;
+        }
+
+        if (t.classList.contains('js-reply')) {
+            var rid = t.getAttribute('data-id');
+            var box = document.getElementById('rf-' + rid);
+            if (box) {
+                box.classList.toggle('on');
+                if (box.classList.contains('on')) {
+                    var ta2 = box.querySelector('textarea');
+                    if (ta2) { ta2.focus(); }
+                }
+            }
+            return;
+        }
+
+        if (t.classList.contains('js-cancel')) {
+            var cid = t.getAttribute('data-id');
+            var b = document.getElementById('rf-' + cid);
+            if (b) { b.classList.remove('on'); }
+            return;
+        }
+
+        if (t.classList.contains('js-send-reply')) {
+            var sid = t.getAttribute('data-id');
+            var form = document.getElementById('rf-' + sid);
+            var area = form ? form.querySelector('textarea') : null;
+            var text = area ? area.value.trim() : '';
+            if (!text) { area && area.focus(); return; }
+
+            t.disabled = true;
+            fetch('/api/guestbook/' + sid + '/reply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                body: 'reply=' + encodeURIComponent(text),
+                cache: 'no-store'
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    if (!d.ok) { alert(d.msg || '回复失败'); t.disabled = false; return; }
+
+                    var art2 = t.closest('.entry');
+                    var old = art2.querySelector('.reply');
+                    if (old) { old.remove(); }
+
+                    var box2 = document.createElement('div');
+                    box2.className = 'reply';
+                    var who = document.createElement('b');
+                    who.textContent = (d.reply_by || '站长') + '：';
+                    var tag = document.createElement('span');
+                    tag.className = 'who-tag';
+                    tag.textContent = d.when || '';
+                    box2.appendChild(who);
+                    box2.appendChild(tag);
+                    box2.appendChild(document.createElement('br'));
+                    box2.appendChild(document.createTextNode(d.reply));
+
+                    var rf = document.getElementById('rf-' + sid);
+                    art2.insertBefore(box2, rf || null);
+                    if (rf) { rf.classList.remove('on'); }
+                    t.disabled = false;
+                })
+                .catch(function () { alert('网络错误'); t.disabled = false; });
+        }
+    });
+})();
+</script>
+</body>
+</html>
