@@ -144,6 +144,17 @@
             border: 1px dashed rgba(0, 0, 0, .12);
         }
 
+        .rec-status.admin {
+            background: rgba(56, 161, 105, .16);
+            color: #276749;
+        }
+
+        .rec-status.dev {
+            background: linear-gradient(135deg, #789bfa, #b48ce0);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(120, 155, 250, .45);
+        }
+
         .work-body {
             margin-top: 20px;
             padding-top: 18px;
@@ -374,7 +385,7 @@
                     <h1>{{ item.rw_work_name or '未命名作品' }}</h1>
                     {% if item.rw_tag %}<span class="work-tag">{{ item.rw_tag }}</span>{% endif %}
                 </div>
-                <p class="by">推荐人：{{ item.rw_qq_name or '匿名' }}<span class="rec-status {{ author_state }}">{{ author_label }}</span></p>
+                <p class="by">推荐人：{{ item.rw_qq_name or '匿名' }}<span class="rec-status {{ author_state }}">{{ author_label }}</span>{% if author_dev %}<span class="rec-status dev">开发者</span>{% elif author_role == 'admin' %}<span class="rec-status admin">管理员</span>{% endif %}</p>
             </div>
         </div>
 

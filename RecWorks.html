@@ -233,6 +233,17 @@
             border: 1px dashed rgba(0, 0, 0, .12);
         }
 
+        .rec-status.admin {
+            background: rgba(56, 161, 105, .16);
+            color: #276749;
+        }
+
+        .rec-status.dev {
+            background: linear-gradient(135deg, #789bfa, #b48ce0);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(120, 155, 250, .45);
+        }
+
         /* 展开区 */
         .rec-body {
             margin-top: 14px;
@@ -1103,6 +1114,11 @@
             if (it.author_label) {
                 byRow.appendChild(el('span', 'rec-status ' + (it.author_state || ''),
                     it.author_label));
+            }
+            if (it.author_dev) {
+                byRow.appendChild(el('span', 'rec-status dev', '开发者'));
+            } else if (it.author_role === 'admin') {
+                byRow.appendChild(el('span', 'rec-status admin', '管理员'));
             }
             main.appendChild(byRow);
 

@@ -1032,16 +1032,22 @@ def work_detail(rid):
 
     # 推荐人的入站状态
     qq = (item.rw_qq_id or "").strip()
+    author_role = ""
+    author_dev = qq in DEVELOPER_QQS
     if qq in ("", "9999999", "99999999"):
         author_state, author_label = "anon", "匿名"
-    elif db.session.scalar(db.select(User.id).where(User.qq_id == qq)):
-        author_state, author_label = "joined", "已入站"
     else:
-        author_state, author_label = "absent", "未入站"
+        au = db.session.scalar(db.select(User).where(User.qq_id == qq))
+        if au is not None:
+            author_state, author_label = "joined", "已入站"
+            author_role = au.role
+        else:
+            author_state, author_label = "absent", "未入站"
 
     return render_template("works_detail.html", item=item, likes=likes,
                            comments=comments, liked=liked,
-                           author_state=author_state, author_label=author_label)
+                           author_state=author_state, author_label=author_label,
+                           author_role=author_role, author_dev=author_dev)
 
 
 @app.post("/api/works/<int:rid>/like")

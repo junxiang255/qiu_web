@@ -44,11 +44,14 @@ def main():
             )
             rows = cur.fetchall()
 
-            # 已经注册过账号的 QQ
-            cur.execute("SELECT qq_id FROM user WHERE qq_id IS NOT NULL AND qq_id <> ''")
-            joined = {str(q) for (q,) in cur.fetchall()}
+            # 已经注册过账号的 QQ，顺便带上角色
+            cur.execute("SELECT qq_id, role FROM user WHERE qq_id IS NOT NULL AND qq_id <> ''")
+            users = {str(q): (r or 'user') for q, r in cur.fetchall()}
     finally:
         conn.close()
+
+    # 和 app.py 里的 DEVELOPER_QQS 保持一致
+    DEVELOPER_QQS = {'2847407092'}
 
     items = []
     for r in rows:
@@ -57,7 +60,7 @@ def main():
 
         if qq in ANON_QQS:
             author_state, author_label = 'anon', '匿名'
-        elif qq in joined:
+        elif qq in users:
             author_state, author_label = 'joined', '已入站'
         else:
             author_state, author_label = 'absent', '未入站'
@@ -73,6 +76,8 @@ def main():
             'tag': (r[6] or '').strip(),
             'author_state': author_state,
             'author_label': author_label,
+            'author_role': users.get(qq, ''),
+            'author_dev': qq in DEVELOPER_QQS,
         })
 
     payload = {
