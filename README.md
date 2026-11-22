@@ -179,6 +179,30 @@ rm -f /www/wwwroot/qiu_web/uwsgi.pid
 /www/server/pyporject_evn/versions/3.10.21/bin/uwsgi --ini /www/wwwroot/qiu_web/uwsgi.ini
 ```
 
+### 非静态路由必须在 nginx 里显式转发
+
+站点主配置的 `location /` 是 `try_files $uri $uri/ /index.html?$args`，
+这意味着**任何没有单独 `location` 的路径都会静默回落到首页（返回 200），而不是 404**。
+所以每新增一个由 Flask 处理的路由，都要在 nginx 里补一条转发，否则访问到的会是首页。
+
+目前线上放在 `/www/server/panel/vhost/nginx/extension/qiu_web/account.conf`，
+靠站点主配置里的 `include .../extension/qiu_web/*.conf;` 生效，不会覆盖宝塔生成的配置：
+
+```nginx
+location /account {
+    proxy_pass http://127.0.0.1:5000/account;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+同样的规则还需要给 `/register`、`/logout`。已有的 `/api/`、`/login`、`/manager`
+（前缀匹配，`/manager/recWorks` 等子路径一并覆盖）写在站点主配置里。
+
+改完记得 `nginx -t` 再 `nginx -s reload`。
+
 数据库同步任务（每 2 分钟刷新一次前端 JSON）：
 
 ```cron
