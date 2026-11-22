@@ -1258,7 +1258,6 @@ def work_add_comment(rid):
     row = WorkComment(work_id=rid, user_id=g.user.id, nickname=g.user.display_name,
                       qq_id=g.user.qq_id, content=content)
     db.session.add(row)
-    g.user.add_exp(10)          # 发评论 +10 经验
     db.session.commit()
 
     return jsonify(ok=True, comment={
@@ -1404,7 +1403,6 @@ def chat_send():
     row = ChatMessage(user_id=g.user.id, nickname=g.user.display_name,
                       qq_id=g.user.qq_id, content=content)
     db.session.add(row)
-    g.user.add_exp(2)           # 聊天 +2 经验
     db.session.commit()
 
     return jsonify(ok=True, message=_chat_payload(row))
@@ -1469,7 +1467,6 @@ def guestbook_post():
     row = GuestbookEntry(user_id=g.user.id, nickname=g.user.display_name,
                          qq_id=g.user.qq_id, content=content)
     db.session.add(row)
-    g.user.add_exp(20)          # 留言 +20 经验
     db.session.commit()
 
     return jsonify(ok=True, entry={
