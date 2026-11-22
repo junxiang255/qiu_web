@@ -513,6 +513,21 @@ class WorkComment(db.Model):
         return f"<WorkComment {self.id} work={self.work_id}>"
 
 
+class ChatMessage(db.Model):
+    """群友聊天室的消息。"""
+    __tablename__ = 'chat_message'
+    id:Mapped[int]=mapped_column(Integer,primary_key=True,autoincrement=True)
+    user_id:Mapped[int|None]=mapped_column(Integer,nullable=True,index=True)
+    nickname:Mapped[str|None]=mapped_column(String(50),nullable=True)
+    qq_id:Mapped[str|None]=mapped_column(String(20),nullable=True)
+    content:Mapped[str]=mapped_column(Text,nullable=False)
+    status:Mapped[str]=mapped_column(String(20),nullable=False,default="visible")
+    created_at:Mapped[datetime|None]=mapped_column(DateTime,nullable=True,default=datetime.now,index=True)
+
+    def __repr__(self) -> str:
+        return f"<ChatMessage {self.id} user={self.user_id}>"
+
+
 class User(db.Model):
     __tablename__='user'
     id:Mapped[int]=mapped_column(Integer,primary_key=True,autoincrement=True)
@@ -1181,6 +1196,93 @@ def api_users_list():
             "joined": u.created_at.strftime("%Y-%m-%d") if u.created_at else "",
         })
     return jsonify(count=len(users), users=users)
+
+
+@app.route("/chat")
+def chat_page():
+    """群友聊天室。"""
+    return render_template("chat.html")
+
+
+def _chat_payload(row):
+    return {
+        "id": row.id,
+        "user_id": row.user_id,
+        "nickname": row.nickname or "匿名",
+        "qq_id": row.qq_id or "",
+        "content": row.content,
+        "created_at": row.created_at.strftime("%H:%M") if row.created_at else "",
+        "when": humanize_time(row.created_at),
+    }
+
+
+@app.get("/api/chat/messages")
+def chat_messages():
+    """拉消息，after 传上次拿到的最大 id 就只返回新的。"""
+    after = request.args.get("after", type=int) or 0
+
+    stmt = db.select(ChatMessage).where(ChatMessage.status == "visible")
+    if after:
+        stmt = stmt.where(ChatMessage.id > after)
+    else:
+        # 首屏只给最近 60 条
+        stmt = stmt.order_by(ChatMessage.id.desc()).limit(60)
+        rows = db.session.scalars(stmt).all()
+        rows.reverse()
+        return jsonify(ok=True, messages=[_chat_payload(r) for r in rows],
+                       me=(g.user.id if g.user else None))
+
+    rows = db.session.scalars(stmt.order_by(ChatMessage.id).limit(200)).all()
+    return jsonify(ok=True, messages=[_chat_payload(r) for r in rows],
+                   me=(g.user.id if g.user else None))
+
+
+@app.post("/api/chat/send")
+def chat_send():
+    if not g.user:
+        return jsonify(ok=False, msg="请先登录再发言"), 401
+
+    content = (request.form.get("content") or "").strip()
+    if not content:
+        return jsonify(ok=False, msg="说点什么吧")
+    if len(content) > 500:
+        return jsonify(ok=False, msg="一条最多 500 字")
+
+    # 防刷：同一个人 3 秒内只能发一条
+    last = db.session.scalar(
+        db.select(ChatMessage)
+        .where(ChatMessage.user_id == g.user.id)
+        .order_by(ChatMessage.id.desc())
+    )
+    if last is not None and last.created_at is not None:
+        gap = (datetime.now() - last.created_at).total_seconds()
+        if gap < 3:
+            return jsonify(ok=False, msg="发得有点快，等 %d 秒再发" % max(1, int(3 - gap)))
+
+    row = ChatMessage(user_id=g.user.id, nickname=g.user.display_name,
+                      qq_id=g.user.qq_id, content=content)
+    db.session.add(row)
+    db.session.commit()
+
+    return jsonify(ok=True, message=_chat_payload(row))
+
+
+@app.post("/api/chat/<int:cid>/delete")
+def chat_delete(cid):
+    """删自己发的消息，管理员能删所有。"""
+    if not g.user:
+        return jsonify(ok=False, msg="请先登录"), 401
+
+    row = db.session.get(ChatMessage, cid)
+    if row is None:
+        return jsonify(ok=False, msg="消息不存在"), 404
+
+    if row.user_id != g.user.id and not g.user.is_admin:
+        return jsonify(ok=False, msg="只能删自己的消息"), 403
+
+    db.session.delete(row)
+    db.session.commit()
+    return jsonify(ok=True)
 
 
 @app.route("/api/me")
