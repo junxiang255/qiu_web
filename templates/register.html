@@ -91,6 +91,30 @@
 
         .field .hint { font-size: .68rem; color: #8d9299; }
 
+        .code-row { display: flex; gap: 8px; align-items: stretch; }
+        .code-row input { flex: 1 1 auto; min-width: 0; }
+
+        .btn-code {
+            flex: 0 0 auto;
+            padding: 0 16px;
+            font-family: inherit;
+            font-size: .76rem;
+            color: #333;
+            white-space: nowrap;
+            border: 1px solid rgba(0, 0, 0, .08);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, .9);
+            cursor: pointer;
+            transition: all .3s ease;
+        }
+
+        .btn-code:hover:not(:disabled) {
+            background: #789bfa71;
+            box-shadow: 0 0 18px #e6b5e6;
+        }
+
+        .btn-code:disabled { opacity: .55; cursor: not-allowed; }
+
         .btn {
             width: 100%;
             padding: 13px 0;
@@ -167,6 +191,16 @@
         </div>
 
         <div class="field">
+            <label for="email_code">邮箱验证码</label>
+            <div class="code-row">
+                <input id="email_code" name="email_code" type="text" inputmode="numeric"
+                       maxlength="6" autocomplete="one-time-code" placeholder="6 位数字">
+                <button class="btn-code" id="send-code" type="button">发送验证码</button>
+            </div>
+            <span class="hint" id="code-hint">验证码会发到 <b>你的QQ号@qq.com</b>，用来确认这个 QQ 号是本人的</span>
+        </div>
+
+        <div class="field">
             <label for="nickname">昵称（可选）</label>
             <input id="nickname" name="nickname" type="text" maxlength="50"
                    autocomplete="nickname">
@@ -196,6 +230,67 @@
 <script>
 (function () {
     'use strict';
+
+    var sendBtn = document.getElementById('send-code');
+    var qqInput = document.getElementById('qq_id');
+    var hint = document.getElementById('code-hint');
+    var timer = null;
+
+    function setHint(text, ok) {
+        if (!hint) { return; }
+        hint.innerHTML = text;
+        hint.style.color = ok ? '#2f855a' : '#c53030';
+    }
+
+    function startCountdown(sec) {
+        var left = sec;
+        sendBtn.disabled = true;
+        sendBtn.textContent = left + 's 后重发';
+        timer = setInterval(function () {
+            left -= 1;
+            if (left <= 0) {
+                clearInterval(timer);
+                sendBtn.disabled = false;
+                sendBtn.textContent = '重新发送';
+            } else {
+                sendBtn.textContent = left + 's 后重发';
+            }
+        }, 1000);
+    }
+
+    if (sendBtn) {
+        sendBtn.addEventListener('click', function () {
+            var qq = (qqInput.value || '').trim();
+            if (!/^[1-9]\d{4,11}$/.test(qq)) {
+                setHint('先填正确的 QQ 号', false);
+                qqInput.focus();
+                return;
+            }
+            sendBtn.disabled = true;
+            sendBtn.textContent = '发送中…';
+
+            var fd = new FormData();
+            fd.append('qq_id', qq);
+
+            fetch('/api/register/send-code', { method: 'POST', body: fd })
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    setHint(d.msg || (d.ok ? '已发送' : '发送失败'), !!d.ok);
+                    if (d.ok) {
+                        startCountdown(60);
+                    } else {
+                        sendBtn.disabled = false;
+                        sendBtn.textContent = '发送验证码';
+                    }
+                })
+                .catch(function () {
+                    setHint('网络错误，请稍后再试', false);
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = '发送验证码';
+                });
+        });
+    }
+
     var form = document.querySelector('form');
     if (!form) { return; }
     form.addEventListener('submit', function (e) {

@@ -11,7 +11,8 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
 from sqlalchemy import MetaData, Integer, String, UniqueConstraint
 from sqlalchemy import Text, Boolean, DateTime, func
-from datetime import datetime
+from datetime import datetime, timedelta
+import random
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import Text
@@ -382,6 +383,56 @@ def recworks_edit(rid):
 # 网站开发者：这些 QQ 在后台会被额外标一个「开发者」标签
 DEVELOPER_QQS = {"2847407092"}
 
+# ---- 邮件（注册验证码发到 <QQ号>@qq.com） ----
+SMTP_HOST = os.environ.get("QIU_SMTP_HOST", "smtp.qq.com")
+SMTP_PORT = int(os.environ.get("QIU_SMTP_PORT", "465"))
+SMTP_USER = os.environ.get("QIU_SMTP_USER", "")
+SMTP_PASS = os.environ.get("QIU_SMTP_PASS", "")
+MAIL_FROM_NAME = os.environ.get("QIU_MAIL_FROM_NAME", "小秋的垃圾站")
+MAIL_ENABLED = bool(SMTP_USER and SMTP_PASS)
+CODE_TTL_MINUTES = 10
+CODE_COOLDOWN_SECONDS = 60
+
+
+def send_mail(to_addr, subject, body):
+    """发一封纯文本邮件，返回 (是否成功, 错误信息)。"""
+    if not MAIL_ENABLED:
+        return False, "邮件服务未配置"
+    import smtplib
+    from email.message import EmailMessage
+    from email.utils import formataddr
+
+    msg = EmailMessage()
+    msg["From"] = formataddr((MAIL_FROM_NAME, SMTP_USER))
+    msg["To"] = to_addr
+    msg["Subject"] = subject
+    msg.set_content(body)
+
+    try:
+        with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=20) as s:
+            s.login(SMTP_USER, SMTP_PASS)
+            s.send_message(msg)
+        return True, ""
+    except Exception as exc:
+        app.logger.warning("发送邮件到 %s 失败: %s", to_addr, exc)
+        return False, str(exc)
+
+
+class EmailCode(db.Model):
+    """注册邮箱验证码：发给 <QQ号>@qq.com，用来证明这个 QQ 号是他的。"""
+    __tablename__ = 'email_code'
+    id:Mapped[int]=mapped_column(Integer,primary_key=True,autoincrement=True)
+    qq_id:Mapped[str]=mapped_column(String(20),nullable=False,index=True)
+    email:Mapped[str]=mapped_column(String(120),nullable=False)
+    code:Mapped[str]=mapped_column(String(10),nullable=False)
+    status:Mapped[str]=mapped_column(String(20),nullable=False,default="pending")
+    tries:Mapped[int]=mapped_column(Integer,nullable=False,default=0)
+    expires_at:Mapped[datetime|None]=mapped_column(DateTime,nullable=True)
+    created_at:Mapped[datetime|None]=mapped_column(DateTime,nullable=True,default=datetime.now)
+
+    def __repr__(self) -> str:
+        return f"<EmailCode {self.qq_id} {self.status}>"
+
 
 class GroupMember(db.Model):
     """群成员白名单：只有在这里面的 QQ 号才能注册。
@@ -474,6 +525,59 @@ def admin_required(func):
 REGISTER_OPEN = os.environ.get("QIU_ALLOW_REGISTER", "1") != "0"
 
 
+@app.post("/api/register/send-code")
+def send_register_code():
+    """给 <QQ号>@qq.com 发验证码，用来证明这个 QQ 号确实是本人的。"""
+    qq_id = (request.form.get("qq_id") or request.json and request.json.get("qq_id") or "").strip()
+    if not re.fullmatch(r"[1-9]\d{4,11}", qq_id):
+        return jsonify(ok=False, msg="QQ 号格式不对")
+
+    member = db.session.scalar(
+        db.select(GroupMember).where(GroupMember.qq_id == qq_id)
+    )
+    if member is None:
+        return jsonify(ok=False, msg="QQ %s 不在群里，不能注册" % qq_id)
+
+    dup = db.session.scalar(db.select(User).where(User.qq_id == qq_id))
+    if dup is not None:
+        return jsonify(ok=False, msg="QQ %s 已经注册过账号了" % qq_id)
+
+    # 冷却：同一 QQ 60 秒内只能发一次
+    last = db.session.scalar(
+        db.select(EmailCode).where(EmailCode.qq_id == qq_id)
+        .order_by(EmailCode.id.desc())
+    )
+    if last is not None and last.created_at is not None:
+        gap = (datetime.now() - last.created_at).total_seconds()
+        if gap < CODE_COOLDOWN_SECONDS:
+            return jsonify(ok=False, msg="发得太快了，请 %d 秒后再试" % int(CODE_COOLDOWN_SECONDS - gap))
+
+    code = "%06d" % random.randint(0, 999999)
+    email = qq_id + "@qq.com"
+    row = EmailCode(qq_id=qq_id, email=email, code=code, status="pending",
+                    expires_at=datetime.now() + timedelta(minutes=CODE_TTL_MINUTES))
+    db.session.add(row)
+    db.session.commit()
+
+    if not MAIL_ENABLED:
+        app.logger.warning("[MAIL-OFF] %s 的验证码是 %s", qq_id, code)
+        return jsonify(ok=False, msg="邮件服务还没配置，请联系管理员")
+
+    ok, err = send_mail(
+        email,
+        "【小秋的垃圾站】注册验证码",
+        "你的注册验证码是：%s\n\n%d 分钟内有效，如果这不是你本人操作，请忽略这封邮件。"
+        % (code, CODE_TTL_MINUTES),
+    )
+    if not ok:
+        row.status = "failed"
+        db.session.commit()
+        return jsonify(ok=False, msg="验证码发送失败，请稍后再试")
+
+    app.logger.info("已向 %s 发送注册验证码", email)
+    return jsonify(ok=True, msg="验证码已发到 %s，10 分钟内有效" % email)
+
+
 @app.route("/register", methods=["GET","POST"])
 def register():
     if not REGISTER_OPEN:
@@ -502,6 +606,29 @@ def register():
     if password != password2:
         flash("两次输入的密码不一致", "error")
         return redirect(url_for("register"))
+
+    # ---- 邮箱验证码：证明这个 QQ 号是本人的 ----
+    verified_code = None
+    if MAIL_ENABLED:
+        email_code = (request.form.get("email_code") or "").strip()
+        if not email_code:
+            flash("请先填邮箱验证码（QQ 号对应的 QQ 邮箱会收到）", "error")
+            return redirect(url_for("register"))
+
+        verified_code = db.session.scalar(
+            db.select(EmailCode).where(
+                EmailCode.qq_id == qq_id,
+                EmailCode.code == email_code,
+                EmailCode.status == "pending",
+            ).order_by(EmailCode.id.desc())
+        )
+        if verified_code is None:
+            flash("验证码不对，请重新获取", "error")
+            return redirect(url_for("register"))
+        if verified_code.expires_at and verified_code.expires_at < datetime.now():
+            flash("验证码已过期，请重新获取", "error")
+            return redirect(url_for("register"))
+        verified_code.status = "verified"
 
     # ---- 群成员白名单：在名单里直接通过，不在名单的先挂起等管理员审核 ----
     member = db.session.scalar(
