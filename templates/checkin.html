@@ -355,12 +355,8 @@
         badge.textContent = 'LV' + level + (full ? ' 满级' : '');
         badge.className = 'lv-badge ' + (tier || 'gray');
         fill.style.width = (percent || 0) + '%';
-        if (full) {
-            expText.textContent = '经验已满（' + (cap * 100) + '）';
-        } else {
-            expText.textContent = 'LV' + level + ' 需 ' + ((level - 1) * 100) + ' - ' + (level * 100) +
-                '　当前 ' + (exp || 0);
-        }
+        var need = level * 100;
+        expText.textContent = (exp || 0) + ' / ' + need + (full ? '（满级）' : '');
     }
 
     function paintGrid(days, today) {

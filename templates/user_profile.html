@@ -451,11 +451,7 @@
                 <div class="exp-bar">
                     <div class="exp-fill" style="width: {{ u.level_percent }}%"></div>
                 </div>
-                {% if u.level >= u.level_cap %}
-                <span class="exp-num">满级</span>
-                {% else %}
-                <span class="exp-num">{{ (u.level - 1) * 100 }} - {{ u.level * 100 }}</span>
-                {% endif %}
+                <span class="exp-num">{{ u.exp }} / {{ u.level * 100 }}{% if u.level >= u.level_cap %} 满级{% endif %}</span>
             </div>
 
             <div class="uid">
