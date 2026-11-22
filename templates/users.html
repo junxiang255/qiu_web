@@ -162,6 +162,7 @@
                     <th style="width:56px">ID</th>
                     <th>用户名</th>
                     <th>昵称</th>
+                    <th>QQ</th>
                     <th style="width:96px">角色</th>
                     <th style="width:86px">状态</th>
                     <th>注册</th>
@@ -179,6 +180,7 @@
                         {% if is_me %}<span class="tag me">我</span>{% endif %}
                     </td>
                     <td class="meta">{{ it.nickname or '—' }}</td>
+                    <td class="meta">{{ it.qq_id or '—' }}</td>
                     <td>
                         <span class="tag {{ 'admin' if it.is_admin else '' }}">{{ '管理员' if it.is_admin else '普通用户' }}</span>
                     </td>

@@ -107,6 +107,28 @@ qiu_web/
 - **注册开关**：环境变量 `QIU_ALLOW_REGISTER=0` 时 `/register` 直接返回 403，
   页面提示「本站目前关闭了公开注册」，适合只留自己用的情况。
 
+### 注册白名单：必须是群成员
+
+注册除了用户名密码，还必须填 **QQ 号**，且该 QQ 号得在 `group_member` 表里
+（这张表存群主 / 管理员 / 成员的 QQ，由群成员列表同步而来）。不在名单里的 QQ 直接拒绝注册。
+
+- 群主、群管理员的 QQ 注册后自动拿到 `admin`，普通成员是 `user`
+- 一个 QQ 号只能绑定一个账号（`user.qq_id` 有唯一索引）
+- 昵称留空时自动用群名片
+
+同步群成员的两步：
+
+```bash
+# 1. 浏览器打开 https://qun.qq.com/member.html 登录，F12 复制 Cookie 整行
+python scripts/fetch_group_members.py --cookie "uin=o0xxxx; skey=@xxxx; p_skey=xxxx" --group 707983601
+
+# 2. 导入数据库（--prune 会顺带删掉已经退群的人）
+python scripts/sync_group_members.py members.json --prune
+```
+
+`fetch_group_members.py` 走的是群管理网页的 `search_group_members` 接口，
+需要 Cookie 里的 `skey` 来算 `bkn`；`sync_group_members.py` 只读 JSON，也可以手写名单导入。
+
 ## 作品推荐的图片链路
 
 ```

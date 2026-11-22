@@ -379,10 +379,34 @@ def recworks_edit(rid):
     return redirect(url_for("recworks_admin"))
 
 
+class GroupMember(db.Model):
+    """群成员白名单：只有在这里面的 QQ 号才能注册。
+
+    由 scripts/sync_group_members.py 从群成员列表同步进来。
+    role 取腾讯的群身份：owner（群主）/ admin（管理员）/ member（成员）。
+    """
+    __tablename__ = 'group_member'
+    id:Mapped[int]=mapped_column(Integer,primary_key=True,autoincrement=True)
+    qq_id:Mapped[str]=mapped_column(String(20),unique=True,nullable=False)
+    nickname:Mapped[str|None]=mapped_column(String(100),nullable=True)
+    role:Mapped[str]=mapped_column(String(20),nullable=False,default="member")
+    card:Mapped[str|None]=mapped_column(String(100),nullable=True)
+    synced_at:Mapped[datetime|None]=mapped_column(DateTime,nullable=True)
+    created_at:Mapped[datetime|None]=mapped_column(DateTime,nullable=True,default=datetime.now)
+
+    def __repr__(self) -> str:
+        return f"<GroupMember {self.qq_id} {self.role}>"
+
+    @property
+    def role_label(self):
+        return {"owner": "群主", "admin": "管理员", "member": "成员"}.get(self.role, self.role)
+
+
 class User(db.Model):
     __tablename__='user'
     id:Mapped[int]=mapped_column(Integer,primary_key=True,autoincrement=True)
     username:Mapped[str]=mapped_column(String(50),unique=True,nullable=False)
+    qq_id:Mapped[str|None]=mapped_column(String(20),unique=True,nullable=True)
     nickname:Mapped[str|None]=mapped_column(String(50),nullable=True)
     password_hash:Mapped[str]=mapped_column(String(200),nullable=False)
     role:Mapped[str]=mapped_column(String(20),nullable=False,default="user")
@@ -444,12 +468,16 @@ def register():
         return render_template("register.html", closed=False)
 
     username = (request.form.get("username") or "").strip()
+    qq_id = (request.form.get("qq_id") or "").strip()
     nickname = (request.form.get("nickname") or "").strip()
     password = request.form.get("password") or ""
     password2 = request.form.get("password2") or ""
 
     if not re.fullmatch(r"[A-Za-z0-9_]{3,20}", username):
         flash("用户名只能是 3-20 位字母、数字或下划线", "error")
+        return redirect(url_for("register"))
+    if not re.fullmatch(r"[1-9]\d{4,11}", qq_id):
+        flash("请填写正确的 QQ 号", "error")
         return redirect(url_for("register"))
     if len(password) < 6:
         flash("密码至少 6 位", "error")
@@ -458,14 +486,29 @@ def register():
         flash("两次输入的密码不一致", "error")
         return redirect(url_for("register"))
 
-    dup = db.session.scalar(db.select(User).where(User.username == username))
-    if dup:
+    # ---- 必须在群成员白名单里 ----
+    member = db.session.scalar(
+        db.select(GroupMember).where(GroupMember.qq_id == qq_id)
+    )
+    if member is None:
+        flash("QQ %s 不在群里，不能注册" % qq_id, "error")
+        return redirect(url_for("register"))
+
+    dup_user = db.session.scalar(db.select(User).where(User.username == username))
+    if dup_user:
         flash("这个用户名已经被注册了", "error")
         return redirect(url_for("register"))
 
+    dup_qq = db.session.scalar(db.select(User).where(User.qq_id == qq_id))
+    if dup_qq:
+        flash("QQ %s 已经注册过账号了" % qq_id, "error")
+        return redirect(url_for("register"))
+
     total = db.session.scalar(db.select(func.count()).select_from(User)) or 0
-    u = User(username=username, nickname=nickname or None,
-             role="admin" if total == 0 else "user")
+    # 库里一个账号都没有时，第一个注册的直接给管理员（首次部署用）
+    role = "admin" if total == 0 else ("admin" if member.role in ("owner", "admin") else "user")
+    u = User(username=username, nickname=nickname or (member.card or member.nickname) or None,
+             qq_id=qq_id, role=role)
     u.password = password
 
     try:
@@ -473,7 +516,7 @@ def register():
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
-        flash("这个用户名已经被注册了", "error")
+        flash("用户名或 QQ 号已被占用", "error")
         return redirect(url_for("register"))
 
     session.clear()

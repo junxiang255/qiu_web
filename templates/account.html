@@ -189,6 +189,7 @@
         <h2>账号信息</h2>
         <div class="meta">
             <span class="tag">用户名：{{ user.username }}</span>
+            {% if user.qq_id %}<span class="tag">QQ：{{ user.qq_id }}</span>{% endif %}
             <span class="tag {{ 'admin' if user.is_admin else '' }}">{{ '管理员' if user.is_admin else '普通用户' }}</span>
             {% if not user.is_active %}<span class="tag off">已停用</span>{% endif %}
             {% if user.created_at %}<span class="tag">注册于 {{ user.created_at.strftime('%Y-%m-%d') }}</span>{% endif %}
