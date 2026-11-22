@@ -259,6 +259,26 @@
         </div>
 
         <div class="field">
+            <label for="rw-tag">作品标签</label>
+            <input id="rw-tag" name="rw_tag" type="text" maxlength="30"
+                   list="tag-options" value="{{ item.rw_tag or '' }}"
+                   placeholder="例如 妹系 / 治愈 / 战斗">
+            <datalist id="tag-options">
+                <option value="妹系"></option>
+                <option value="治愈"></option>
+                <option value="战斗"></option>
+                <option value="悬疑"></option>
+                <option value="校园"></option>
+                <option value="日常"></option>
+                <option value="催泪"></option>
+                <option value="科幻"></option>
+                <option value="奇幻"></option>
+                <option value="恋爱"></option>
+            </datalist>
+            <span class="hint">留空就不显示标签，最多 30 字</span>
+        </div>
+
+        <div class="field">
             <label for="rw-recwork">推荐内容</label>
             <textarea id="rw-recwork" name="rw_recwork" required>{{ item.rw_recwork or '' }}</textarea>
             <div class="counter" id="counter">0 字</div>

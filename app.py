@@ -127,15 +127,17 @@ class recWorks(db.Model):
     rw_work_name:Mapped[str| None]=mapped_column("rw_work_name",String(255),nullable=True)
     rw_recwork:Mapped[str] = mapped_column( "rw_recwork", Text().with_variant(MEDIUMTEXT, "mysql"), nullable=False) 
     rw_img_path:Mapped[str | None]=mapped_column("rw_img_Path",String(500),nullable=True)
+    rw_tag:Mapped[str | None]=mapped_column("rw_tag",String(30),nullable=True)
  
     def __init__(self,qq_id: str | None = None, qq_name: str | None = None,
                  work_name: str | None = None, recwork: str = "",
-                 img_path: str | None = None):
+                 img_path: str | None = None, tag: str | None = None):
         self.rw_qq_id = qq_id
         self.rw_qq_name = qq_name
         self.rw_work_name = work_name
         self.rw_recwork = recwork
         self.rw_img_path = img_path
+        self.rw_tag = tag
 
     def __repr__(self) -> str:
         return f"<RecWorks id={self.id} qq={self.rw_qq_id}>"
@@ -160,6 +162,7 @@ def recWorks_get():
     qq_name   = (request.form.get("rw_qq_name") or "").strip()
     work_name = (request.form.get("rw_work_name") or "").strip()
     recwork   = (request.form.get("rw_recwork") or "").strip()
+    tag       = (request.form.get("rw_tag") or "").strip()[:30]
 
     # ---- 1. 去重前置 ----
     dup = db.session.query(recWorks.id).filter_by(
@@ -214,6 +217,7 @@ def recWorks_get():
         work_name=work_name,
         recwork=recwork,
         img_path=name,
+        tag=tag,
     )
     try:
         db.session.add(row)
@@ -303,6 +307,7 @@ def recworks_edit(rid):
     qq_name = (request.form.get("rw_qq_name") or "").strip()
     work_name = (request.form.get("rw_work_name") or "").strip()
     recwork = (request.form.get("rw_recwork") or "").strip()
+    tag = (request.form.get("rw_tag") or "").strip()[:30]
 
     if not (qq_id and qq_name and work_name and recwork):
         flash("QQ 号、昵称、作品标题、推荐内容都不能为空", "error")
@@ -349,6 +354,7 @@ def recworks_edit(rid):
     row.rw_qq_name = qq_name
     row.rw_work_name = work_name
     row.rw_recwork = recwork
+    row.rw_tag = tag
     if new_name:
         row.rw_img_path = new_name
 

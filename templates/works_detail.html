@@ -96,6 +96,26 @@
             letter-spacing: 1px;
         }
 
+        .title-row {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .title-row h1 { margin: 0 0 6px; }
+
+        .work-tag {
+            padding: 3px 11px;
+            font-size: .72rem;
+            font-weight: 700;
+            border-radius: 999px;
+            white-space: nowrap;
+            color: #6b4b73;
+            background: linear-gradient(135deg, #ffd9e8, #e6ddff);
+            box-shadow: 0 2px 8px rgb(0 0 0 / 0.08);
+        }
+
         .work-head .by { margin: 0; font-size: .8rem; color: #8d9299; }
 
         .work-body {
@@ -324,7 +344,10 @@
                  alt="{{ item.rw_qq_name or '' }}">
             {% endif %}
             <div>
-                <h1>{{ item.rw_work_name or '未命名作品' }}</h1>
+                <div class="title-row">
+                    <h1>{{ item.rw_work_name or '未命名作品' }}</h1>
+                    {% if item.rw_tag %}<span class="work-tag">{{ item.rw_tag }}</span>{% endif %}
+                </div>
                 <p class="by">推荐人：{{ item.rw_qq_name or '匿名' }}</p>
             </div>
         </div>

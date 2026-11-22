@@ -962,6 +962,24 @@ a:hover{	/*悬浮状态*/
                            maxlength="255" placeholder="例如 hanser" required>
                 </div>
 
+                <div class="coolinput">
+                    <label class="text" for="rw-tag">作品标签</label>
+                    <input class="input" id="rw-tag" name="rw_tag" type="text"
+                           maxlength="30" list="tag-options" placeholder="例如 妹系 / 治愈 / 战斗">
+                    <datalist id="tag-options">
+                        <option value="妹系"></option>
+                        <option value="治愈"></option>
+                        <option value="战斗"></option>
+                        <option value="悬疑"></option>
+                        <option value="校园"></option>
+                        <option value="日常"></option>
+                        <option value="催泪"></option>
+                        <option value="科幻"></option>
+                        <option value="奇幻"></option>
+                        <option value="恋爱"></option>
+                    </datalist>
+                </div>
+
                 <div class="coolinput_big">
                     <label class="text" for="rw-recwork">作品推荐内容</label>
                     <textarea class="input" id="rw-recwork" name="rw_recwork" rows="8"

@@ -36,7 +36,7 @@ def main():
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT id, rw_qq_id, rw_qq_name, rw_work_name, rw_recwork, rw_img_Path "
+                "SELECT id, rw_qq_id, rw_qq_name, rw_work_name, rw_recwork, rw_img_Path, rw_tag "
                 "FROM rec_Works ORDER BY id DESC"
             )
             rows = cur.fetchall()
@@ -54,6 +54,7 @@ def main():
             'recwork': r[4] or '',
             # 后台传的图落在项目根目录的 recworksimg/，nginx 按静态文件直接发
             'images': ['/recworksimg/' + img] if img else [],
+            'tag': (r[6] or '').strip(),
         })
 
     payload = {
