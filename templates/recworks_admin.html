@@ -230,7 +230,13 @@
 
         .c-check { width: 40px; text-align: center; }
         .c-img { width: 74px; }
-        .c-act { width: 82px; }
+        .c-act { width: 132px; }
+
+        .act-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
 
         .thumb {
             width: 60px;
@@ -380,7 +386,10 @@
                             <div class="content">{{ it.rw_recwork or '—' }}</div>
                         </td>
                         <td class="c-act">
-                            <button class="btn mini danger js-del" type="button" data-id="{{ it.id }}">删除</button>
+                            <div class="act-row">
+                                <a class="btn mini" href="{{ url_for('recworks_edit', rid=it.id) }}">管理</a>
+                                <button class="btn mini danger js-del" type="button" data-id="{{ it.id }}">删除</button>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}

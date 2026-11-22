@@ -284,6 +284,99 @@ def recworks_delete():
     return redirect(url_for("recworks_admin"))
 
 
+@app.route("/manager/recWorks/edit/<int:rid>", methods=["GET", "POST"])
+@login_required
+def recworks_edit(rid):
+    """编辑单条推荐：昵称、作品名、正文，图片可选替换。"""
+    row = db.session.get(recWorks, rid)
+    if row is None:
+        flash("这条推荐不存在，可能已被删除", "warning")
+        return redirect(url_for("recworks_admin"))
+
+    if request.method == "GET":
+        return render_template("recworks_edit.html", item=row)
+
+    qq_id = (request.form.get("rw_qq_id") or "").strip()
+    qq_name = (request.form.get("rw_qq_name") or "").strip()
+    work_name = (request.form.get("rw_work_name") or "").strip()
+    recwork = (request.form.get("rw_recwork") or "").strip()
+
+    if not (qq_id and qq_name and work_name and recwork):
+        flash("QQ 号、昵称、作品标题、推荐内容都不能为空", "error")
+        return redirect(url_for("recworks_edit", rid=rid))
+    if not qq_id.isdigit():
+        flash("QQ 号只能是数字", "error")
+        return redirect(url_for("recworks_edit", rid=rid))
+
+    # ---- 可选替换图片 ----
+    new_name = None
+    f = request.files.get("rw_img_path")
+    if f is not None and f.filename:
+        head = f.stream.read(64)
+        f.stream.seek(0)
+        sniffed = sniff_image(head)
+        if sniffed is None:
+            flash("不是有效的图片(仅支持 jpg/png/gif/webp)", "error")
+            return redirect(url_for("recworks_edit", rid=rid))
+        mime, ext = sniffed
+
+        f.stream.seek(0, os.SEEK_END)
+        size = f.stream.tell()
+        f.stream.seek(0)
+        if size <= 0:
+            flash("图片是空文件", "error")
+            return redirect(url_for("recworks_edit", rid=rid))
+        if size > MAX_BYTES:
+            flash("图片不能超过 %dMB" % (MAX_BYTES // 1048576), "error")
+            return redirect(url_for("recworks_edit", rid=rid))
+
+        stem = build_business_stem(qq_name, work_name)
+        tmp = UPLOAD_DIR / (".upload-%s.part" % uuid.uuid4().hex)
+        try:
+            f.save(tmp)
+            new_name = unique_link(tmp, UPLOAD_DIR, stem, ext)
+        except Exception:
+            tmp.unlink(missing_ok=True)
+            app.logger.exception("保存图片失败")
+            flash("图片保存失败,请稍后重试", "error")
+            return redirect(url_for("recworks_edit", rid=rid))
+
+    old_name = row.rw_img_path
+    row.rw_qq_id = qq_id
+    row.rw_qq_name = qq_name
+    row.rw_work_name = work_name
+    row.rw_recwork = recwork
+    if new_name:
+        row.rw_img_path = new_name
+
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        if new_name:
+            (UPLOAD_DIR / new_name).unlink(missing_ok=True)
+        flash("已经有相同的（QQ 号 + 作品名）推荐了", "warning")
+        return redirect(url_for("recworks_edit", rid=rid))
+    except Exception:
+        db.session.rollback()
+        if new_name:
+            (UPLOAD_DIR / new_name).unlink(missing_ok=True)
+        app.logger.exception("更新 recWorks 失败")
+        flash("保存失败,请稍后重试", "error")
+        return redirect(url_for("recworks_edit", rid=rid))
+
+    # 换了图就把旧的清掉，不留孤儿文件
+    if new_name and old_name and old_name != new_name:
+        try:
+            (UPLOAD_DIR / old_name).unlink(missing_ok=True)
+        except OSError:
+            app.logger.warning("删除旧图片失败: %s", old_name)
+
+    sync_recworks_json()
+    flash("已保存修改", "success")
+    return redirect(url_for("recworks_admin"))
+
+
 class User(db.Model):
     __tablename__='user'
     id:Mapped[int]=mapped_column(Integer,primary_key=True,autoincrement=True)

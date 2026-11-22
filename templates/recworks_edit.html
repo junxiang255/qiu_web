@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>编辑推荐 #{{ item.id }} · 小秋的垃圾站</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/font.css') }}">
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 20px 16px 60px;
+            box-sizing: border-box;
+            background: linear-gradient(rgba(255, 255, 255, .2), rgba(255, 255, 255, .3)),
+                        url("{{ url_for('static', filename='img/background.png') }}") center/cover no-repeat fixed;
+            font-family: "筑紫A圆体D", system-ui, sans-serif;
+            color: #1f1f1f;
+        }
+
+        .wrap { width: min(720px, 100%); margin: 0 auto; }
+
+        .bar {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            padding: 14px 20px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, .78);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, .66);
+            box-shadow: rgb(0 0 0 / 0.12) 0px 8px 28px 0px;
+        }
+
+        .bar h1 { margin: 0; font-size: 1.05rem; letter-spacing: 2px; }
+
+        .bar .id-tag {
+            display: inline-block;
+            margin-left: 6px;
+            padding: 2px 9px;
+            font-size: .7rem;
+            color: #6b7280;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, .06);
+        }
+
+        .bar-right { margin-left: auto; display: flex; gap: 10px; }
+
+        .btn {
+            display: inline-block;
+            padding: 8px 18px;
+            font-family: inherit;
+            font-size: .82rem;
+            color: #333;
+            text-decoration: none;
+            border: 1px solid rgba(0, 0, 0, .07);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, .6);
+            box-shadow: rgb(0 0 0 / 0.08) 0px 3px 12px 0px;
+            cursor: pointer;
+            transition: all .3s ease;
+        }
+
+        .btn:hover { background: #789bfa71; box-shadow: 0 0 18px #e6b5e6; }
+
+        .btn.primary {
+            color: #fff;
+            border: none;
+            background: linear-gradient(135deg, #789bfa, #b48ce0);
+            box-shadow: 0 8px 22px rgb(120 155 250 / 0.4);
+        }
+
+        .btn.primary:hover {
+            color: #fff;
+            box-shadow: 0 10px 28px rgb(120 155 250 / 0.5);
+        }
+
+        .flash-wrap { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+
+        .flash {
+            padding: 11px 16px;
+            font-size: .82rem;
+            line-height: 1.6;
+            border-radius: 12px;
+            border-left: 4px solid #999;
+            background: rgba(255, 255, 255, .8);
+            backdrop-filter: blur(16px);
+            box-shadow: rgb(0 0 0 / 0.1) 0px 6px 20px 0px;
+        }
+
+        .flash-success { border-left-color: #38a169; background: rgba(237, 250, 242, .92); }
+        .flash-warning { border-left-color: #d69e2e; background: rgba(255, 250, 235, .92); }
+        .flash-error   { border-left-color: #e53e3e; background: rgba(255, 241, 241, .94); }
+
+        .card {
+            margin-top: 14px;
+            padding: 24px 24px 28px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, .8);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, .66);
+            box-shadow: rgb(0 0 0 / 0.12) 0px 10px 32px 0px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .field { display: flex; flex-direction: column; gap: 7px; }
+
+        .field label {
+            font-size: .78rem;
+            font-weight: 700;
+            color: #4b5563;
+            letter-spacing: .5px;
+        }
+
+        .field input[type="text"],
+        .field textarea {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 11px 13px;
+            font-family: inherit;
+            font-size: .84rem;
+            line-height: 1.7;
+            color: #1f1f1f;
+            background: rgba(255, 255, 255, .85);
+            border: 1px solid rgba(0, 0, 0, .09);
+            border-radius: 12px;
+            outline: none;
+            transition: border-color .25s ease, box-shadow .25s ease;
+        }
+
+        .field textarea { min-height: 210px; resize: vertical; }
+
+        .field input:focus,
+        .field textarea:focus {
+            background: #fff;
+            border-color: rgba(120, 155, 250, .6);
+            box-shadow: 0 0 0 3px #789bfa52;
+        }
+
+        .field .hint { font-size: .7rem; color: #8d9299; }
+
+        /* 图片区 */
+        .img-row { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+
+        .img-now {
+            width: 132px;
+            height: 132px;
+            object-fit: cover;
+            border-radius: 14px;
+            display: block;
+            border: 1px solid rgba(0, 0, 0, .08);
+            box-shadow: 0 4px 14px rgb(0 0 0 / 0.14);
+            background: rgba(0, 0, 0, .04);
+        }
+
+        .img-none {
+            width: 132px;
+            height: 132px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .72rem;
+            color: #b6b6b6;
+            border-radius: 14px;
+            border: 1px dashed rgba(0, 0, 0, .16);
+            background: rgba(0, 0, 0, .03);
+        }
+
+        .upload {
+            flex: 1 1 220px;
+            min-width: 200px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .upload input[type="file"] {
+            font-family: inherit;
+            font-size: .78rem;
+            color: #4b5563;
+        }
+
+        .upload input[type="file"]::file-selector-button {
+            margin-right: 10px;
+            padding: 7px 14px;
+            font-family: inherit;
+            font-size: .78rem;
+            color: #333;
+            border: 1px solid rgba(0, 0, 0, .07);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, .9);
+            cursor: pointer;
+            transition: all .3s ease;
+        }
+
+        .upload input[type="file"]::file-selector-button:hover { background: #789bfa71; }
+
+        #new-meta { font-size: .72rem; color: #6b7280; }
+        #new-meta.is-error { color: #c53030; font-weight: 700; }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+
+        .counter { text-align: right; font-size: .7rem; color: #8d9299; }
+        .counter.is-over { color: #c53030; font-weight: 700; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+
+    <header class="bar">
+        <h1>编辑推荐<span class="id-tag">#{{ item.id }}</span></h1>
+        <div class="bar-right">
+            <a class="btn" href="{{ url_for('recworks_admin') }}">返回列表</a>
+        </div>
+    </header>
+
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% if msgs %}
+    <div class="flash-wrap">
+        {% for cat, msg in msgs %}
+        <div class="flash flash-{{ cat }}">{{ msg }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <form class="card" id="edit-form" method="post" enctype="multipart/form-data"
+          action="{{ url_for('recworks_edit', rid=item.id) }}">
+
+        <div class="field">
+            <label for="rw-qq-id">投稿人的 QQ 账号</label>
+            <input id="rw-qq-id" name="rw_qq_id" type="text" inputmode="numeric" maxlength="15"
+                   value="{{ item.rw_qq_id or '' }}" required>
+            <span class="hint">只能是数字。这一项和作品标题一起用于去重。</span>
+        </div>
+
+        <div class="field">
+            <label for="rw-qq-name">投稿人的昵称</label>
+            <input id="rw-qq-name" name="rw_qq_name" type="text" maxlength="255"
+                   value="{{ item.rw_qq_name or '' }}" required>
+        </div>
+
+        <div class="field">
+            <label for="rw-work-name">作品标题</label>
+            <input id="rw-work-name" name="rw_work_name" type="text" maxlength="255"
+                   value="{{ item.rw_work_name or '' }}" required>
+        </div>
+
+        <div class="field">
+            <label for="rw-recwork">推荐内容</label>
+            <textarea id="rw-recwork" name="rw_recwork" required>{{ item.rw_recwork or '' }}</textarea>
+            <div class="counter" id="counter">0 字</div>
+        </div>
+
+        <div class="field">
+            <label>作品图片</label>
+            <div class="img-row">
+                {% if item.rw_img_path %}
+                <img class="img-now" id="img-now" src="/recworksimg/{{ item.rw_img_path }}"
+                     alt="{{ item.rw_work_name or '' }}">
+                {% else %}
+                <div class="img-none">暂无图片</div>
+                {% endif %}
+
+                <div class="upload">
+                    <input id="rw-img" name="rw_img_path" type="file"
+                           accept="image/jpeg,image/png,image/gif,image/webp">
+                    <span id="new-meta">不选就保留原图。支持 jpg / png / gif / webp，最大 5MB。</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <a class="btn" href="{{ url_for('recworks_admin') }}">取消</a>
+            <button class="btn primary" type="submit">保存修改</button>
+        </div>
+    </form>
+
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    var MAX_BYTES = 5 * 1024 * 1024;
+    var OK_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+    var form = document.getElementById('edit-form');
+    var textarea = document.getElementById('rw-recwork');
+    var counter = document.getElementById('counter');
+    var fileInput = document.getElementById('rw-img');
+    var meta = document.getElementById('new-meta');
+    var imgNow = document.getElementById('img-now');
+
+    function fmtSize(n) {
+        if (n < 1024) { return n + ' B'; }
+        if (n < 1048576) { return (n / 1024).toFixed(1) + ' KB'; }
+        return (n / 1048576).toFixed(2) + ' MB';
+    }
+
+    function updateCount() {
+        var n = (textarea.value || '').length;
+        counter.textContent = n + ' 字';
+        counter.classList.toggle('is-over', n > 60000);
+    }
+
+    if (textarea) {
+        textarea.addEventListener('input', updateCount);
+        updateCount();
+    }
+
+    function showMeta(text, isError) {
+        meta.textContent = text;
+        meta.classList.toggle('is-error', !!isError);
+    }
+
+    if (fileInput) {
+        fileInput.addEventListener('change', function () {
+            if (!this.files || !this.files.length) {
+                showMeta('不选就保留原图。支持 jpg / png / gif / webp，最大 5MB。', false);
+                return;
+            }
+            var f = this.files[0];
+            if (OK_TYPES.indexOf(f.type) === -1) {
+                this.value = '';
+                showMeta('只支持 jpg / png / gif / webp（当前：' + (f.type || '未知') + '）', true);
+                return;
+            }
+            if (f.size <= 0) {
+                this.value = '';
+                showMeta('图片是空文件', true);
+                return;
+            }
+            if (f.size > MAX_BYTES) {
+                this.value = '';
+                showMeta('图片不能超过 5MB（当前 ' + fmtSize(f.size) + '）', true);
+                return;
+            }
+            showMeta('将替换为：' + f.name + ' · ' + fmtSize(f.size), false);
+
+            if (imgNow) {
+                var reader = new FileReader();
+                reader.onload = function (e) { imgNow.src = e.target.result; };
+                reader.readAsDataURL(f);
+            }
+        });
+    }
+
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            if (!textarea.value.trim()) {
+                e.preventDefault();
+                textarea.focus();
+                showMeta('推荐内容不能为空', true);
+                return;
+            }
+            if (textarea.value.length > 60000) {
+                e.preventDefault();
+                textarea.focus();
+                showMeta('推荐内容太长了，请精简到 6 万字以内', true);
+            }
+        });
+    }
+})();
+</script>
+</body>
+</html>
