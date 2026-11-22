@@ -410,6 +410,7 @@ class User(db.Model):
     nickname:Mapped[str|None]=mapped_column(String(50),nullable=True)
     password_hash:Mapped[str]=mapped_column(String(200),nullable=False)
     role:Mapped[str]=mapped_column(String(20),nullable=False,default="user")
+    status:Mapped[str]=mapped_column(String(20),nullable=False,default="active")
     is_active:Mapped[bool]=mapped_column(Boolean,nullable=False,default=True)
     created_at:Mapped[datetime|None]=mapped_column(DateTime,nullable=True,default=datetime.now)
     last_login:Mapped[datetime|None]=mapped_column(DateTime,nullable=True)
@@ -438,6 +439,10 @@ class User(db.Model):
     @property
     def is_admin(self):
         return self.role == "admin"
+
+    @property
+    def is_pending(self):
+        return self.status == "pending"
 
 
 def admin_required(func):
@@ -486,13 +491,10 @@ def register():
         flash("两次输入的密码不一致", "error")
         return redirect(url_for("register"))
 
-    # ---- 必须在群成员白名单里 ----
+    # ---- 群成员白名单：在名单里直接通过，不在名单的先挂起等管理员审核 ----
     member = db.session.scalar(
         db.select(GroupMember).where(GroupMember.qq_id == qq_id)
     )
-    if member is None:
-        flash("QQ %s 不在群里，不能注册" % qq_id, "error")
-        return redirect(url_for("register"))
 
     dup_user = db.session.scalar(db.select(User).where(User.username == username))
     if dup_user:
@@ -501,14 +503,25 @@ def register():
 
     dup_qq = db.session.scalar(db.select(User).where(User.qq_id == qq_id))
     if dup_qq:
-        flash("QQ %s 已经注册过账号了" % qq_id, "error")
+        if dup_qq.is_pending:
+            flash("QQ %s 已经提交过申请了，正在等管理员审核" % qq_id, "warning")
+        else:
+            flash("QQ %s 已经注册过账号了" % qq_id, "error")
         return redirect(url_for("register"))
 
     total = db.session.scalar(db.select(func.count()).select_from(User)) or 0
-    # 库里一个账号都没有时，第一个注册的直接给管理员（首次部署用）
-    role = "admin" if total == 0 else ("admin" if member.role in ("owner", "admin") else "user")
-    u = User(username=username, nickname=nickname or (member.card or member.nickname) or None,
-             qq_id=qq_id, role=role)
+
+    if member is not None:
+        status = "active"
+        role = "admin" if total == 0 else ("admin" if member.role in ("owner", "admin") else "user")
+        nick = nickname or (member.card or member.nickname) or None
+    else:
+        # 不在白名单：先建一个待审核账号，管理员在后台点通过后才会生效
+        status = "pending"
+        role = "admin" if total == 0 else "user"
+        nick = nickname or None
+
+    u = User(username=username, nickname=nick, qq_id=qq_id, role=role, status=status)
     u.password = password
 
     try:
@@ -518,6 +531,10 @@ def register():
         db.session.rollback()
         flash("用户名或 QQ 号已被占用", "error")
         return redirect(url_for("register"))
+
+    if status == "pending":
+        flash("已提交注册申请，等管理员审核通过后就能登录了", "success")
+        return redirect(url_for("login"))
 
     session.clear()
     session["user_id"] = u.id
@@ -568,8 +585,12 @@ def account():
 @app.route("/manager/users")
 @admin_required
 def users_admin():
-    items = db.session.scalars(db.select(User).order_by(User.id)).all()
-    return render_template("users.html", items=items)
+    items = db.session.scalars(
+        db.select(User).order_by(User.status.desc(), User.id)
+    ).all()
+    pending = [u for u in items if u.is_pending]
+    active = [u for u in items if not u.is_pending]
+    return render_template("users.html", items=items, pending=pending, active=active)
 
 
 @app.post("/manager/users/<int:uid>/role")
@@ -644,6 +665,60 @@ def users_delete(uid):
     db.session.delete(u)
     db.session.commit()
     flash("已删除账号 %s" % name, "success")
+    return redirect(url_for("users_admin"))
+
+
+@app.post("/manager/users/<int:uid>/approve")
+@admin_required
+def users_approve(uid):
+    """通过注册申请：同时写进群成员白名单，之后同 QQ 注册直接放行。"""
+    u = db.session.get(User, uid)
+    if u is None:
+        flash("用户不存在", "warning")
+        return redirect(url_for("users_admin"))
+    if not u.is_pending:
+        flash("这个账号已经审核过了", "warning")
+        return redirect(url_for("users_admin"))
+
+    role = request.form.get("role") or "member"
+    if role not in ("owner", "admin", "member"):
+        role = "member"
+
+    if u.qq_id:
+        m = db.session.scalar(
+            db.select(GroupMember).where(GroupMember.qq_id == u.qq_id)
+        )
+        if m is None:
+            db.session.add(GroupMember(
+                qq_id=u.qq_id, nickname=u.nickname, role=role,
+                synced_at=datetime.now()))
+        else:
+            m.role = role
+            m.synced_at = datetime.now()
+
+    u.status = "active"
+    u.role = "admin" if role in ("owner", "admin") else "user"
+    db.session.commit()
+
+    label = {"owner": "群主", "admin": "管理员", "member": "成员"}[role]
+    flash("已通过 %s 的申请，身份记为%s" % (u.display_name, label), "success")
+    return redirect(url_for("users_admin"))
+
+
+@app.post("/manager/users/<int:uid>/reject")
+@admin_required
+def users_reject(uid):
+    u = db.session.get(User, uid)
+    if u is None:
+        flash("用户不存在", "warning")
+        return redirect(url_for("users_admin"))
+    if not u.is_pending:
+        flash("只能拒绝待审核的申请", "warning")
+        return redirect(url_for("users_admin"))
+    name = u.username
+    db.session.delete(u)
+    db.session.commit()
+    flash("已拒绝并删除 %s 的申请" % name, "success")
     return redirect(url_for("users_admin"))
 
 
@@ -772,6 +847,9 @@ def login():
 
     if user is None or not user.check_password(password):
         flash("用户名或密码不对", "error")
+        return redirect(url_for('login'))
+    if user.is_pending:
+        flash("这个账号还在等管理员审核，通过后就能登录", "warning")
         return redirect(url_for('login'))
     if not user.is_active:
         flash("这个账号已被停用，请联系管理员", "error")

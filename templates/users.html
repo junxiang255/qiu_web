@@ -131,6 +131,51 @@
         .act { display: flex; gap: 6px; flex-wrap: wrap; }
 
         .empty { padding: 44px 20px; text-align: center; color: #7d838c; font-size: .86rem; }
+
+        /* 待审核区块 */
+        .pending-wrap {
+            margin-top: 14px;
+            border: 1px solid rgba(214, 158, 46, .45);
+            box-shadow: rgb(0 0 0 / 0.12) 0px 10px 32px 0px, 0 0 0 3px rgba(214, 158, 46, .12);
+        }
+
+        .pending-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 18px;
+            background: rgba(255, 250, 235, .95);
+            border-bottom: 1px solid rgba(214, 158, 46, .25);
+        }
+
+        .pending-head h2 {
+            margin: 0;
+            font-size: .92rem;
+            letter-spacing: 1px;
+            color: #8a6100;
+        }
+
+        .pending-head h2::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 14px;
+            margin-right: 8px;
+            vertical-align: -2px;
+            border-radius: 2px;
+            background: linear-gradient(#f6c453, #d69e2e);
+        }
+
+        .role-sel {
+            padding: 5px 8px;
+            font-family: inherit;
+            font-size: .74rem;
+            color: #333;
+            border: 1px solid rgba(0, 0, 0, .1);
+            border-radius: 9px;
+            background: rgba(255, 255, 255, .9);
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -155,6 +200,50 @@
     {% endif %}
     {% endwith %}
 
+    {% if pending %}
+    <div class="table-wrap pending-wrap">
+        <div class="pending-head">
+            <h2>待审核的注册申请</h2>
+            <span class="tag">{{ pending|length }} 个</span>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:56px">ID</th>
+                    <th>用户名</th>
+                    <th>QQ</th>
+                    <th>昵称</th>
+                    <th>申请时间</th>
+                    <th style="width:300px">审核</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for it in pending %}
+                <tr>
+                    <td class="meta">#{{ it.id }}</td>
+                    <td><span class="uname">{{ it.username }}</span></td>
+                    <td class="meta">{{ it.qq_id or '—' }}</td>
+                    <td class="meta">{{ it.nickname or '—' }}</td>
+                    <td class="meta">{{ it.created_at.strftime('%m-%d %H:%M') if it.created_at else '—' }}</td>
+                    <td>
+                        <div class="act">
+                            <select class="role-sel" id="role-{{ it.id }}">
+                                <option value="member">成员</option>
+                                <option value="admin">管理员</option>
+                                <option value="owner">群主</option>
+                            </select>
+                            <button class="btn mini" type="button" onclick="approveUser({{ it.id }})">通过</button>
+                            <button class="btn mini danger" type="button"
+                                    onclick="rejectUser({{ it.id }}, '{{ it.username }}')">拒绝</button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
     <div class="table-wrap">
         <table>
             <thead>
@@ -171,7 +260,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for it in items %}
+                {% for it in active %}
                 {% set is_me = (it.id == user.id) %}
                 <tr class="{{ 'is-off' if not it.is_active else '' }}">
                     <td class="meta">#{{ it.id }}</td>
@@ -229,6 +318,7 @@
 
 <form id="act-form" method="post" style="display:none;">
     <input type="hidden" name="new_password" id="act-pwd" value="">
+    <input type="hidden" name="role" id="act-role" value="">
 </form>
 
 <script>
@@ -259,6 +349,25 @@
         if (!confirm('确定删除账号「' + name + '」吗？删掉之后无法恢复。')) { return; }
         pwdInput.value = '';
         form.action = '/manager/users/' + uid + '/delete';
+        form.submit();
+    };
+
+    window.approveUser = function (uid) {
+        var sel = document.getElementById('role-' + uid);
+        var role = sel ? sel.value : 'member';
+        var label = { member: '成员', admin: '管理员', owner: '群主' }[role] || role;
+        if (!confirm('通过这个申请，并记为「' + label + '」？')) { return; }
+        document.getElementById('act-role').value = role;
+        pwdInput.value = '';
+        form.action = '/manager/users/' + uid + '/approve';
+        form.submit();
+    };
+
+    window.rejectUser = function (uid, name) {
+        if (!confirm('拒绝并删除「' + name + '」的申请吗？')) { return; }
+        document.getElementById('act-role').value = '';
+        pwdInput.value = '';
+        form.action = '/manager/users/' + uid + '/reject';
         form.submit();
     };
 })();
