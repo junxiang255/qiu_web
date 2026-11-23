@@ -270,6 +270,52 @@
             .player-vol { display: none; }
         }
 
+
+        /* ---- 开发者配色 ---- */
+        .color-row {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .color-pick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+
+        .color-pick input[type="color"] {
+            width: 56px;
+            height: 56px;
+            padding: 0;
+            border: 2px solid rgba(255, 255, 255, .9);
+            border-radius: 14px;
+            box-shadow: 0 3px 14px rgb(0 0 0 / .12);
+            cursor: pointer;
+            background: none;
+        }
+
+        .color-pick input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        .color-pick input[type="color"]::-webkit-color-swatch { border: none; border-radius: 12px; }
+
+        .color-pick span {
+            font-size: .66rem;
+            color: #9aa0a8;
+        }
+
+        .color-preview {
+            display: inline-block;
+            padding: 5px 18px;
+            font-size: .74rem;
+            font-weight: 700;
+            border-radius: 999px;
+            color: #fff;
+            background-size: 300% 100%;
+            animation: tag_flow 4s linear infinite;
+        }
+
     </style>
 </head>
 <body>
@@ -451,6 +497,81 @@
         volFill.style.width = (v * 100) + '%';
         localStorage.setItem('qiu_vol', String(v));
     });
+})();
+</script>
+
+            {% if user and user.is_developer %}
+            <div class="card">
+                <h2>开发者标签配色</h2>
+                <p style="margin:0 0 14px;font-size:.74rem;color:#8d9299;">
+                    这五个颜色会循环流动，全站生效（推荐列表、作品详情、个人主页、首页群友）
+                </p>
+                <form method="post" action="{{ url_for('account') }}">
+                    <input type="hidden" name="action" value="profile">
+                    <input type="hidden" name="nickname" value="{{ user.nickname or '' }}">
+                    <input type="hidden" name="bio" value="{{ user.bio or '' }}">
+
+                    <div class="color-row">
+                        {% set cols = (user.tag_colors or '#789bfa,#b48ce0,#ff9ec7,#edb753,#8fc7d9').split(',') %}
+                        {% for i in range(5) %}
+                        <label class="color-pick">
+                            <input type="color" class="dev-color" name="c{{ i }}"
+                                   value="{{ cols[i] if cols|length > i else ['#789bfa','#b48ce0','#ff9ec7','#edb753','#8fc7d9'][i] }}">
+                            <span>{{ i + 1 }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+
+                    <input type="hidden" name="tag_colors" id="tag-colors" value="">
+
+                    <div style="display:flex;gap:10px;align-items:center;margin-top:16px;">
+                        <button class="btn primary" type="submit">保存配色</button>
+                        <button class="btn" type="button" id="reset-colors">恢复默认</button>
+                        <span class="color-preview" id="color-preview"></span>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
+
+<script>
+(function () {
+    'use strict';
+    var picks = document.querySelectorAll('.dev-color');
+    var hidden = document.getElementById('tag-colors');
+    var preview = document.getElementById('color-preview');
+    var reset = document.getElementById('reset-colors');
+    if (!picks.length || !hidden) { return; }
+
+    var DEFAULTS = ['#789bfa', '#b48ce0', '#ff9ec7', '#edb753', '#8fc7d9'];
+
+    function colors() {
+        return Array.prototype.map.call(picks, function (p) { return p.value; });
+    }
+
+    function sync() {
+        var cs = colors();
+        hidden.value = cs.join(',');
+        if (preview) {
+            preview.style.backgroundImage = 'linear-gradient(90deg, ' +
+                cs.concat([cs[0]]).join(', ') + ')';
+            preview.textContent = '预览';
+        }
+        // 实时改页面上的变量
+        cs.forEach(function (c, i) {
+            document.documentElement.style.setProperty('--dev-' + (i + 1), c);
+        });
+    }
+
+    picks.forEach(function (p) { p.addEventListener('input', sync); });
+
+    if (reset) {
+        reset.addEventListener('click', function () {
+            picks.forEach(function (p, i) { p.value = DEFAULTS[i]; });
+            sync();
+        });
+    }
+
+    sync();
 })();
 </script>
 </body>

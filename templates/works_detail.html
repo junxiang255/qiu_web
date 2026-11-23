@@ -150,7 +150,7 @@
 /* 身份标签：渐变流动 */
         .rec-status.dev {
             color: #fff;
-            background: linear-gradient(90deg, #789bfa, #b48ce0, #ff9ec7, #edb753, #8fc7d9, #789bfa);
+            background: linear-gradient(90deg, var(--dev-1, #789bfa), var(--dev-2, #b48ce0), var(--dev-3, #ff9ec7), var(--dev-4, #edb753), var(--dev-5, #8fc7d9), var(--dev-1, #789bfa));
             background-size: 300% 100%;
             box-shadow: 0 2px 10px rgba(120, 155, 250, .5);
             animation: tag_flow 4s linear infinite;
@@ -580,6 +580,23 @@
                 submit.disabled = false;
             });
     });
+})();
+</script>
+
+<script>
+/* 开发者标签配色：从 /api/theme 读取，注入 CSS 变量 */
+(function () {
+    fetch('/api/theme', { cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+            var cs = (d && d.colors) || [];
+            if (!cs.length) { return; }
+            var root = document.documentElement;
+            cs.forEach(function (c, i) {
+                root.style.setProperty('--dev-' + (i + 1), c);
+            });
+        })
+        .catch(function () {});
 })();
 </script>
 </body>

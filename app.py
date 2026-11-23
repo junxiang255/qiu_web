@@ -650,6 +650,7 @@ class User(db.Model):
     last_login:Mapped[datetime|None]=mapped_column(DateTime,nullable=True)
     exp:Mapped[int]=mapped_column(Integer,nullable=False,default=0,server_default="0")
     bio:Mapped[str|None]=mapped_column(String(200),nullable=True)
+    tag_colors:Mapped[str|None]=mapped_column(String(120),nullable=True)
 
     def __init__(self,*args,**kwargs):
         password = kwargs.pop("password", None)
@@ -941,6 +942,19 @@ def account():
         if len(bio) > 200:
             flash("个性签名最多 200 字", "error")
             return redirect(url_for("account"))
+
+        # 开发者才能自定义流光配色
+        if "tag_colors" in request.form and g.user.is_developer:
+            raw = (request.form.get("tag_colors") or "").strip()
+            colors = []
+            for c in raw.replace(" ", "").split(","):
+                if not c:
+                    continue
+                if not c.startswith("#"):
+                    c = "#" + c
+                if len(c) in (4, 7):
+                    colors.append(c)
+            g.user.tag_colors = ",".join(colors[:6]) or None
         g.user.nickname = nickname or None
         g.user.bio = bio or None
         db.session.commit()
@@ -1809,6 +1823,21 @@ def user_profile(uid):
                            work_titles=work_titles)
 
 
+@app.get("/api/theme")
+def api_theme():
+    """给静态页用：开发者标签的流光配色（全局统一）。"""
+    dev = db.session.scalar(
+        db.select(User).where(User.qq_id.in_(list(DEVELOPER_QQS)))
+        .where(User.tag_colors.isnot(None))
+    ) or db.session.scalar(
+        db.select(User).where(User.qq_id.in_(list(DEVELOPER_QQS)))
+    )
+    colors = []
+    if dev is not None and dev.tag_colors:
+        colors = [c for c in dev.tag_colors.split(",") if c]
+    return jsonify(colors=colors)
+
+
 @app.route("/api/me")
 def api_me():
     """给静态页顶栏用：告诉前端当前有没有登录、头像用哪个 QQ。"""
@@ -1831,6 +1860,7 @@ def api_me():
         level_tier=u.level_tier,
         exp=int(u.exp or 0),
         level_percent=u.level_percent,
+        tag_colors=u.tag_colors or "",
     )
 
 

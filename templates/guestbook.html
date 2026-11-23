@@ -604,5 +604,22 @@
     });
 })();
 </script>
+
+<script>
+/* 开发者标签配色：从 /api/theme 读取，注入 CSS 变量 */
+(function () {
+    fetch('/api/theme', { cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+            var cs = (d && d.colors) || [];
+            if (!cs.length) { return; }
+            var root = document.documentElement;
+            cs.forEach(function (c, i) {
+                root.style.setProperty('--dev-' + (i + 1), c);
+            });
+        })
+        .catch(function () {});
+})();
+</script>
 </body>
 </html>
