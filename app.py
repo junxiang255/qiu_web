@@ -968,6 +968,48 @@ def account():
     return redirect(url_for("account"))
 
 
+@app.post("/manager/members/add")
+@admin_required
+def members_add():
+    """手动把新群友加进白名单（入群收录）。"""
+    qq_id = (request.form.get("qq_id") or "").strip()
+    nickname = (request.form.get("nickname") or "").strip()
+    card = (request.form.get("card") or "").strip()
+    role = (request.form.get("role") or "member").strip()
+
+    if not qq_id:
+        flash("QQ 号不能为空", "error")
+        return redirect(url_for("users_admin"))
+    if not qq_id.isdigit() or not (5 <= len(qq_id) <= 12):
+        flash("QQ 号格式不对（5-12 位数字）", "error")
+        return redirect(url_for("users_admin"))
+    if role not in ("owner", "admin", "member"):
+        role = "member"
+
+    exists = db.session.scalar(
+        db.select(GroupMember).where(GroupMember.qq_id == qq_id)
+    )
+    if exists is not None:
+        flash("QQ %s 已经在白名单里了（%s）" % (
+            qq_id, exists.card or exists.nickname or "无备注"), "warning")
+        return redirect(url_for("users_admin"))
+
+    row = GroupMember(
+        qq_id=qq_id,
+        nickname=nickname or None,
+        card=card or None,
+        role=role,
+        synced_at=datetime.now(),
+    )
+    db.session.add(row)
+    db.session.commit()
+
+    label = {"owner": "群主", "admin": "管理员", "member": "群成员"}[role]
+    flash("已收录 %s（%s）为%s，现在可以注册了" % (
+        qq_id, card or nickname or "无备注", label), "success")
+    return redirect(url_for("users_admin"))
+
+
 @app.route("/manager/users")
 @admin_required
 def users_admin():
@@ -976,7 +1018,16 @@ def users_admin():
     ).all()
     pending = [u for u in items if u.is_pending]
     active = [u for u in items if not u.is_pending]
-    return render_template("users.html", items=items, pending=pending, active=active)
+
+    member_total = db.session.scalar(
+        db.select(func.count()).select_from(GroupMember)
+    ) or 0
+    recent_members = db.session.scalars(
+        db.select(GroupMember).order_by(GroupMember.id.desc()).limit(10)
+    ).all()
+
+    return render_template("users.html", items=items, pending=pending, active=active,
+                           member_total=member_total, recent_members=recent_members)
 
 
 @app.post("/manager/users/<int:uid>/role")

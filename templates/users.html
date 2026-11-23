@@ -184,6 +184,109 @@
             background: rgba(255, 255, 255, .9);
             cursor: pointer;
         }
+
+        /* ---- 入群收录 ---- */
+        .intake {
+            margin-top: 18px;
+            padding: 20px 22px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, .8);
+            border: 1px solid rgba(0, 0, 0, .07);
+            box-shadow: 0 6px 22px rgb(0 0 0 / .08);
+        }
+
+        .intake h2 {
+            margin: 0 0 4px;
+            font-size: 1rem;
+            letter-spacing: 2px;
+        }
+
+        .intake .sub {
+            margin: 0 0 16px;
+            font-size: .74rem;
+            color: #8d9299;
+        }
+
+        .intake-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .intake-field { flex: 1 1 140px; min-width: 0; }
+
+        .intake-field label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: .72rem;
+            color: #6b7280;
+        }
+
+        .intake-field input,
+        .intake-field select {
+            width: 100%;
+            padding: 9px 12px;
+            font-family: inherit;
+            font-size: .84rem;
+            color: #1f1f1f;
+            background: rgba(255, 255, 255, .95);
+            border: 1px solid rgba(0, 0, 0, .1);
+            border-radius: 10px;
+            outline: none;
+            transition: border-color .25s ease, box-shadow .25s ease;
+        }
+
+        .intake-field input:focus,
+        .intake-field select:focus {
+            border-color: rgba(120, 155, 250, .6);
+            box-shadow: 0 0 0 3px #789bfa52;
+        }
+
+        .intake-btn {
+            flex: 0 0 auto;
+            padding: 10px 24px;
+            font-family: inherit;
+            font-size: .84rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #789bfa, #b48ce0);
+            box-shadow: 0 4px 16px rgb(120 155 250 / .45);
+            cursor: pointer;
+            transition: all .3s ease;
+        }
+
+        .intake-btn:hover { box-shadow: 0 6px 22px rgb(120 155 250 / .6); }
+
+        .intake-stat {
+            margin-top: 14px;
+            font-size: .74rem;
+            color: #8d9299;
+        }
+
+        .intake-stat b { color: #33479c; font-size: .86rem; }
+
+        .recent {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .recent span {
+            padding: 3px 10px;
+            font-size: .7rem;
+            border-radius: 999px;
+            background: rgba(120, 155, 250, .12);
+            color: #33479c;
+        }
+
+        .recent span.owner { background: rgba(255, 194, 51, .22); color: #6b4a00; }
+        .recent span.admin { background: rgba(56, 161, 105, .16); color: #276749; }
+
     </style>
 </head>
 <body>
@@ -191,6 +294,54 @@
 
     <header class="bar">
         <h1>用户管理</h1>
+
+    <section class="intake">
+        <h2>入群收录</h2>
+        <p class="sub">手动把新群友加进白名单，加完对方就能用这个 QQ 号注册了</p>
+
+        <form method="post" action="{{ url_for('members_add') }}">
+            <div class="intake-row">
+                <div class="intake-field">
+                    <label for="m-qq">QQ 号</label>
+                    <input id="m-qq" name="qq_id" type="text" inputmode="numeric"
+                           maxlength="12" placeholder="例如 2708838924" required>
+                </div>
+                <div class="intake-field">
+                    <label for="m-card">群名片</label>
+                    <input id="m-card" name="card" type="text" maxlength="100"
+                           placeholder="群里显示的名字">
+                </div>
+                <div class="intake-field">
+                    <label for="m-nick">QQ 昵称</label>
+                    <input id="m-nick" name="nickname" type="text" maxlength="100"
+                           placeholder="可选">
+                </div>
+                <div class="intake-field" style="flex:0 0 100px;">
+                    <label for="m-role">身份</label>
+                    <select id="m-role" name="role">
+                        <option value="member">群成员</option>
+                        <option value="admin">管理员</option>
+                        <option value="owner">群主</option>
+                    </select>
+                </div>
+                <button class="intake-btn" type="submit">收录</button>
+            </div>
+        </form>
+
+        <div class="intake-stat">
+            白名单现有 <b>{{ member_total or 0 }}</b> 人
+        </div>
+
+        {% if recent_members %}
+        <div class="recent">
+            {% for m in recent_members %}
+            <span class="{{ m.role }}" title="QQ {{ m.qq_id }}">
+                {{ m.card or m.nickname or m.qq_id }}
+            </span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </section>
         <span class="count">共 {{ items|length }} 个账号</span>
         <div class="bar-right">
             <a class="btn" href="{{ url_for('account') }}">个人设置</a>
