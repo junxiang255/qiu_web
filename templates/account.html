@@ -180,91 +180,6 @@
             .row { grid-template-columns: 1fr; }
         }
 
-        /* ---- 音乐播放器 ---- */
-        .player-card {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 16px 18px;
-            border-radius: 16px;
-            background: rgba(255, 255, 255, .72);
-            border: 1px solid rgba(0, 0, 0, .06);
-            box-shadow: 0 4px 16px rgb(0 0 0 / .07);
-        }
-
-        .player-btn {
-            flex: 0 0 auto;
-            width: 46px;
-            height: 46px;
-            padding: 0;
-            border: none;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            background: linear-gradient(135deg, #789bfa, #b48ce0);
-            box-shadow: 0 4px 14px rgb(120 155 250 / .45);
-            transition: all .25s ease;
-        }
-
-        .player-btn:hover { box-shadow: 0 6px 20px rgb(120 155 250 / .6); }
-
-        .player-btn svg { fill: #fff; width: 18px; height: 18px; }
-
-        .player-mid { flex: 1 1 auto; min-width: 0; }
-
-        .player-song {
-            font-size: .82rem;
-            font-weight: 700;
-            color: #1f1f1f;
-            margin-bottom: 7px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .player-track {
-            height: 6px;
-            border-radius: 999px;
-            background: rgba(0, 0, 0, .08);
-            overflow: hidden;
-            cursor: pointer;
-        }
-
-        .player-fill {
-            height: 100%;
-            width: 0;
-            border-radius: 999px;
-            background: linear-gradient(90deg, #789bfa, #b48ce0);
-            transition: width .1s linear;
-        }
-
-        .player-time {
-            flex: 0 0 auto;
-            font-size: .7rem;
-            color: #9aa0a8;
-            font-variant-numeric: tabular-nums;
-        }
-
-        .player-vol {
-            flex: 0 0 70px;
-            height: 4px;
-            border-radius: 999px;
-            background: rgba(0, 0, 0, .08);
-            cursor: pointer;
-            position: relative;
-        }
-
-        .player-vol-fill {
-            position: absolute;
-            left: 0; top: 0; bottom: 0;
-            width: 70%;
-            border-radius: 999px;
-            background: #789bfa;
-        }
-
-        #ac-audio { display: none; }
 
         @media (max-width: 520px) {
             .player-vol { display: none; }
@@ -402,23 +317,7 @@
                 <button class="btn primary" type="submit">修改密码</button>
             </div>
         </form>
-    
-            <div class="card">
-                <h2>音乐播放器</h2>
-                <audio id="ac-audio" preload="metadata"
-                       src="/static/media/将那花瓣扬起了.mp3"></audio>
-                <div class="player-card">
-                    <button class="player-btn" id="ac-play" type="button" aria-label="播放">
-                        <svg viewBox="0 0 16 16" aria-hidden="true">
-                            <path id="ac-icon" d="M4 2.5v11l9-5.5z"/>
-                        </svg>
-                    </button>
-                    <div class="player-mid">
-                        <div class="player-song">将那花瓣扬起了</div>
-                        <div class="player-track" id="ac-track">
-                            <div class="player-fill" id="ac-fill"></div>
-                        </div>
-                    </div>
+</div>
                     <span class="player-time" id="ac-time">0:00 / 0:00</span>
                     <div class="player-vol" id="ac-vol" title="音量">
                         <div class="player-vol-fill" id="ac-vol-fill"></div>
@@ -429,76 +328,6 @@
 
 </div>
 
-<script>
-(function () {
-    'use strict';
-
-    var audio = document.getElementById('ac-audio');
-    var btn = document.getElementById('ac-play');
-    var icon = document.getElementById('ac-icon');
-    var track = document.getElementById('ac-track');
-    var fill = document.getElementById('ac-fill');
-    var timeEl = document.getElementById('ac-time');
-    var volEl = document.getElementById('ac-vol');
-    var volFill = document.getElementById('ac-vol-fill');
-
-    if (!audio || !btn) { return; }
-
-    var PLAY = 'M4 2.5v11l9-5.5z';        // 三角形
-    var PAUSE = 'M4 3h3v10H4zM9 3h3v10H9z'; // 两条竖线
-
-    function fmt(s) {
-        if (!isFinite(s) || s < 0) { s = 0; }
-        var m = Math.floor(s / 60);
-        var ss = Math.floor(s % 60);
-        return m + ':' + (ss < 10 ? '0' : '') + ss;
-    }
-
-    function paint() {
-        var pct = audio.duration ? (audio.currentTime / audio.duration * 100) : 0;
-        fill.style.width = pct + '%';
-        timeEl.textContent = fmt(audio.currentTime) + ' / ' + fmt(audio.duration);
-    }
-
-    btn.addEventListener('click', function () {
-        if (audio.paused) {
-            audio.play();
-        } else {
-            audio.pause();
-        }
-    });
-
-    audio.addEventListener('play', function () { icon.setAttribute('d', PAUSE); });
-    audio.addEventListener('pause', function () { icon.setAttribute('d', PLAY); });
-    audio.addEventListener('timeupdate', paint);
-    audio.addEventListener('loadedmetadata', paint);
-    audio.addEventListener('ended', function () {
-        icon.setAttribute('d', PLAY);
-        audio.currentTime = 0;
-        paint();
-    });
-
-    track.addEventListener('click', function (e) {
-        if (!audio.duration) { return; }
-        var r = track.getBoundingClientRect();
-        audio.currentTime = (e.clientX - r.left) / r.width * audio.duration;
-        paint();
-    });
-
-    // 音量记忆
-    var saved = parseFloat(localStorage.getItem('qiu_vol') || '0.7');
-    audio.volume = isFinite(saved) ? Math.min(1, Math.max(0, saved)) : 0.7;
-    volFill.style.width = (audio.volume * 100) + '%';
-
-    volEl.addEventListener('click', function (e) {
-        var r = volEl.getBoundingClientRect();
-        var v = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
-        audio.volume = v;
-        volFill.style.width = (v * 100) + '%';
-        localStorage.setItem('qiu_vol', String(v));
-    });
-})();
-</script>
 
             {% if user and user.is_developer %}
             <div class="card">
