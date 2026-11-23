@@ -363,6 +363,11 @@
                     <input id="m-nick" name="nickname" type="text" maxlength="100"
                            placeholder="可选">
                 </div>
+                <div class="intake-field">
+                    <label for="m-gtag">群标签</label>
+                    <input id="m-gtag" name="group_tag" type="text" maxlength="50"
+                           placeholder="如 女装大佬 / 婴儿车">
+                </div>
                 <div class="intake-field" style="flex:0 0 100px;">
                     <label for="m-role">身份</label>
                     <select id="m-role" name="role">
@@ -382,8 +387,9 @@
         {% if recent_members %}
         <div class="recent">
             {% for m in recent_members %}
-            <span class="{{ m.role }}" title="QQ {{ m.qq_id }}">
+            <span class="{{ m.role }}" title="QQ {{ m.qq_id }}{% if m.group_tag %} · 标签：{{ m.group_tag }}{% endif %}">
                 {{ m.card or m.nickname or m.qq_id }}
+                {% if m.group_tag %}<b style="font-weight:400;">· {{ m.group_tag }}</b>{% endif %}
             </span>
             {% endfor %}
         </div>
@@ -599,7 +605,8 @@
         qq: '{{ m.qq_id }}',
         card: {{ (m.card or '') | tojson }},
         nick: {{ (m.nickname or '') | tojson }},
-        role: '{{ m.role }}'
+        role: '{{ m.role }}',
+        gtag: {{ (m.group_tag or '') | tojson }}
     };
     {% endfor %}
 
@@ -610,6 +617,8 @@
         if (cardEl) { cardEl.value = d.card; }
         if (nickEl) { nickEl.value = d.nick; }
         if (roleEl) { roleEl.value = d.role || 'member'; }
+        var gtagEl = document.getElementById('m-gtag');
+        if (gtagEl) { gtagEl.value = d.gtag || ''; }
         if (cardEl) { cardEl.focus(); }
     }
 

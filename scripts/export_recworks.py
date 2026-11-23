@@ -50,9 +50,11 @@ def main():
             users = {str(q): (r or 'user') for q, r, _e in rows_u}
             user_exp = {str(q): int(e or 0) for q, _r, e in rows_u}
 
-            # 群主 / 管理员要看群成员表
-            cur.execute("SELECT qq_id, role FROM group_member")
-            gm_roles = {str(q): (r or 'member') for q, r in cur.fetchall()}
+            # 群主 / 管理员 / 群标签要看群成员表
+            cur.execute("SELECT qq_id, role, group_tag FROM group_member")
+            rows_gm = cur.fetchall()
+            gm_roles = {str(q): (r or 'member') for q, r, _t in rows_gm}
+            gm_tags = {str(q): (t or '') for q, _r, t in rows_gm}
     finally:
         conn.close()
 
@@ -73,6 +75,9 @@ def main():
                 author_state, author_label = 'owner', '群主'
             elif users[qq] == 'admin':
                 author_state, author_label = 'admin', '管理员'
+            elif gm_tags.get(qq):
+                # 普通成员但有群标签，显示标签
+                author_state, author_label = 'member', gm_tags[qq]
             else:
                 author_state, author_label = 'member', '成员'
         else:

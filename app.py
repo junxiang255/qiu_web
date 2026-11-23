@@ -478,6 +478,7 @@ class GroupMember(db.Model):
     nickname:Mapped[str|None]=mapped_column(String(100),nullable=True)
     role:Mapped[str]=mapped_column(String(20),nullable=False,default="member")
     card:Mapped[str|None]=mapped_column(String(100),nullable=True)
+    group_tag:Mapped[str|None]=mapped_column(String(50),nullable=True)
     synced_at:Mapped[datetime|None]=mapped_column(DateTime,nullable=True)
     created_at:Mapped[datetime|None]=mapped_column(DateTime,nullable=True,default=datetime.now)
 
@@ -975,6 +976,7 @@ def members_add():
     qq_id = (request.form.get("qq_id") or "").strip()
     nickname = (request.form.get("nickname") or "").strip()
     card = (request.form.get("card") or "").strip()
+    group_tag = (request.form.get("group_tag") or "").strip()[:50]
     role = (request.form.get("role") or "member").strip()
 
     if not qq_id:
@@ -1000,6 +1002,9 @@ def members_add():
         if nickname and nickname != (exists.nickname or ""):
             exists.nickname = nickname
             changed.append("昵称")
+        if group_tag != (exists.group_tag or ""):
+            exists.group_tag = group_tag or None
+            changed.append("群标签")
         if role != exists.role:
             exists.role = role
             changed.append("身份")
@@ -1016,6 +1021,7 @@ def members_add():
         qq_id=qq_id,
         nickname=nickname or None,
         card=card or None,
+        group_tag=group_tag or None,
         role=role,
         synced_at=datetime.now(),
     )
@@ -1330,6 +1336,8 @@ def work_detail(rid):
                 author_state, author_label = "owner", "群主"
             elif au.role == "admin":
                 author_state, author_label = "admin", "管理员"
+            elif gm is not None and gm.group_tag:
+                author_state, author_label = "member", gm.group_tag
             else:
                 author_state, author_label = "member", "成员"
 
@@ -1394,13 +1402,16 @@ def api_users_list():
         db.select(User).where(User.status == "active", User.is_active == True)
     ).all()
 
-    # 群主身份只在 group_member 里有
+    # 群主身份和群标签只在 group_member 里有
     owners = set()
-    for qq_id, role in db.session.execute(
-        db.select(GroupMember.qq_id, GroupMember.role)
+    gm_tags = {}
+    for qq_id, role, tag in db.session.execute(
+        db.select(GroupMember.qq_id, GroupMember.role, GroupMember.group_tag)
     ).all():
         if role == "owner":
             owners.add(qq_id)
+        if tag:
+            gm_tags[qq_id] = tag
 
     rows = sorted(rows, key=lambda u: (
         0 if u.is_developer else 1,
@@ -1418,6 +1429,8 @@ def api_users_list():
             role_label = "群主"
         elif u.is_admin:
             role_label = "管理员"
+        elif gm_tags.get(u.qq_id or ""):
+            role_label = gm_tags[u.qq_id]
         else:
             role_label = "成员"
 
@@ -1427,6 +1440,7 @@ def api_users_list():
             "qq_id": u.qq_id or "",
             "role": u.role,
             "role_label": role_label,
+            "group_tag": gm_tags.get(u.qq_id or "", ""),
             "is_owner": is_owner,
             "is_developer": u.is_developer,
             "level": u.level,
