@@ -1838,6 +1838,12 @@ def api_theme():
     return jsonify(colors=colors)
 
 
+@app.route("/music")
+def music_page():
+    """音乐播放器。"""
+    return render_template("music.html")
+
+
 @app.route("/api/me")
 def api_me():
     """给静态页顶栏用：告诉前端当前有没有登录、头像用哪个 QQ。"""

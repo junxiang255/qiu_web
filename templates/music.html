@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音乐播放器 · 小秋的垃圾站</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/font.css') }}">
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 16px 16px 60px;
+            background: linear-gradient(rgba(255, 255, 255, .18), rgba(255, 255, 255, .28)),
+                        url("{{ url_for('static', filename='img/background.png') }}") center/cover no-repeat fixed;
+            font-family: "筑紫A圆体D", system-ui, sans-serif;
+            color: #1f1f1f;
+        }
+
+        .wrap { width: min(720px, 100%); margin: 0 auto; }
+
+        .bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, .8);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, .66);
+            box-shadow: rgb(0 0 0 / 0.12) 0px 8px 28px 0px;
+        }
+
+        .back {
+            font-size: .8rem;
+            color: #333;
+            text-decoration: none;
+            padding: 6px 14px;
+            border-radius: 11px;
+            background: rgba(255, 255, 255, .6);
+            border: 1px solid rgba(0, 0, 0, .07);
+            transition: all .3s ease;
+        }
+
+        .back:hover { background: #789bfa71; box-shadow: 0 0 18px #e6b5e6; }
+
+        .bar .t { font-size: .9rem; font-weight: 700; letter-spacing: 3px; }
+
+        /* 主卡片 */
+        .player {
+            margin-top: 16px;
+            padding: 30px 26px 26px;
+            border-radius: 24px;
+            background: rgba(255, 255, 255, .82);
+            backdrop-filter: blur(22px);
+            -webkit-backdrop-filter: blur(22px);
+            border: 1px solid rgba(255, 255, 255, .7);
+            box-shadow: rgb(0 0 0 / 0.15) 0px 14px 42px 0px;
+            text-align: center;
+            animation: fade_in .5s ease-out both;
+        }
+
+        /* 封面 */
+        .cover-wrap {
+            position: relative;
+            width: 220px;
+            height: 220px;
+            margin: 0 auto;
+            border-radius: 50%;
+            padding: 8px;
+            background: rgba(255, 255, 255, .9);
+            box-shadow: 0 10px 34px rgb(0 0 0 / .2);
+        }
+
+        .cover {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            display: block;
+            animation: spin 22s linear infinite;
+            animation-play-state: paused;
+        }
+
+        .cover.playing { animation-play-state: running; }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .cover-hole {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 46px;
+            height: 46px;
+            margin: -23px 0 0 -23px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .95);
+            box-shadow: inset 0 2px 8px rgb(0 0 0 / .12);
+            pointer-events: none;
+        }
+
+        .song-title {
+            margin: 22px 0 4px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+
+        .song-artist {
+            margin: 0 0 20px;
+            font-size: .74rem;
+            color: #8d9299;
+            letter-spacing: 1px;
+        }
+
+        /* 进度 */
+        .seek-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .time {
+            flex: 0 0 auto;
+            font-size: .72rem;
+            color: #9aa0a8;
+            font-variant-numeric: tabular-nums;
+            min-width: 40px;
+        }
+
+        .track {
+            flex: 1 1 auto;
+            height: 7px;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, .08);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .track:hover .thumb { transform: translate(-50%, -50%) scale(1); }
+
+        .fill {
+            height: 100%;
+            width: 0;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #789bfa, #b48ce0);
+            pointer-events: none;
+        }
+
+        .thumb {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            background: #fff;
+            border: 2px solid #789bfa;
+            box-shadow: 0 2px 8px rgb(0 0 0 / .2);
+            transform: translate(-50%, -50%) scale(0);
+            transition: transform .2s ease;
+            pointer-events: none;
+        }
+
+        /* 控制按钮 */
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 26px;
+            margin-bottom: 18px;
+        }
+
+        .ctrl {
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .9);
+            border: 1px solid rgba(0, 0, 0, .07);
+            box-shadow: 0 3px 12px rgb(0 0 0 / .1);
+            cursor: pointer;
+            transition: all .25s ease;
+        }
+
+        .ctrl:hover { background: #789bfa71; box-shadow: 0 4px 16px #e6b5e6; }
+
+        .ctrl svg { width: 16px; height: 16px; fill: #444; }
+
+        .ctrl.main {
+            width: 62px;
+            height: 62px;
+            background: linear-gradient(135deg, #789bfa, #b48ce0);
+            border: none;
+            box-shadow: 0 6px 22px rgb(120 155 250 / .5);
+        }
+
+        .ctrl.main:hover { box-shadow: 0 8px 28px rgb(120 155 250 / .65); }
+        .ctrl.main svg { width: 22px; height: 22px; fill: #fff; }
+
+        .ctrl.on { background: #789bfa71; }
+
+        /* 音量 */
+        .vol-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 6px;
+        }
+
+        .vol-icon { fill: #8d9299; width: 15px; height: 15px; }
+
+        .vol-track {
+            width: 120px;
+            height: 5px;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, .08);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .vol-fill {
+            height: 100%;
+            width: 70%;
+            border-radius: 999px;
+            background: #789bfa;
+            pointer-events: none;
+        }
+
+        /* 歌词 */
+        .lyrics {
+            margin-top: 18px;
+            padding: 18px 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, .72);
+            border: 1px solid rgba(255, 255, 255, .6);
+            box-shadow: rgb(0 0 0 / 0.08) 0px 6px 20px 0px;
+            max-height: 220px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        .lyrics::-webkit-scrollbar { width: 5px; }
+        .lyrics::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, .12); border-radius: 3px; }
+
+        .lyric-line {
+            padding: 5px 8px;
+            font-size: .82rem;
+            line-height: 1.8;
+            color: #9aa0a8;
+            transition: all .3s ease;
+            border-radius: 8px;
+        }
+
+        .lyric-line.on {
+            color: #33479c;
+            font-weight: 700;
+            background: rgba(120, 155, 250, .12);
+            transform: scale(1.02);
+        }
+
+        .lyrics-hint {
+            margin: 0;
+            font-size: .74rem;
+            color: #b0b4ba;
+            text-align: center;
+        }
+
+        #m-audio { display: none; }
+
+        @keyframes fade_in {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: none; }
+        }
+
+        @media (max-width: 520px) {
+            body { padding: 10px 10px 40px; }
+            .player { padding: 22px 16px; }
+            .cover-wrap { width: 170px; height: 170px; }
+            .cover-hole { width: 36px; height: 36px; margin: -18px 0 0 -18px; }
+            .controls { gap: 18px; }
+            .ctrl { width: 40px; height: 40px; }
+            .ctrl.main { width: 56px; height: 56px; }
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+
+    <header class="bar">
+        <a class="back" href="/index.html">← 首页</a>
+        <span class="t">音乐播放器</span>
+    </header>
+
+    <section class="player">
+        <audio id="m-audio" preload="metadata"
+               src="/static/media/将那花瓣扬起了.mp3"></audio>
+
+        <div class="cover-wrap">
+            <img class="cover" id="m-cover" alt="封面"
+                 src="/static/media/将那花瓣扬起了.jpg"
+                 onerror="this.style.display='none';this.parentNode.classList.add('no-cover');">
+            <div class="cover-hole"></div>
+        </div>
+
+        <h1 class="song-title">将那花瓣扬起了</h1>
+        <p class="song-artist">小秋的垃圾站 · 群歌</p>
+
+        <div class="seek-row">
+            <span class="time" id="m-cur">0:00</span>
+            <div class="track" id="m-track">
+                <div class="fill" id="m-fill"></div>
+                <div class="thumb" id="m-thumb"></div>
+            </div>
+            <span class="time" id="m-dur">0:00</span>
+        </div>
+
+        <div class="controls">
+            <button class="ctrl" id="m-loop" type="button" title="单曲循环">
+                <svg viewBox="0 0 16 16"><path d="M13 8a5 5 0 0 1-5 5H5v-2h3a3 3 0 0 0 0-6H5V3h3a5 5 0 0 1 5 5zm-8 5v-3l-3 1.5z"/></svg>
+            </button>
+
+            <button class="ctrl" id="m-prev" type="button" title="重新开始">
+                <svg viewBox="0 0 16 16"><path d="M4 3h2v10H4zm9 0v10L6.5 8z"/></svg>
+            </button>
+
+            <button class="ctrl main" id="m-play" type="button" title="播放">
+                <svg viewBox="0 0 16 16" id="m-icon"><path d="M4 2.5v11l9-5.5z"/></svg>
+            </button>
+
+            <button class="ctrl" id="m-fwd" type="button" title="快进 10 秒">
+                <svg viewBox="0 0 16 16"><path d="M10 3h2v10h-2zM3 3v10l6.5-5z"/></svg>
+            </button>
+
+            <button class="ctrl" id="m-back10" type="button" title="后退 10 秒">
+                <svg viewBox="0 0 16 16"><path d="M2 8l4-4v3a5 5 0 1 1 0 2V7.9a3 3 0 1 0 0 2.1V8z"/></svg>
+            </button>
+        </div>
+
+        <div class="vol-row">
+            <svg class="vol-icon" viewBox="0 0 16 16"><path d="M8 2.5 4.5 5.5H2v5h2.5L8 13.5zM11 5.5a3.5 3.5 0 0 1 0 5"/></svg>
+            <div class="vol-track" id="m-vol">
+                <div class="vol-fill" id="m-vol-fill"></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="lyrics" id="m-lyrics">
+        <p class="lyrics-hint">歌词加载中…</p>
+    </section>
+
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    var audio = document.getElementById('m-audio');
+    var cover = document.getElementById('m-cover');
+    var playBtn = document.getElementById('m-play');
+    var icon = document.getElementById('m-icon');
+    var track = document.getElementById('m-track');
+    var fill = document.getElementById('m-fill');
+    var thumb = document.getElementById('m-thumb');
+    var curEl = document.getElementById('m-cur');
+    var durEl = document.getElementById('m-dur');
+    var volEl = document.getElementById('m-vol');
+    var volFill = document.getElementById('m-vol-fill');
+    var loopBtn = document.getElementById('m-loop');
+    var lyricsEl = document.getElementById('m-lyrics');
+
+    var PLAY = 'M4 2.5v11l9-5.5z';
+    var PAUSE = 'M4 3h3v10H4zM9 3h3v10H9z';
+
+    /* ---------- 工具 ---------- */
+    function fmt(s) {
+        if (!isFinite(s) || s < 0) { s = 0; }
+        var m = Math.floor(s / 60);
+        var ss = Math.floor(s % 60);
+        return m + ':' + (ss < 10 ? '0' : '') + ss;
+    }
+
+    function paint() {
+        var pct = audio.duration ? (audio.currentTime / audio.duration * 100) : 0;
+        fill.style.width = pct + '%';
+        thumb.style.left = pct + '%';
+        curEl.textContent = fmt(audio.currentTime);
+    }
+
+    /* ---------- 播放控制 ---------- */
+    playBtn.addEventListener('click', function () {
+        if (audio.paused) { audio.play(); } else { audio.pause(); }
+    });
+
+    audio.addEventListener('play', function () {
+        icon.setAttribute('d', PAUSE);
+        playBtn.title = '暂停';
+        if (cover) { cover.classList.add('playing'); }
+    });
+
+    audio.addEventListener('pause', function () {
+        icon.setAttribute('d', PLAY);
+        playBtn.title = '播放';
+        if (cover) { cover.classList.remove('playing'); }
+    });
+
+    audio.addEventListener('timeupdate', paint);
+    audio.addEventListener('loadedmetadata', function () {
+        durEl.textContent = fmt(audio.duration);
+        paint();
+    });
+
+    audio.addEventListener('ended', function () {
+        if (!audio.loop) {
+            icon.setAttribute('d', PLAY);
+            if (cover) { cover.classList.remove('playing'); }
+        }
+    });
+
+    /* 进度条点击 / 拖动 */
+    function seek(e) {
+        if (!audio.duration) { return; }
+        var r = track.getBoundingClientRect();
+        var x = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+        var pct = Math.min(1, Math.max(0, x / r.width));
+        audio.currentTime = pct * audio.duration;
+        paint();
+    }
+
+    track.addEventListener('click', seek);
+    track.addEventListener('touchmove', function (e) { seek(e); e.preventDefault(); }, { passive: false });
+
+    /* 前后 10 秒 */
+    document.getElementById('m-fwd').addEventListener('click', function () {
+        audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 10);
+        paint();
+    });
+
+    document.getElementById('m-back10').addEventListener('click', function () {
+        audio.currentTime = Math.max(0, audio.currentTime - 10);
+        paint();
+    });
+
+    document.getElementById('m-prev').addEventListener('click', function () {
+        audio.currentTime = 0;
+        paint();
+    });
+
+    /* 单曲循环 */
+    loopBtn.addEventListener('click', function () {
+        audio.loop = !audio.loop;
+        loopBtn.classList.toggle('on', audio.loop);
+        loopBtn.title = audio.loop ? '单曲循环：开' : '单曲循环：关';
+    });
+
+    /* 音量 */
+    var saved = parseFloat(localStorage.getItem('qiu_vol') || '0.7');
+    audio.volume = isFinite(saved) ? Math.min(1, Math.max(0, saved)) : 0.7;
+    volFill.style.width = (audio.volume * 100) + '%';
+
+    volEl.addEventListener('click', function (e) {
+        var r = volEl.getBoundingClientRect();
+        var v = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+        audio.volume = v;
+        volFill.style.width = (v * 100) + '%';
+        localStorage.setItem('qiu_vol', String(v));
+    });
+
+    /* ---------- 歌词 ---------- */
+    var LRC = [];
+    var lastIdx = -1;
+
+    function parseLrc(text) {
+        var out = [];
+        text.split('\n').forEach(function (line) {
+            var m = line.match(/^\[(\d+):(\d+)(?:\.(\d+))?\](.*)$/);
+            if (!m) { return; }
+            var t = parseInt(m[1], 10) * 60 + parseInt(m[2], 10) +
+                    (m[3] ? parseFloat('0.' + m[3]) : 0);
+            var txt = (m[4] || '').trim();
+            if (txt) { out.push({ t: t, text: txt }); }
+        });
+        out.sort(function (a, b) { return a.t - b.t; });
+        return out;
+    }
+
+    function renderLyrics(list) {
+        if (!list.length) {
+            lyricsEl.innerHTML = '<p class="lyrics-hint">这首歌没有歌词</p>';
+            return;
+        }
+        lyricsEl.innerHTML = '';
+        list.forEach(function (item) {
+            var d = document.createElement('div');
+            d.className = 'lyric-line';
+            d.setAttribute('data-t', item.t);
+            d.textContent = item.text;
+            d.addEventListener('click', function () {
+                audio.currentTime = item.t;
+                if (audio.paused) { audio.play(); }
+            });
+            lyricsEl.appendChild(d);
+        });
+    }
+
+    function syncLyrics() {
+        if (!LRC.length) { return; }
+        var t = audio.currentTime;
+        var idx = -1;
+        for (var i = 0; i < LRC.length; i++) {
+            if (LRC[i].t <= t) { idx = i; } else { break; }
+        }
+        if (idx === lastIdx) { return; }
+        lastIdx = idx;
+
+        var nodes = lyricsEl.querySelectorAll('.lyric-line');
+        nodes.forEach(function (n, i) { n.classList.toggle('on', i === idx); });
+
+        if (idx >= 0 && nodes[idx]) {
+            var box = lyricsEl;
+            var el = nodes[idx];
+            var target = el.offsetTop - box.clientHeight / 2 + el.clientHeight / 2;
+            box.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
+        }
+    }
+
+    audio.addEventListener('timeupdate', syncLyrics);
+
+    fetch('/static/media/将那花瓣扬起了.lrc', { cache: 'force-cache' })
+        .then(function (r) { return r.text(); })
+        .then(function (txt) {
+            LRC = parseLrc(txt);
+            renderLyrics(LRC);
+        })
+        .catch(function () {
+            lyricsEl.innerHTML = '<p class="lyrics-hint">歌词加载失败</p>';
+        });
+})();
+</script>
+</body>
+</html>
