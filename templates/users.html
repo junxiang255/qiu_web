@@ -208,13 +208,13 @@
         }
 
         .intake-row {
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-            align-items: flex-end;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 18px 20px;
+            align-items: end;
         }
 
-        .intake-field { flex: 1 1 150px; min-width: 0; }
+        .intake-field { min-width: 0; }
 
         .intake-field label {
             display: block;
@@ -244,8 +244,10 @@
         }
 
         .intake-btn {
-            flex: 0 0 auto;
-            padding: 10px 24px;
+            justify-self: start;
+            align-self: end;
+            padding: 11px 30px;
+            white-space: nowrap;
             font-family: inherit;
             font-size: .84rem;
             font-weight: 700;
@@ -323,6 +325,16 @@
             box-shadow: 0 0 0 3px #789bfa52;
         }
 
+
+        @media (max-width: 900px) {
+            .intake-row { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 560px) {
+            .intake-row { grid-template-columns: 1fr; gap: 14px; }
+            .intake-btn { justify-self: stretch; }
+        }
+
     </style>
 </head>
 <body>
@@ -368,7 +380,7 @@
                     <input id="m-gtag" name="group_tag" type="text" maxlength="50"
                            placeholder="如 女装大佬 / 婴儿车">
                 </div>
-                <div class="intake-field" style="flex:0 0 100px;">
+                <div class="intake-field">
                     <label for="m-role">身份</label>
                     <select id="m-role" name="role">
                         <option value="member">群成员</option>
