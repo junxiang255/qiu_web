@@ -209,12 +209,12 @@
 
         .intake-row {
             display: flex;
-            gap: 10px;
+            gap: 16px;
             flex-wrap: wrap;
             align-items: flex-end;
         }
 
-        .intake-field { flex: 1 1 140px; min-width: 0; }
+        .intake-field { flex: 1 1 150px; min-width: 0; }
 
         .intake-field label {
             display: block;
@@ -287,6 +287,42 @@
         .recent span.owner { background: rgba(255, 194, 51, .22); color: #6b4a00; }
         .recent span.admin { background: rgba(56, 161, 105, .16); color: #276749; }
 
+
+        .pick-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            background: rgba(120, 155, 250, .08);
+            border: 1px dashed rgba(120, 155, 250, .3);
+        }
+
+        .pick-row label {
+            flex: 0 0 auto;
+            font-size: .74rem;
+            color: #33479c;
+            white-space: nowrap;
+        }
+
+        .pick-row input {
+            flex: 1 1 auto;
+            min-width: 0;
+            padding: 7px 12px;
+            font-family: inherit;
+            font-size: .8rem;
+            background: rgba(255, 255, 255, .95);
+            border: 1px solid rgba(0, 0, 0, .09);
+            border-radius: 9px;
+            outline: none;
+        }
+
+        .pick-row input:focus {
+            border-color: rgba(120, 155, 250, .6);
+            box-shadow: 0 0 0 3px #789bfa52;
+        }
+
     </style>
 </head>
 <body>
@@ -299,6 +335,17 @@
         <h2>入群收录</h2>
         <p class="sub">手动把新群友加进白名单，加完对方就能用这个 QQ 号注册了</p>
 
+
+        <div class="pick-row">
+            <label for="m-pick">选择已收录的群友来修改</label>
+            <input id="m-pick" list="member-list" type="text"
+                   placeholder="输入 QQ 号或名字搜索…" autocomplete="off">
+            <datalist id="member-list">
+                {% for m in all_members %}
+                <option value="{{ m.qq_id }}">{{ m.card or m.nickname or '无备注' }}（{{ m.qq_id }}）</option>
+                {% endfor %}
+            </datalist>
+        </div>
         <form method="post" action="{{ url_for('members_add') }}">
             <div class="intake-row">
                 <div class="intake-field">
@@ -530,6 +577,51 @@
         form.action = '/manager/users/' + uid + '/reject';
         form.submit();
     };
+})();
+</script>
+
+<script>
+(function () {
+    'use strict';
+
+    var pick = document.getElementById('m-pick');
+    if (!pick) { return; }
+
+    var qqEl = document.getElementById('m-qq');
+    var cardEl = document.getElementById('m-card');
+    var nickEl = document.getElementById('m-nick');
+    var roleEl = document.getElementById('m-role');
+
+    // 把后端数据放进一个 Map，供选中时查找
+    var DATA = {};
+    {% for m in all_members %}
+    DATA['{{ m.qq_id }}'] = {
+        qq: '{{ m.qq_id }}',
+        card: {{ (m.card or '') | tojson }},
+        nick: {{ (m.nickname or '') | tojson }},
+        role: '{{ m.role }}'
+    };
+    {% endfor %}
+
+    function fill(qq) {
+        var d = DATA[qq];
+        if (!d) { return; }
+        if (qqEl) { qqEl.value = d.qq; }
+        if (cardEl) { cardEl.value = d.card; }
+        if (nickEl) { nickEl.value = d.nick; }
+        if (roleEl) { roleEl.value = d.role || 'member'; }
+        if (cardEl) { cardEl.focus(); }
+    }
+
+    pick.addEventListener('input', function () {
+        var v = (pick.value || '').trim();
+        // datalist 选中的就是完整 QQ 号
+        if (/^[0-9]{5,12}$/.test(v)) { fill(v); }
+    });
+
+    pick.addEventListener('change', function () {
+        fill((pick.value || '').trim());
+    });
 })();
 </script>
 </body>

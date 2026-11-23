@@ -986,12 +986,30 @@ def members_add():
     if role not in ("owner", "admin", "member"):
         role = "member"
 
+    label = {"owner": "群主", "admin": "管理员", "member": "群成员"}[role]
+
     exists = db.session.scalar(
         db.select(GroupMember).where(GroupMember.qq_id == qq_id)
     )
     if exists is not None:
-        flash("QQ %s 已经在白名单里了（%s）" % (
-            qq_id, exists.card or exists.nickname or "无备注"), "warning")
+        # 已收录 -> 更新资料
+        changed = []
+        if card and card != (exists.card or ""):
+            exists.card = card
+            changed.append("群名片")
+        if nickname and nickname != (exists.nickname or ""):
+            exists.nickname = nickname
+            changed.append("昵称")
+        if role != exists.role:
+            exists.role = role
+            changed.append("身份")
+        if not changed:
+            flash("QQ %s 的资料没有变化" % qq_id, "warning")
+            return redirect(url_for("users_admin"))
+        exists.synced_at = datetime.now()
+        db.session.commit()
+        flash("已更新 %s 的%s，现在是%s" % (
+            exists.card or exists.nickname or qq_id, "、".join(changed), label), "success")
         return redirect(url_for("users_admin"))
 
     row = GroupMember(
@@ -1004,7 +1022,6 @@ def members_add():
     db.session.add(row)
     db.session.commit()
 
-    label = {"owner": "群主", "admin": "管理员", "member": "群成员"}[role]
     flash("已收录 %s（%s）为%s，现在可以注册了" % (
         qq_id, card or nickname or "无备注", label), "success")
     return redirect(url_for("users_admin"))
@@ -1025,9 +1042,13 @@ def users_admin():
     recent_members = db.session.scalars(
         db.select(GroupMember).order_by(GroupMember.id.desc()).limit(10)
     ).all()
+    all_members = db.session.scalars(
+        db.select(GroupMember).order_by(GroupMember.card, GroupMember.nickname)
+    ).all()
 
     return render_template("users.html", items=items, pending=pending, active=active,
-                           member_total=member_total, recent_members=recent_members)
+                           member_total=member_total, recent_members=recent_members,
+                           all_members=all_members)
 
 
 @app.post("/manager/users/<int:uid>/role")
