@@ -578,18 +578,19 @@
         }
 
 
-        /* 顶栏签到按钮 */
+        /* 顶栏签到按钮（白色） */
         .tb-checkin {
             flex: 0 0 auto;
             padding: 7px 16px;
             font-size: .8rem;
             font-weight: 700;
             letter-spacing: 2px;
-            color: #fff;
+            color: #333;
             text-decoration: none;
             border-radius: 11px;
-            background: linear-gradient(135deg, #789bfa, #b48ce0);
-            box-shadow: 0 4px 14px rgb(120 155 250 / .45);
+            background: #fff;
+            border: 1px solid rgba(0, 0, 0, .08);
+            box-shadow: 0 3px 12px rgb(0 0 0 / .1);
             transition: all .3s ease;
             white-space: nowrap;
         }
@@ -597,7 +598,9 @@
         .tb-checkin:hover,
         .tb-checkin:focus {
             text-decoration: none;
-            box-shadow: 0 6px 20px rgb(120 155 250 / .6);
+            color: #333;
+            background: #fff;
+            box-shadow: 0 5px 18px rgb(0 0 0 / .16);
             transform: translateY(-1px);
         }
 
