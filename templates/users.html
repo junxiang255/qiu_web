@@ -336,6 +336,52 @@
             .intake-btn { justify-self: stretch; }
         }
 
+
+        /* ---- 手机端防溢出 ---- */
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        .wrap { max-width: 100%; }
+
+        .intake,
+        .intake-row,
+        .intake-field,
+        .pick-row,
+        .table-wrap {
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .intake-field input,
+        .intake-field select,
+        .pick-row input {
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* 长文本 / 长 QQ 号不让撑宽 */
+        td, .intake-stat, .pick-row label {
+            word-break: break-word;
+        }
+
+        @media (max-width: 700px) {
+            /* 手机上选择栏改成上下两行 */
+            .pick-row {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+
+            .pick-row label { white-space: normal; }
+
+            /* 表单卡片内边距收一点 */
+            .intake { padding: 16px 14px; }
+
+            .intake-stat { font-size: .7rem; }
+        }
+
     </style>
 </head>
 <body>
