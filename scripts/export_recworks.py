@@ -76,8 +76,8 @@ def main():
             elif users[qq] == 'admin':
                 author_state, author_label = 'admin', '管理员'
             elif gm_tags.get(qq):
-                # 普通成员但有群标签，显示标签
-                author_state, author_label = 'member', gm_tags[qq]
+                # 普通成员但有群标签，用紫色流光标签
+                author_state, author_label = 'gtag', gm_tags[qq]
             else:
                 author_state, author_label = 'member', '成员'
         else:

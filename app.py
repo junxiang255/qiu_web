@@ -1337,7 +1337,7 @@ def work_detail(rid):
             elif au.role == "admin":
                 author_state, author_label = "admin", "管理员"
             elif gm is not None and gm.group_tag:
-                author_state, author_label = "member", gm.group_tag
+                author_state, author_label = "gtag", gm.group_tag
             else:
                 author_state, author_label = "member", "成员"
 
@@ -1789,8 +1789,8 @@ def user_profile(uid):
     elif u.is_admin:
         role_label, role_tier = "管理员", "admin"
     elif gm is not None and gm.group_tag:
-        # 普通成员有群头衔就显示头衔
-        role_label, role_tier = gm.group_tag, "member"
+        # 普通成员有群头衔，用紫色流光
+        role_label, role_tier = gm.group_tag, "gtag"
     else:
         role_label, role_tier = "成员", "member"
 

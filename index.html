@@ -576,6 +576,15 @@
             animation: tag_flow 5s linear infinite;
         }
 
+        .member .tag2.gtag {
+            color: #fff;
+            font-weight: 700;
+            background: linear-gradient(90deg, #a78bfa, #c084fc, #f0abfc, #c084fc, #a78bfa);
+            background-size: 300% 100%;
+            box-shadow: 0 2px 12px rgba(167, 139, 250, .55);
+            animation: tag_flow 3s linear infinite;
+        }
+
         .member .tag2.admin {
             color: #047857;
             font-weight: 700;
@@ -1211,7 +1220,8 @@
                 tag.className = 'tag2' +
                     (u.is_developer ? ' dev'
                         : (u.is_owner ? ' owner'
-                        : (u.role === 'admin' ? ' admin' : '')));
+                        : (u.role === 'admin' ? ' admin'
+                        : (u.group_tag ? ' gtag' : ''))));
                 tag.textContent = u.role_label || '成员';
                 card.appendChild(tag);
 
