@@ -1788,6 +1788,9 @@ def user_profile(uid):
         role_label, role_tier = "群主", "owner"
     elif u.is_admin:
         role_label, role_tier = "管理员", "admin"
+    elif gm is not None and gm.group_tag:
+        # 普通成员有群头衔就显示头衔
+        role_label, role_tier = gm.group_tag, "member"
     else:
         role_label, role_tier = "成员", "member"
 
