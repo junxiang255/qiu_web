@@ -299,3 +299,336 @@
     <header class="bar">
         <a class="back" href="/index.html">← 首页</a>
         <h1 class="title">留言板 <span id="count">（{{ total }} 条）</span></h1>
+        {% if user %}
+        <a class="who" href="/u/{{ user.id }}">
+            {% if user.qq_id %}
+            <img src="https://q.qlogo.cn/headimg_dl?dst_uin={{ user.qq_id }}&spec=640&img_type=jpg"
+                 onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/qun_avatar.jpg') }}';" alt="">
+            {% endif %}
+            {{ user.display_name }}
+        </a>
+        {% else %}
+        <a class="back" style="margin-left:auto;" href="/login">登录后留言</a>
+        {% endif %}
+    </header>
+
+    <div class="editor">
+        <textarea id="content" maxlength="1000"
+                  placeholder="{{ '有什么想说的，写下来吧…' if user else '登录后才能留言' }}"
+                  {% if not user %}disabled{% endif %}></textarea>
+        <div class="editor-row">
+            <span class="hint" id="hint">{% if not user %}登录后就能留言啦{% endif %}</span>
+            {% if user %}
+            <button class="btn" id="post-btn" type="button">发表留言</button>
+            {% else %}
+            <a class="btn" href="/login">去登录</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="list" id="list">
+        {% for e in entries %}
+        <article class="entry" data-id="{{ e.id }}" data-uid="{{ e.user_id or '' }}">
+            <div class="entry-head">
+                {% if e.user_id %}<a href="/u/{{ e.user_id }}" target="_blank" style="flex:0 0 auto;">{% endif %}
+                {% if e.qq_id %}
+                <img class="av" src="https://q.qlogo.cn/headimg_dl?dst_uin={{ e.qq_id }}&spec=640&img_type=jpg"
+                     onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/qun_avatar.jpg') }}';"
+                     alt="{{ e.nickname or '' }}" loading="lazy">
+                {% else %}
+                <span class="avf">{{ (e.nickname or '?')[:1] }}</span>
+                {% endif %}
+                {% if e.user_id %}</a>{% endif %}
+                <b>{{ e.nickname or '匿名' }}</b>
+                <time>{{ e.created_at | humanize if e.created_at else '' }}</time>
+                <div class="act">
+                    {% if user and (e.user_id == user.id or user.is_admin) %}
+                    <button class="mini danger js-del" type="button" data-id="{{ e.id }}">删除</button>
+                    {% endif %}
+                    {% if user and user.is_admin %}
+                    <button class="mini js-reply" type="button" data-id="{{ e.id }}">回复</button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="entry-body">{{ e.content }}</div>
+
+            {% if e.reply %}
+            <div class="reply" data-reply-of="{{ e.id }}">
+                <b>{{ e.reply_by or '站长' }}：</b><span class="who-tag">{{ e.replied_at | humanize if e.replied_at else '' }}</span><br>{{ e.reply }}
+            </div>
+            {% endif %}
+
+            {% if user and user.is_admin %}
+            <div class="reply-form" id="rf-{{ e.id }}">
+                <textarea placeholder="回复这条留言…" maxlength="1000">{{ e.reply or '' }}</textarea>
+                <div class="row">
+                    <button class="mini js-cancel" type="button" data-id="{{ e.id }}">取消</button>
+                    <button class="mini js-send-reply" type="button" data-id="{{ e.id }}">提交回复</button>
+                </div>
+            </div>
+            {% endif %}
+        </article>
+        {% endfor %}
+
+        {% if not entries %}
+        <p class="empty" id="empty">还没有人留言，来写第一条吧</p>
+        {% endif %}
+    </div>
+
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    var LOGGED = {{ 'true' if user else 'false' }};
+    var IS_ADMIN = {{ 'true' if (user and user.is_admin) else 'false' }};
+    var MYID = {{ user.id if user else 'null' }};
+    var FALLBACK = '{{ url_for('static', filename='img/qun_avatar.jpg') }}';
+
+    var list = document.getElementById('list');
+    var countEl = document.getElementById('count');
+    var contentEl = document.getElementById('content');
+    var hint = document.getElementById('hint');
+    var postBtn = document.getElementById('post-btn');
+
+    function setHint(text, cls) {
+        if (!hint) { return; }
+        hint.textContent = text || '';
+        hint.className = 'hint' + (cls ? ' ' + cls : '');
+    }
+
+    function bumpCount(delta) {
+        if (!countEl) { return; }
+        var m = /(\d+)/.exec(countEl.textContent);
+        var n = Math.max(0, (m ? parseInt(m[1], 10) : 0) + delta);
+        countEl.textContent = '（' + n + ' 条）';
+    }
+
+    function entryNode(e) {
+        var art = document.createElement('article');
+        art.className = 'entry';
+        art.setAttribute('data-id', e.id);
+        art.setAttribute('data-uid', e.user_id || '');
+
+        var head = document.createElement('div');
+        head.className = 'entry-head';
+
+        if (e.qq_id) {
+            var av = document.createElement('img');
+            av.className = 'av';
+            av.loading = 'lazy';
+            av.alt = e.nickname || '';
+            av.src = 'https://q.qlogo.cn/headimg_dl?dst_uin=' + encodeURIComponent(e.qq_id) + '&spec=640&img_type=jpg';
+            av.addEventListener('error', function () { this.onerror = null; this.src = FALLBACK; });
+            head.appendChild(av);
+        } else {
+            var avf = document.createElement('span');
+            avf.className = 'avf';
+            avf.textContent = (e.nickname || '?').charAt(0);
+            head.appendChild(avf);
+        }
+
+        var nm = document.createElement('b');
+        nm.textContent = e.nickname || '匿名';
+        var tm = document.createElement('time');
+        tm.textContent = e.when || '';
+        head.appendChild(nm);
+        head.appendChild(tm);
+
+        var act = document.createElement('div');
+        act.className = 'act';
+
+        var del = document.createElement('button');
+        del.className = 'mini danger js-del';
+        del.type = 'button';
+        del.setAttribute('data-id', e.id);
+        del.textContent = '删除';
+        if (e.mine || IS_ADMIN) { act.appendChild(del); }
+
+        if (IS_ADMIN) {
+            var rp = document.createElement('button');
+            rp.className = 'mini js-reply';
+            rp.type = 'button';
+            rp.setAttribute('data-id', e.id);
+            rp.textContent = '回复';
+            act.appendChild(rp);
+        }
+        head.appendChild(act);
+
+        var body = document.createElement('div');
+        body.className = 'entry-body';
+        body.textContent = e.content;
+
+        art.appendChild(head);
+        art.appendChild(body);
+
+        if (IS_ADMIN) {
+            var rf = document.createElement('div');
+            rf.className = 'reply-form';
+            rf.id = 'rf-' + e.id;
+            var ta = document.createElement('textarea');
+            ta.placeholder = '回复这条留言…';
+            ta.maxLength = 1000;
+            var row = document.createElement('div');
+            row.className = 'row';
+            var cancel = document.createElement('button');
+            cancel.className = 'mini js-cancel';
+            cancel.type = 'button';
+            cancel.setAttribute('data-id', e.id);
+            cancel.textContent = '取消';
+            var send = document.createElement('button');
+            send.className = 'mini js-send-reply';
+            send.type = 'button';
+            send.setAttribute('data-id', e.id);
+            send.textContent = '提交回复';
+            row.appendChild(cancel);
+            row.appendChild(send);
+            rf.appendChild(ta);
+            rf.appendChild(row);
+            art.appendChild(rf);
+        }
+
+        return art;
+    }
+
+    /* ---- 发表留言 ---- */
+    if (postBtn) {
+        postBtn.addEventListener('click', function () {
+            var text = (contentEl.value || '').trim();
+            if (!text) { setHint('留言不能为空', 'err'); contentEl.focus(); return; }
+
+            postBtn.disabled = true;
+            setHint('发布中…');
+
+            fetch('/api/guestbook/post', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                body: 'content=' + encodeURIComponent(text),
+                cache: 'no-store'
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    if (!d.ok) { setHint(d.msg || '发布失败', 'err'); postBtn.disabled = false; return; }
+                    var empty = document.getElementById('empty');
+                    if (empty) { empty.remove(); }
+                    list.insertBefore(entryNode(d.entry), list.firstChild);
+                    contentEl.value = '';
+                    bumpCount(1);
+                    setHint('留言已发布', 'ok');
+                    postBtn.disabled = false;
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                })
+                .catch(function () {
+                    setHint('网络错误，请稍后再试', 'err');
+                    postBtn.disabled = false;
+                });
+        });
+    }
+
+    /* ---- 事件委托：删除 / 回复 / 取消 / 提交回复 ---- */
+    list.addEventListener('click', function (ev) {
+        var t = ev.target;
+
+        if (t.classList.contains('js-del')) {
+            var id = t.getAttribute('data-id');
+            if (!confirm('删除这条留言？')) { return; }
+            fetch('/api/guestbook/' + id + '/delete', { method: 'POST', cache: 'no-store' })
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    if (!d.ok) { alert(d.msg || '删除失败'); return; }
+                    var art = t.closest('.entry');
+                    if (art) { art.remove(); }
+                    bumpCount(-1);
+                    if (!list.querySelector('.entry')) {
+                        list.innerHTML = '<p class="empty">还没有人留言，来写第一条吧</p>';
+                    }
+                })
+                .catch(function () { alert('网络错误'); });
+            return;
+        }
+
+        if (t.classList.contains('js-reply')) {
+            var rid = t.getAttribute('data-id');
+            var box = document.getElementById('rf-' + rid);
+            if (box) {
+                box.classList.toggle('on');
+                if (box.classList.contains('on')) {
+                    var ta2 = box.querySelector('textarea');
+                    if (ta2) { ta2.focus(); }
+                }
+            }
+            return;
+        }
+
+        if (t.classList.contains('js-cancel')) {
+            var cid = t.getAttribute('data-id');
+            var b = document.getElementById('rf-' + cid);
+            if (b) { b.classList.remove('on'); }
+            return;
+        }
+
+        if (t.classList.contains('js-send-reply')) {
+            var sid = t.getAttribute('data-id');
+            var form = document.getElementById('rf-' + sid);
+            var area = form ? form.querySelector('textarea') : null;
+            var text = area ? area.value.trim() : '';
+            if (!text) { area && area.focus(); return; }
+
+            t.disabled = true;
+            fetch('/api/guestbook/' + sid + '/reply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                body: 'reply=' + encodeURIComponent(text),
+                cache: 'no-store'
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    if (!d.ok) { alert(d.msg || '回复失败'); t.disabled = false; return; }
+
+                    var art2 = t.closest('.entry');
+                    var old = art2.querySelector('.reply');
+                    if (old) { old.remove(); }
+
+                    var box2 = document.createElement('div');
+                    box2.className = 'reply';
+                    var who = document.createElement('b');
+                    who.textContent = (d.reply_by || '站长') + '：';
+                    var tag = document.createElement('span');
+                    tag.className = 'who-tag';
+                    tag.textContent = d.when || '';
+                    box2.appendChild(who);
+                    box2.appendChild(tag);
+                    box2.appendChild(document.createElement('br'));
+                    box2.appendChild(document.createTextNode(d.reply));
+
+                    var rf = document.getElementById('rf-' + sid);
+                    art2.insertBefore(box2, rf || null);
+                    if (rf) { rf.classList.remove('on'); }
+                    t.disabled = false;
+                })
+                .catch(function () { alert('网络错误'); t.disabled = false; });
+        }
+    });
+})();
+</script>
+
+<script>
+/* 开发者标签配色：从 /api/theme 读取，注入 CSS 变量 */
+(function () {
+    fetch('/api/theme', { cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+            var cs = (d && d.colors) || [];
+            if (!cs.length) { return; }
+            var root = document.documentElement;
+            cs.forEach(function (c, i) {
+                root.style.setProperty('--dev-' + (i + 1), c);
+            });
+        })
+        .catch(function () {});
+})();
+</script>
+</body>
+</html>
