@@ -2253,6 +2253,13 @@ def manager_art_hide(aid):
     return redirect(url_for("manager_art"))
 
 
+@app.route("/manager/recWorks/new")
+@admin_required
+def recworks_new():
+    """新增作品推荐（表单从原 manager.html 拆出来）。"""
+    return render_template("recworks_new.html")
+
+
 @app.route("/sitemap.xml")
 def sitemap_xml():
     """站点地图：静态页 + 作品详情 + 用户主页。"""

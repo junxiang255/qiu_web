@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新增作品推荐 · 管理 · 小秋的垃圾站</title>
+    <meta name="description" content="给群友推荐 Gal / 动漫 / RPG / 轻小说，填好投稿人、作品名、推荐语并上传封面。">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+    <style>
+        * { box-sizing: border-box; }
+        html, body { max-width: 100%; overflow-x: hidden; }
+        body {
+            margin: 0; min-height: 100vh; padding: 16px 16px 60px;
+            background: linear-gradient(rgba(255,255,255,.18), rgba(255,255,255,.28)),
+                        url("{{ url_for('static', filename='img/background.png') }}") center/cover no-repeat fixed;
+            font-family: "筑紫A圆体D", system-ui, sans-serif;
+            color: #1f1f1f;
+        }
+        .topbar {
+            display: flex; align-items: center; gap: 10px; padding: 10px 16px;
+            border-radius: 18px; background: rgba(255,255,255,.8);
+            backdrop-filter: blur(18px); border: 1px solid rgba(255,255,255,.66);
+            box-shadow: rgb(0 0 0 / .12) 0 8px 28px 0; margin-bottom: 22px;
+            width: min(1100px, 100%); margin-left: auto; margin-right: auto;
+        }
+        .topbar a {
+            font-size: .8rem; color: #333; text-decoration: none; padding: 6px 14px;
+            border-radius: 11px; background: rgba(255,255,255,.6);
+            border: 1px solid rgba(0,0,0,.07); transition: all .3s ease;
+        }
+        .topbar a:hover { background: #789bfa71; box-shadow: 0 0 18px #e6b5e6; }
+        .topbar .t { font-size: .9rem; font-weight: 700; letter-spacing: 3px; }
+        .topbar .jump { margin-left: auto; }
+    </style>
+    <style>
+        /* ================= 作品推荐表单（按 recWorks_get 重写） ================= */
+        .Introduction_3_big {
+            height: auto;
+            min-height: 700px;
+            padding: 20px 18px 32px;
+            box-sizing: border-box;
+        }
+
+        .Introduction_3_big > h2 {
+            text-align: center;
+            font-size: 1.05rem;
+            letter-spacing: 2px;
+            margin: 0 0 14px;
+        }
+
+        /* ---- flash 提示：后端一直在 flash()，这里第一次真正显示出来 ---- */
+        .flash-wrap {
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .flash {
+            padding: 10px 14px;
+            font-size: 0.78rem;
+            line-height: 1.6;
+            color: #2b2b2b;
+            background: rgba(255, 255, 255, .72);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-left: 4px solid #999;
+            border-radius: 12px;
+            box-shadow: rgb(0 0 0 / 0.18) 0px 6px 20px 0px;
+            animation: flash_in .35s ease-out both;
+        }
+
+        .flash-success { border-left-color: #38a169; background: rgba(237, 250, 242, .88); }
+        .flash-warning { border-left-color: #d69e2e; background: rgba(255, 250, 235, .9); }
+        .flash-error   { border-left-color: #e53e3e; background: rgba(255, 241, 241, .92); }
+
+        @keyframes flash_in {
+            0%   { opacity: 0; transform: translateY(-6px); }
+            100% { opacity: 1; transform: none; }
+        }
+
+        /* ---- 表单排布 ---- */
+        #rec-form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 18px;
+            width: 100%;
+            margin-top: 6px;
+        }
+
+        #rec-form .coolinput,
+        #rec-form .coolinput_big {
+            width: 300px;
+            max-width: 300px;
+        }
+
+        #rec-form .coolinput input.input,
+        #rec-form .coolinput_big textarea.input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 11px 12px;
+            font-family: inherit;
+            font-size: 0.8rem;
+            color: #1f1f1f;
+            background: rgb(255 255 255 / 0.06);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgb(255 255 255 / 0.16);
+            border-radius: 15px;
+            box-shadow: rgb(0 0 0 / 0.35) 0px 8px 32px 0px;
+            outline: none;
+            transition: border-color .3s ease, box-shadow .3s ease, background .3s ease;
+        }
+
+        #rec-form .coolinput input.input::placeholder,
+        #rec-form .coolinput_big textarea.input::placeholder {
+            color: #8d9299;
+        }
+
+        #rec-form .coolinput input.input:focus,
+        #rec-form .coolinput_big textarea.input:focus {
+            background: rgba(255, 255, 255, .55);
+            border-color: rgba(120, 155, 250, .75);
+            box-shadow: 0 0 0 3px #789bfa52, rgb(0 0 0 / 0.2) 0px 8px 26px 0px;
+        }
+
+        #rec-form .coolinput_big textarea.input {
+            height: 220px;
+            min-height: 150px;
+            line-height: 1.75;
+            resize: vertical;
+        }
+
+        /* ---- 字数统计 ---- */
+        .counter {
+            width: 300px;
+            margin-top: 5px;
+            text-align: right;
+            font-size: 0.68rem;
+            color: #7a7a7a;
+        }
+
+        .counter.is-over { color: #c53030; font-weight: 700; }
+
+        /* ---- 图片上传 ---- */
+        .upload {
+            display: block;
+            width: 300px;
+            min-height: 150px;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px dashed rgba(255, 255, 255, .55);
+            border-radius: 15px;
+            background: rgb(255 255 255 / 0.06);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: rgb(0 0 0 / 0.3) 0px 8px 28px 0px;
+            transition: border-color .3s ease, box-shadow .3s ease;
+        }
+
+        .upload:hover,
+        .upload.is-drag {
+            border-color: #789bfa;
+            box-shadow: 0 0 18px #e6b5e6;
+        }
+
+        .upload.has-file {
+            border-style: solid;
+            border-color: rgba(255, 255, 255, .6);
+        }
+
+        .upload-inner {
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        #rec-preview {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            display: block;
+        }
+
+        #rec-preview[hidden] { display: none; }
+
+        .upload-tip {
+            font-size: 0.75rem;
+            line-height: 1.8;
+            color: #3f3f3f;
+            text-align: center;
+        }
+
+        .upload-tip small {
+            font-size: 0.66rem;
+            color: #85898f;
+        }
+
+        .upload.has-file .upload-inner {
+            min-height: 0;
+            padding: 0;
+        }
+
+        .upload.has-file .upload-tip { display: none; }
+
+        .file-meta {
+            width: 300px;
+            margin-top: 6px;
+            font-size: 0.68rem;
+            line-height: 1.6;
+            color: #6b6b6b;
+            word-break: break-all;
+            display: none;
+        }
+
+        .file-meta.is-on { display: block; }
+        .file-meta.is-error { color: #c53030; font-weight: 700; }
+
+        /* ---- 提交按钮 ---- */
+        #rec-form .jztheme-tools-css-button-hover {
+            width: 300px;
+            margin-top: 0;
+            padding: 18px 0;
+            font-family: inherit;
+            font-size: 0.95rem;
+            letter-spacing: 5px;
+            color: #2b2b2b;
+        }
+
+        #rec-form .jztheme-tools-css-button-hover:disabled {
+            opacity: .55;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        #rec-form .jztheme-tools-css-button-hover:disabled:hover {
+            background: rgb(255 255 255 / 0.06);
+            box-shadow: none;
+        }
+
+        .button-Join { margin-top: 0; }
+
+        /* 推荐管理入口 */
+        .admin-link-row {
+            text-align: center;
+            margin: -4px 0 14px;
+        }
+
+        .admin-link-row a {
+            display: inline-block;
+            padding: 7px 16px;
+            font-size: .78rem;
+            color: #333;
+            text-decoration: none;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, .6);
+            border: 1px solid rgba(0, 0, 0, .07);
+            box-shadow: rgb(0 0 0 / 0.08) 0px 3px 12px 0px;
+            transition: all .3s ease;
+        }
+
+        .admin-link-row a:hover {
+            color: #333;
+            text-decoration: none;
+            background: #789bfa71;
+            box-shadow: 0 0 18px #e6b5e6;
+        }
+
+        /* 顶部用户栏 */
+        .user-bar {
+            width: min(760px, 92vw);
+            margin: 18px auto 0;
+            padding: 12px 18px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, .74);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, .6);
+            box-shadow: rgb(0 0 0 / 0.1) 0px 6px 22px 0px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            box-sizing: border-box;
+        }
+
+        .user-bar .welcome {
+            margin: 0;
+            font-size: .92rem;
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+
+        .user-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .user-actions form { display: inline; margin: 0; }
+
+        .ubtn {
+            display: inline-block;
+            padding: 7px 15px;
+            font-family: inherit;
+            font-size: .76rem;
+            color: #333;
+            text-decoration: none;
+            border: 1px solid rgba(0, 0, 0, .07);
+            border-radius: 11px;
+            background: rgba(255, 255, 255, .6);
+            box-shadow: rgb(0 0 0 / 0.08) 0px 3px 12px 0px;
+            cursor: pointer;
+            transition: all .3s ease;
+        }
+
+        .ubtn:hover {
+            color: #333;
+            text-decoration: none;
+            background: #789bfa71;
+            box-shadow: 0 0 18px #e6b5e6;
+        }
+            /* 标签选择器 */
+        .tag-picker {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 9px;
+        }
+
+        .tag-chip {
+            padding: 4px 13px;
+            font-family: inherit;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #6b7280;
+            border-radius: 999px;
+            border: 1px solid rgba(0, 0, 0, .1);
+            background: rgba(255, 255, 255, .8);
+            cursor: pointer;
+            transition: all .25s ease;
+        }
+
+        .tag-chip:hover { background: #789bfa71; color: #333; }
+
+        .tag-chip.on {
+            color: #fff;
+            font-weight: 700;
+            border-color: transparent;
+            background: linear-gradient(135deg, #789bfa, #b48ce0);
+            box-shadow: 0 2px 10px rgba(120, 155, 250, .45);
+        }
+</style>
+    <!-- Microsoft Clarity -->
+    <script>
+        (function(c,l,a,r,i,t,y){
+            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i+"?ref=bwt";
+            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+        })(window, document, "clarity", "script", "zim1v5iu9g");
+    </script>
+</head>
+<body>
+<div class="topbar"><a href="{{ url_for('admin_home') }}">← 后台</a><span class="t">新增作品推荐</span><a class="jump" href="{{ url_for('recworks_admin') }}">管理已有推荐 →</a></div>
+    <div class="Introduction_3_big">
+        <h2>作品推荐的后台</h2>
+        <p class="admin-link-row">
+            <a href="/manager/recWorks">管理已有推荐（查看 / 删除）→</a>
+        </p>
+
+        {% with msgs = get_flashed_messages(with_categories=true) %}
+        {% if msgs %}
+        <div class="flash-wrap">
+            {% for cat, msg in msgs %}
+            <div class="flash flash-{{ cat }}" data-cat="{{ cat }}">{{ msg }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <div class="FE_big">
+            <form id="rec-form" action="/manager/recWorks" method="post"
+                  enctype="multipart/form-data" novalidate autocomplete="off">
+
+                <div class="coolinput">
+                    <label class="text" for="rw-qq-id">投稿人的QQ账号</label>
+                    <input class="input" id="rw-qq-id" name="rw_qq_id" type="text"
+                           inputmode="numeric" maxlength="15" placeholder="例如 2847407092" required>
+                </div>
+
+                <div class="coolinput">
+                    <label class="text" for="rw-qq-name">投稿人的昵称</label>
+                    <input class="input" id="rw-qq-name" name="rw_qq_name" type="text"
+                           maxlength="255" placeholder="会显示在推荐卡片上" required>
+                </div>
+
+                <div class="coolinput">
+                    <label class="text" for="rw-work-name">作品的标题</label>
+                    <input class="input" id="rw-work-name" name="rw_work_name" type="text"
+                           maxlength="255" placeholder="例如 hanser" required>
+                </div>
+
+                <div class="coolinput">
+                    <label class="text" for="rw-tag">作品标签（可多选）</label>
+                    <input class="input" id="rw-tag" name="rw_tag" type="text"
+                           maxlength="120" placeholder="点下面的标签，或直接输入（用空格分隔）">
+                    <div class="tag-picker" id="tag-picker">
+                        <button type="button" class="tag-chip" data-tag="妹系">妹系</button>
+                        <button type="button" class="tag-chip" data-tag="治愈">治愈</button>
+                        <button type="button" class="tag-chip" data-tag="战斗">战斗</button>
+                        <button type="button" class="tag-chip" data-tag="悬疑">悬疑</button>
+                        <button type="button" class="tag-chip" data-tag="校园">校园</button>
+                        <button type="button" class="tag-chip" data-tag="日常">日常</button>
+                        <button type="button" class="tag-chip" data-tag="催泪">催泪</button>
+                        <button type="button" class="tag-chip" data-tag="科幻">科幻</button>
+                        <button type="button" class="tag-chip" data-tag="奇幻">奇幻</button>
+                        <button type="button" class="tag-chip" data-tag="恋爱">恋爱</button>
+                        <button type="button" class="tag-chip" data-tag="姐系">姐系</button>
+                        <button type="button" class="tag-chip" data-tag="废萌">废萌</button>
+                        <button type="button" class="tag-chip" data-tag="Gal">Gal</button>
+                        <button type="button" class="tag-chip" data-tag="动漫">动漫</button>
+                        <button type="button" class="tag-chip" data-tag="RPG">RPG</button>
+                        <button type="button" class="tag-chip" data-tag="轻小说">轻小说</button>
+                    </div>
+                </div>
+
+                <div class="coolinput_big">
+                    <label class="text" for="rw-recwork">作品推荐内容</label>
+                    <textarea class="input" id="rw-recwork" name="rw_recwork" rows="8"
+                              placeholder="推荐语、个人感受……换行会被原样保留" required></textarea>
+                    <div class="counter" id="rec-counter">0 字</div>
+                </div>
+
+                <div class="coolinput_big">
+                    <label class="text" for="rw-img">作品图片</label>
+                    <label class="upload" id="rec-drop" for="rw-img">
+                        <input type="file" id="rw-img" name="rw_img_path"
+                               accept="image/jpeg,image/png,image/gif,image/webp" hidden required>
+                        <div class="upload-inner">
+                            <img id="rec-preview" alt="预览" hidden>
+                            <div class="upload-tip" id="rec-tip">
+                                点击选择图片<br>
+                                <small>jpg / png / gif / webp，最大 5MB</small>
+                            </div>
+                        </div>
+                    </label>
+                    <div class="file-meta" id="rec-meta"></div>
+                </div>
+
+                <div class="button-Join">
+                    <button class="jztheme-tools-css-button-hover" type="submit" id="rec-submit">提交</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        'use strict';
+
+        var form = document.getElementById('rec-form');
+        if (!form) { return; }
+
+        var DRAFT_KEY = 'qiu_recworks_draft';
+        var MAX_BYTES = 5 * 1024 * 1024;
+        var OK_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+        var fileInput = document.getElementById('rw-img');
+        var drop      = document.getElementById('rec-drop');
+        var preview   = document.getElementById('rec-preview');
+        var meta      = document.getElementById('rec-meta');
+        var textarea  = document.getElementById('rw-recwork');
+        var counter   = document.getElementById('rec-counter');
+        var submitBtn = document.getElementById('rec-submit');
+
+        var fQqId   = document.getElementById('rw-qq-id');
+        var fQqName = document.getElementById('rw-qq-name');
+        var fWork   = document.getElementById('rw-work-name');
+
+        /* ---------- 小工具 ---------- */
+        function fmtSize(n) {
+            if (n < 1024) { return n + ' B'; }
+            if (n < 1048576) { return (n / 1024).toFixed(1) + ' KB'; }
+            return (n / 1048576).toFixed(2) + ' MB';
+        }
+
+        function showMeta(text, isError) {
+            meta.textContent = text || '';
+            meta.classList.toggle('is-on', !!text);
+            meta.classList.toggle('is-error', !!isError);
+        }
+
+        /* ---------- 图片校验：和后端 sniff_image 的格式白名单保持一致 ---------- */
+        function checkFile(file) {
+            if (!file) { return '请选择一张图片'; }
+            if (OK_TYPES.indexOf(file.type) === -1) {
+                return '只支持 jpg / png / gif / webp（当前类型：' + (file.type || '未知') + '）';
+            }
+            if (file.size <= 0) { return '图片是空文件'; }
+            if (file.size > MAX_BYTES) {
+                return '图片不能超过 5MB（当前 ' + fmtSize(file.size) + '）';
+            }
+            return '';
+        }
+
+        function resetFile() {
+            preview.hidden = true;
+            preview.removeAttribute('src');
+            drop.classList.remove('has-file');
+            showMeta('', false);
+        }
+
+        function applyFile(file) {
+            var err = checkFile(file);
+            if (err) {
+                fileInput.value = '';
+                resetFile();
+                showMeta(err, true);
+                return;
+            }
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                preview.src = e.target.result;
+                preview.hidden = false;
+                drop.classList.add('has-file');
+            };
+            reader.readAsDataURL(file);
+            showMeta(file.name + ' · ' + fmtSize(file.size), false);
+        }
+
+        /* ---------- 字数统计 ---------- */
+        function updateCount() {
+            var n = textarea.value.length;
+            counter.textContent = n + ' 字';
+            counter.classList.toggle('is-over', n > 60000);
+        }
+
+        /* ---------- 草稿：提交失败回来时不用重填 ---------- */
+        function saveDraft() {
+            try {
+                sessionStorage.setItem(DRAFT_KEY, JSON.stringify({
+                    qq_id: fQqId.value,
+                    qq_name: fQqName.value,
+                    work_name: fWork.value,
+                    recwork: textarea.value
+                }));
+            } catch (e) { /* 隐私模式下忽略 */ }
+        }
+
+        function restoreDraft() {
+            var raw;
+            try { raw = sessionStorage.getItem(DRAFT_KEY); } catch (e) { return; }
+            if (!raw) { return; }
+            var d;
+            try { d = JSON.parse(raw); } catch (e) { return; }
+            fQqId.value   = d.qq_id   || '';
+            fQqName.value = d.qq_name || '';
+            fWork.value   = d.work_name || '';
+            textarea.value = d.recwork || '';
+            updateCount();
+        }
+
+        var successFlash = document.querySelector('.flash-success');
+        var problemFlash = document.querySelector('.flash-warning, .flash-error');
+
+        if (successFlash) {
+            try { sessionStorage.removeItem(DRAFT_KEY); } catch (e) {}
+        } else if (problemFlash) {
+            restoreDraft();
+        }
+
+        /* ---------- 事件绑定 ---------- */
+        textarea.addEventListener('input', updateCount);
+        updateCount();
+
+        fileInput.addEventListener('change', function () {
+            if (this.files && this.files.length) { applyFile(this.files[0]); }
+            else { resetFile(); }
+        });
+
+        /* 拖拽上传 */
+        ['dragenter', 'dragover'].forEach(function (t) {
+            drop.addEventListener(t, function (e) {
+                e.preventDefault();
+                drop.classList.add('is-drag');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(function (t) {
+            drop.addEventListener(t, function (e) {
+                e.preventDefault();
+                drop.classList.remove('is-drag');
+            });
+        });
+
+        drop.addEventListener('drop', function (e) {
+            var files = e.dataTransfer && e.dataTransfer.files;
+            if (files && files.length) {
+                fileInput.files = files;
+                applyFile(files[0]);
+            }
+        });
+
+        /* ---------- 提交 ---------- */
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            if (!fQqId.value.trim())  { fQqId.focus();   showMeta('QQ 账号不能为空', true); return; }
+            if (!/^\d{5,15}$/.test(fQqId.value.trim())) {
+                fQqId.focus();
+                showMeta('QQ 账号应该是 5-15 位数字', true);
+                return;
+            }
+            if (!fQqName.value.trim()) { fQqName.focus(); showMeta('昵称不能为空', true); return; }
+            if (!fWork.value.trim())   { fWork.focus();   showMeta('作品标题不能为空', true); return; }
+            if (!textarea.value.trim()) {
+                textarea.focus();
+                showMeta('推荐内容不能为空', true);
+                return;
+            }
+            if (textarea.value.length > 60000) {
+                textarea.focus();
+                showMeta('推荐内容太长了，请精简到 6 万字以内', true);
+                return;
+            }
+
+            var fileErr = fileInput.files && fileInput.files.length
+                ? checkFile(fileInput.files[0])
+                : '请选择一张图片';
+            if (fileErr) { showMeta(fileErr, true); return; }
+
+            saveDraft();
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = '提交中…';
+
+            // 用原生 submit 绕开本监听，避免递归
+            HTMLFormElement.prototype.submit.call(form);
+        });
+
+        /* 用户中途改文件时清掉旧的错误提示 */
+        fileInput.addEventListener('click', function () {
+            if (meta.classList.contains('is-error')) { showMeta('', false); }
+        });
+    })();
+    
+/* 标签多选：点一下加进去，再点去掉 */
+(function () {
+    var input = document.getElementById('rw-tag');
+    var picker = document.getElementById('tag-picker');
+    if (!input || !picker) { return; }
+
+    function parts() {
+        return (input.value || '').split(/[\s,，、\/|]+/).filter(Boolean);
+    }
+
+    function sync() {
+        var cur = parts();
+        Array.prototype.forEach.call(picker.querySelectorAll('.tag-chip'), function (b) {
+            b.classList.toggle('on', cur.indexOf(b.getAttribute('data-tag')) !== -1);
+        });
+    }
+
+    picker.addEventListener('click', function (e) {
+        var b = e.target.closest ? e.target.closest('.tag-chip') : null;
+        if (!b) { return; }
+        var tag = b.getAttribute('data-tag');
+        var cur = parts();
+        var i = cur.indexOf(tag);
+        if (i >= 0) { cur.splice(i, 1); } else { cur.push(tag); }
+        input.value = cur.join(' ');
+        sync();
+    });
+
+    input.addEventListener('input', sync);
+    sync();
+})();
+</script>
+</body>
+</html>
