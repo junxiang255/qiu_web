@@ -1909,6 +1909,7 @@ def user_profile(uid):
             work_titles[w.id] = w.rw_work_name or "未命名作品"
 
     return render_template("user_profile.html", u=u, is_me=(g.user is not None and g.user.id == uid),
+                                can_manage=(g.user is not None and (g.user.is_admin or g.user.is_developer)),
                            role_label=role_label, role_tier=role_tier,
                            n_rec=n_rec, n_comment=n_comment, n_guest=n_guest,
                            n_chat=n_chat, n_checkin=n_checkin,
@@ -2145,6 +2146,24 @@ def art_delete(aid):
 
 
 # ---- 画作审核（管理员）----
+
+@app.route("/admin")
+@admin_required
+def admin_home():
+    """管理后台首页：把所有管理入口集中在这里。"""
+    art_pending = db.session.scalar(
+        db.select(func.count()).select_from(Artwork).where(Artwork.status == "pending")
+    ) or 0
+    user_pending = db.session.scalar(
+        db.select(func.count()).select_from(User).where(User.status == "pending")
+    ) or 0
+
+    return render_template(
+        "admin.html",
+        art_pending=art_pending,
+        user_pending=user_pending,
+    )
+
 
 @app.route("/manager/art")
 @admin_required

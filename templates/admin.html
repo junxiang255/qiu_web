@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台 · 小秋的垃圾站</title>
+    <meta name="description" content="小秋的垃圾站管理后台：本周乐色王、作品推荐、用户管理、画作审核。">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/font.css') }}">
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 16px 16px 60px;
+            background: linear-gradient(rgba(255, 255, 255, .18), rgba(255, 255, 255, .28)),
+                        url("{{ url_for('static', filename='img/background.png') }}") center/cover no-repeat fixed;
+            font-family: "筑紫A圆体D", system-ui, sans-serif;
+            color: #1f1f1f;
+        }
+
+        html, body { max-width: 100%; overflow-x: hidden; }
+
+        .wrap { width: min(980px, 100%); margin: 0 auto; }
+
+        .bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, .8);
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, .66);
+            box-shadow: rgb(0 0 0 / 0.12) 0px 8px 28px 0px;
+            margin-bottom: 24px;
+        }
+
+        .back {
+            font-size: .8rem;
+            color: #333;
+            text-decoration: none;
+            padding: 6px 14px;
+            border-radius: 11px;
+            background: rgba(255, 255, 255, .6);
+            border: 1px solid rgba(0, 0, 0, .07);
+            transition: all .3s ease;
+        }
+
+        .back:hover { background: #789bfa71; box-shadow: 0 0 18px #e6b5e6; }
+
+        .bar .t { font-size: .9rem; font-weight: 700; letter-spacing: 3px; }
+        .bar .who { margin-left: auto; font-size: .74rem; color: #8d9299; }
+
+        .hero {
+            text-align: center;
+            padding: 30px 24px 26px;
+            border-radius: 22px;
+            margin-bottom: 24px;
+            background: rgba(255, 255, 255, .86);
+            backdrop-filter: blur(22px);
+            border: 1px solid rgba(255, 255, 255, .75);
+            box-shadow: rgb(0 0 0 / .12) 0 10px 32px 0;
+        }
+
+        .hero h1 { margin: 0; font-size: 1.6rem; letter-spacing: 6px; }
+        .hero p { margin: 10px 0 0; font-size: .78rem; color: #6a7080; letter-spacing: 2px; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 18px;
+        }
+
+        .card {
+            display: block;
+            position: relative;
+            padding: 24px 22px;
+            border-radius: 20px;
+            text-decoration: none;
+            color: inherit;
+            background: rgba(255, 255, 255, .88);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, .75);
+            box-shadow: rgb(0 0 0 / .1) 0 8px 26px 0;
+            transition: transform .3s ease, box-shadow .3s ease;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: rgb(0 0 0 / .16) 0 14px 38px 0;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 4px;
+            background: var(--c, #789bfa);
+        }
+
+        .card .icon {
+            font-size: 1.5rem;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .card .name {
+            font-size: .95rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            margin-bottom: 6px;
+        }
+
+        .card .desc {
+            font-size: .74rem;
+            color: #8d9299;
+            line-height: 1.7;
+        }
+
+        .card .badge {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            min-width: 24px;
+            height: 24px;
+            padding: 0 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .7rem;
+            font-weight: 700;
+            color: #fff;
+            border-radius: 999px;
+            background: #ff8a5c;
+            box-shadow: 0 3px 12px rgb(255 138 92 / .45);
+        }
+
+        .card .badge.calm {
+            background: rgba(120, 155, 250, .2);
+            color: #4a5b8f;
+            box-shadow: none;
+        }
+
+        .section-title {
+            margin: 30px 0 16px;
+            font-size: .82rem;
+            letter-spacing: 3px;
+            color: #6a7080;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(0,0,0,.08), transparent);
+        }
+
+        @media (max-width: 560px) {
+            body { padding: 10px 10px 40px; }
+            .hero h1 { font-size: 1.25rem; letter-spacing: 3px; }
+            .grid { grid-template-columns: 1fr; gap: 12px; }
+            .card { padding: 18px 18px; }
+        }
+    </style>
+    <!-- Microsoft Clarity -->
+    <script>
+        (function(c,l,a,r,i,t,y){
+            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i+"?ref=bwt";
+            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+        })(window, document, "clarity", "script", "zim1v5iu9g");
+    </script>
+</head>
+<body>
+<div class="wrap">
+    <header class="bar">
+        <a class="back" href="/index.html">← 首页</a>
+        <span class="t">管理后台</span>
+        <span class="who">{{ g.user.display_name if g.user else '' }}</span>
+    </header>
+
+    <div class="hero">
+        <h1>管理后台</h1>
+        <p>这里的按钮只有管理员能看到</p>
+    </div>
+
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% if msgs %}
+    <div style="margin-bottom:18px;">
+        {% for cat, m in msgs %}
+        <div style="padding:10px 16px;border-radius:12px;font-size:.78rem;margin-bottom:8px;background:rgba(255,255,255,.9);border-left:3px solid {% if cat=='error' %}#ff6b6b{% else %}#6bcb77{% endif %};">{{ m }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <h2 class="section-title">内容管理</h2>
+    <div class="grid">
+        <a class="card" href="{{ url_for('manager') }}" style="--c:#ffb347;">
+            <span class="icon">🏆</span>
+            <div class="name">本周乐色王</div>
+            <div class="desc">填写本周榜单前三名，也可以手动修改已有数据</div>
+        </a>
+
+        <a class="card" href="{{ url_for('manager_recworks') }}" style="--c:#789bfa;">
+            <span class="icon">📚</span>
+            <div class="name">作品推荐</div>
+            <div class="desc">查看、编辑、置顶和删除群友推荐的作品</div>
+        </a>
+
+        <a class="card" href="{{ url_for('manager_art') }}" style="--c:#b48ce0;">
+            <span class="icon">🎨</span>
+            <div class="name">画作审核</div>
+            <div class="desc">审核群友上传的画作，通过后才会出现在画廊</div>
+            {% if art_pending %}
+            <span class="badge">{{ art_pending }}</span>
+            {% endif %}
+        </a>
+    </div>
+
+    <h2 class="section-title">用户管理</h2>
+    <div class="grid">
+        <a class="card" href="{{ url_for('users_admin') }}" style="--c:#6bcb77;">
+            <span class="icon">👥</span>
+            <div class="name">用户列表</div>
+            <div class="desc">审批注册、改身份、重置密码、删除账号，也能直接收录群成员</div>
+            {% if user_pending %}
+            <span class="badge">{{ user_pending }}</span>
+            {% endif %}
+        </a>
+
+        <a class="card" href="{{ url_for('art_gallery') }}" style="--c:#ff9ec7;">
+            <span class="icon">🖼️</span>
+            <div class="name">画廊前台</div>
+            <div class="desc">看看群友现在能看到什么样</div>
+        </a>
+    </div>
+
+    <h2 class="section-title">我的</h2>
+    <div class="grid">
+        <a class="card" href="{{ url_for('account') }}" style="--c:#8fc7d9;">
+            <span class="icon">⚙️</span>
+            <div class="name">个人设置</div>
+            <div class="desc">改昵称、签名、密码，开发者还能调标签配色</div>
+        </a>
+
+        <a class="card" href="{{ url_for('user_profile', uid=g.user.id) }}" style="--c:#edb753;">
+            <span class="icon">🙋</span>
+            <div class="name">我的主页</div>
+            <div class="desc">看看别人眼里的你是什么样</div>
+        </a>
+    </div>
+</div>
+</body>
+</html>
