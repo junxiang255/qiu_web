@@ -650,6 +650,7 @@ class Artwork(db.Model):
     title: Mapped[str] = mapped_column(String(80), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     img_path: Mapped[str] = mapped_column(String(255), nullable=False)
+    thumb_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
     tags: Mapped[str | None] = mapped_column(String(120), nullable=True)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="visible")
     created_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=datetime.now)
@@ -657,6 +658,13 @@ class Artwork(db.Model):
     @property
     def image_url(self):
         return "%s/%s" % (ART_URL_PREFIX, self.img_path)
+
+    @property
+    def thumb_url(self):
+        """列表用：有缩略图就用，没有就退回原图。"""
+        if self.thumb_path:
+            return "%s/%s" % (ART_URL_PREFIX, self.thumb_path)
+        return self.image_url
 
 
 class User(db.Model):
@@ -1335,6 +1343,37 @@ def normalize_tags(raw: str | None) -> str:
     return " ".join(seen[:6])[:120]
 
 
+def make_art_thumb(src: Path, dst: Path, max_w: int = 1200, quality: int = 85) -> bool:
+    """给画作生成缩略图：最长边宽 1200，JPEG q85，透明区域填白。
+
+    失败返回 False（原图照常可用，只是列表会拉原图）。
+    """
+    try:
+        from PIL import Image
+
+        im = Image.open(src)
+        im.load()
+
+        w, h = im.size
+        if w > max_w:
+            new_h = max(1, int(h * max_w / w))
+            im = im.resize((max_w, new_h), Image.LANCZOS)
+
+        if im.mode in ("RGBA", "LA", "P"):
+            im = im.convert("RGBA")
+            bg = Image.new("RGB", im.size, (255, 255, 255))
+            bg.paste(im, mask=im.split()[-1])
+            im = bg
+        else:
+            im = im.convert("RGB")
+
+        im.save(dst, "JPEG", quality=quality, optimize=True)
+        return True
+    except Exception:
+        app.logger.exception("生成画作缩略图失败")
+        return False
+
+
 def split_tags(raw: str | None) -> list[str]:
     """把存进去的标签串拆回列表。normalize_tags 用空格拼接，这里按所有分隔符切。"""
     return [p for p in re.split(r"[\s,，、/|／｜]+", raw or "") if p]
@@ -1943,6 +1982,7 @@ def art_gallery():
             "id": a.id,
             "title": a.title,
             "image_url": a.image_url,
+            "thumb_url": a.thumb_url,
             "tags": split_tags(a.tags),
             "description": a.description or "",
             "created_at": a.created_at,
@@ -2029,11 +2069,22 @@ def art_upload():
         flash("图片保存失败，请稍后重试", "error")
         return redirect(url_for("art_upload"))
 
+    # 生成缩略图（失败不影响上传，只是列表会退回原图）
+    thumb_name = None
+    thumb_tmp = ART_DIR / (".thumb-%s.part" % uuid.uuid4().hex)
+    if make_art_thumb(ART_DIR / name, thumb_tmp):
+        try:
+            thumb_name = unique_link(thumb_tmp, ART_DIR, stem + "_thumb", ".jpg")
+        except Exception:
+            thumb_tmp.unlink(missing_ok=True)
+            app.logger.exception("缩略图落盘失败")
+
     row = Artwork(
         user_id=g.user.id,
         title=title,
         description=desc or None,
         img_path=name,
+        thumb_path=thumb_name,
         tags=tags or None,
         status="pending",   # 先审核再公开
     )
@@ -2082,6 +2133,8 @@ def art_delete(aid):
 
     try:
         (ART_DIR / art.img_path).unlink(missing_ok=True)
+        if art.thumb_path:
+            (ART_DIR / art.thumb_path).unlink(missing_ok=True)
     except Exception:
         app.logger.exception("删除画作文件失败")
 
@@ -2119,6 +2172,7 @@ def manager_art():
                 "id": a.id,
                 "title": a.title,
                 "image_url": a.image_url,
+                "thumb_url": a.thumb_url,
                 "description": a.description or "",
                 "tags": split_tags(a.tags),
                 "created_at": a.created_at,
@@ -2156,6 +2210,8 @@ def manager_art_reject(aid):
         abort(404)
     try:
         (ART_DIR / art.img_path).unlink(missing_ok=True)
+        if art.thumb_path:
+            (ART_DIR / art.thumb_path).unlink(missing_ok=True)
     except Exception:
         app.logger.exception("删除画作文件失败")
     title = art.title
