@@ -30,6 +30,11 @@
     <div class="hero">
         <h1>画家专区</h1>
         <p>群友们的画，都在这儿了 · 共 {{ total }} 张</p>
+        {% if my_pending %}
+        <div class="pending-tip">
+            你有 {{ my_pending }} 张画正在等审核，通过后就会出现在这里
+        </div>
+        {% endif %}
     </div>
 
     {% with msgs = get_flashed_messages(with_categories=true) %}
@@ -184,6 +189,18 @@
         box-shadow: 0 6px 22px rgb(120 155 250 / .45); transition: all .3s ease;
     }
     .btn-primary:hover { box-shadow: 0 8px 28px rgb(120 155 250 / .6); transform: translateY(-1px); }
+
+
+    .pending-tip {
+        display: inline-block;
+        margin-top: 14px;
+        padding: 8px 18px;
+        font-size: .74rem;
+        border-radius: 999px;
+        background: rgba(255, 170, 90, .18);
+        color: #a6611d;
+        border: 1px solid rgba(255, 170, 90, .35);
+    }
 
     @media (max-width: 560px) {
         .wrap { padding: 10px 10px 40px; }

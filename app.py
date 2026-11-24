@@ -41,7 +41,8 @@ UPLOAD_DIR = Path("/www/wwwroot/qiu_web/recworksimg")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 URL_PREFIX = "/recworksimg"
 
-# 画家专区：画作图片单独一个目录
+# 画家专区：画作图片单独一个目录，原图大，上限放宽到 20MB
+ART_MAX_BYTES = 20 * 1024 * 1024
 ART_DIR = Path("/www/wwwroot/qiu_web/artimg")
 ART_DIR.mkdir(parents=True, exist_ok=True)
 ART_URL_PREFIX = "/artimg"
@@ -1950,12 +1951,20 @@ def art_gallery():
             "can_delete": _art_owner_or_admin(a),
         })
 
+    my_pending = 0
+    if g.user is not None:
+        my_pending = db.session.scalar(
+            db.select(func.count()).select_from(Artwork)
+            .where(Artwork.user_id == g.user.id, Artwork.status == "pending")
+        ) or 0
+
     return render_template(
         "art.html",
         items=items,
         page=page,
         pages=pages,
         total=total,
+        my_pending=my_pending,
         logged_in=g.user is not None,
     )
 
@@ -2003,8 +2012,8 @@ def art_upload():
     if size <= 0:
         flash("图片是空文件", "error")
         return redirect(url_for("art_upload"))
-    if size > MAX_BYTES:
-        flash("图片不能超过 %d MB" % (MAX_BYTES // 1048576), "error")
+    if size > ART_MAX_BYTES:
+        flash("图片不能超过 %d MB" % (ART_MAX_BYTES // 1048576), "error")
         return redirect(url_for("art_upload"))
 
     # 落盘：art_<userid>_<title>
@@ -2026,12 +2035,12 @@ def art_upload():
         description=desc or None,
         img_path=name,
         tags=tags or None,
-        status="visible",
+        status="pending",   # 先审核再公开
     )
     try:
         db.session.add(row)
         db.session.commit()
-        flash("画作上传成功！", "success")
+        flash("画作已提交，等管理员审核通过后就会出现在画廊里", "success")
         return redirect(url_for("art_detail", aid=row.id))
     except Exception:
         db.session.rollback()
@@ -2044,8 +2053,13 @@ def art_upload():
 @app.route("/art/<int:aid>")
 def art_detail(aid):
     art = db.session.get(Artwork, aid)
-    if art is None or (art.status != "visible" and not (g.user and (g.user.is_admin or g.user.is_developer))):
+    if art is None:
         abort(404)
+    if art.status != "visible":
+        can_see = (g.user is not None and
+                   (art.user_id == g.user.id or g.user.is_admin or g.user.is_developer))
+        if not can_see:
+            abort(404)
 
     author = db.session.get(User, art.user_id)
     return render_template(
@@ -2075,6 +2089,93 @@ def art_delete(aid):
     db.session.commit()
     flash("画作已删除", "success")
     return redirect(url_for("art_gallery"))
+
+
+# ---- 画作审核（管理员）----
+
+@app.route("/manager/art")
+@admin_required
+def manager_art():
+    """画作审核台：待审 + 已通过，可批量处理。"""
+    pending = db.session.scalars(
+        db.select(Artwork).where(Artwork.status == "pending").order_by(Artwork.id.desc())
+    ).all()
+    visible = db.session.scalars(
+        db.select(Artwork).where(Artwork.status == "visible").order_by(Artwork.id.desc()).limit(60)
+    ).all()
+
+    # 作者信息
+    ids = {a.user_id for a in pending} | {a.user_id for a in visible}
+    authors = {}
+    if ids:
+        for u in db.session.scalars(db.select(User).where(User.id.in_(ids))).all():
+            authors[u.id] = u
+
+    def pack(rows):
+        out = []
+        for a in rows:
+            u = authors.get(a.user_id)
+            out.append({
+                "id": a.id,
+                "title": a.title,
+                "image_url": a.image_url,
+                "description": a.description or "",
+                "tags": split_tags(a.tags),
+                "created_at": a.created_at,
+                "author_name": u.display_name if u else "已注销",
+                "author_id": a.user_id,
+                "status": a.status,
+            })
+        return out
+
+    return render_template(
+        "manager_art.html",
+        pending=pack(pending),
+        visible=pack(visible),
+    )
+
+
+@app.post("/manager/art/<int:aid>/approve")
+@admin_required
+def manager_art_approve(aid):
+    art = db.session.get(Artwork, aid)
+    if art is None:
+        abort(404)
+    art.status = "visible"
+    db.session.commit()
+    flash("「%s」已通过审核" % art.title, "success")
+    return redirect(url_for("manager_art"))
+
+
+@app.post("/manager/art/<int:aid>/reject")
+@admin_required
+def manager_art_reject(aid):
+    """驳回：直接删掉（图也一起删）。"""
+    art = db.session.get(Artwork, aid)
+    if art is None:
+        abort(404)
+    try:
+        (ART_DIR / art.img_path).unlink(missing_ok=True)
+    except Exception:
+        app.logger.exception("删除画作文件失败")
+    title = art.title
+    db.session.delete(art)
+    db.session.commit()
+    flash("「%s」已驳回并删除" % title, "success")
+    return redirect(url_for("manager_art"))
+
+
+@app.post("/manager/art/<int:aid>/hide")
+@admin_required
+def manager_art_hide(aid):
+    """已公开的画作下架。"""
+    art = db.session.get(Artwork, aid)
+    if art is None:
+        abort(404)
+    art.status = "hidden"
+    db.session.commit()
+    flash("「%s」已下架" % art.title, "success")
+    return redirect(url_for("manager_art"))
 
 
 @app.route("/sitemap.xml")

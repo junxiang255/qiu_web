@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>上传画作 · 画家专区 · 小秋的垃圾站</title>
-    <meta name="description" content="上传你的画到画家专区——支持 jpg / png / gif / webp，单张最大 5MB。">
+    <meta name="description" content="上传你的画到画家专区——支持 jpg / png / gif / webp，单张最大 20MB。">
     <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/font.css') }}">
     <style>
@@ -228,7 +228,7 @@
 
     <div class="card">
         <h1>上传你的画</h1>
-        <p class="sub">支持 JPG / PNG / GIF / WEBP，单张最大 5MB</p>
+        <p class="sub">支持 JPG / PNG / GIF / WEBP，单张最大 20MB</p>
 
         {% with msgs = get_flashed_messages(with_categories=true) %}
         {% if msgs %}
@@ -299,7 +299,7 @@
     var form = document.getElementById('art-form');
     var btn = document.getElementById('submit-btn');
 
-    var MAX = 5 * 1024 * 1024;
+    var MAX = 20 * 1024 * 1024;
 
     function human(n) {
         if (n < 1024) { return n + ' B'; }
@@ -311,7 +311,7 @@
         if (!file) { return; }
 
         if (file.size > MAX) {
-            alert('图片不能超过 5MB，这张是 ' + human(file.size));
+            alert('图片不能超过 20MB，这张是 ' + human(file.size));
             input.value = '';
             return;
         }

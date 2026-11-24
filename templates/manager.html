@@ -576,6 +576,7 @@ a:hover{	/*悬浮状态*/
                 <a class="ubtn" href="{{ url_for('home') }}">返回主页</a>
                 {% if user.is_admin %}
                 <a class="ubtn" href="{{ url_for('users_admin') }}">用户管理</a>
+                <a class="ubtn" href="{{ url_for('manager_art') }}">画作审核</a>
                 {% endif %}
                 <a class="ubtn" href="{{ url_for('account') }}">个人设置</a>
                 <form action="{{ url_for('logout') }}" method="post">
