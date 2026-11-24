@@ -1463,7 +1463,33 @@ def api_users_list():
             "exp": int(u.exp or 0),
             "joined": u.created_at.strftime("%Y-%m-%d") if u.created_at else "",
         })
-    return jsonify(count=len(users), users=users)
+
+    # 分页：?page=1&per_page=12
+    try:
+        page = max(1, int(request.args.get("page", 1)))
+    except (TypeError, ValueError):
+        page = 1
+    try:
+        per_page = int(request.args.get("per_page", 12))
+    except (TypeError, ValueError):
+        per_page = 12
+    per_page = max(1, min(60, per_page))
+
+    total = len(users)
+    pages = max(1, (total + per_page - 1) // per_page)
+    if page > pages:
+        page = pages
+    start = (page - 1) * per_page
+    page_users = users[start:start + per_page]
+
+    return jsonify(
+        count=total,
+        users=page_users,
+        page=page,
+        per_page=per_page,
+        pages=pages,
+        total=total,
+    )
 
 
 @app.route("/chat")
