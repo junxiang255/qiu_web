@@ -1838,6 +1838,63 @@ def api_theme():
     return jsonify(colors=colors)
 
 
+SITE_BASE = "https://www.xn--rubbish-o27ow52hy3g.xyz"
+
+
+@app.route("/sitemap.xml")
+def sitemap_xml():
+    """站点地图：静态页 + 作品详情 + 用户主页。"""
+    urls = []
+
+    # 静态 / 功能页
+    for path, pr in (
+        ("/index.html", "1.0"),
+        ("/RecWorks.html", "0.9"),
+        ("/ew.html", "0.8"),
+        ("/devs.html", "0.6"),
+        ("/sponsor.html", "0.6"),
+        ("/checkin", "0.7"),
+        ("/chat", "0.7"),
+        ("/guestbook", "0.7"),
+        ("/login", "0.4"),
+        ("/register", "0.4"),
+    ):
+        urls.append((SITE_BASE + path, pr, None))
+
+    # 作品详情页
+    works = db.session.scalars(
+        db.select(recWorks).order_by(recWorks.id.desc())
+    ).all()
+    for w in works:
+        urls.append((SITE_BASE + "/works/%d" % w.id, "0.7", None))
+
+    # 已激活的用户主页
+    users = db.session.scalars(
+        db.select(User).where(User.status == "active", User.is_active == True)
+    ).all()
+    for u in users:
+        urls.append((SITE_BASE + "/u/%d" % u.id, "0.5", None))
+
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ]
+    for loc, pr, _ in urls:
+        lines.append("  <url>")
+        lines.append("    <loc>%s</loc>" % loc)
+        lines.append("    <priority>%s</priority>" % pr)
+        lines.append("  </url>")
+    lines.append("</urlset>")
+
+    return Response("\n".join(lines), mimetype="application/xml")
+
+
+@app.route("/robots.txt")
+def robots_txt():
+    body = "User-agent: *\nAllow: /\n\nSitemap: %s/sitemap.xml\n" % SITE_BASE
+    return Response(body, mimetype="text/plain")
+
+
 @app.route("/api/me")
 def api_me():
     """给静态页顶栏用：告诉前端当前有没有登录、头像用哪个 QQ。"""
