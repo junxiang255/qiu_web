@@ -2256,8 +2256,17 @@ def manager_art_hide(aid):
 @app.route("/manager/recWorks/new")
 @admin_required
 def recworks_new():
-    """新增作品推荐（表单从原 manager.html 拆出来）。"""
-    return render_template("recworks_new.html")
+    """新增作品推荐。"""
+    # 群成员列表：填 QQ 号时自动带出昵称
+    members = []
+    for m in db.session.scalars(db.select(GroupMember).order_by(GroupMember.id)).all():
+        members.append({
+            "qq": m.qq_id or "",
+            "name": m.card or m.nickname or "",
+            "tag": m.group_tag or "",
+        })
+
+    return render_template("recworks_new.html", members=members)
 
 
 @app.route("/sitemap.xml")

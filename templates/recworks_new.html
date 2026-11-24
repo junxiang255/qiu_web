@@ -6,360 +6,284 @@
     <title>新增作品推荐 · 管理 · 小秋的垃圾站</title>
     <meta name="description" content="给群友推荐 Gal / 动漫 / RPG / 轻小说，填好投稿人、作品名、推荐语并上传封面。">
     <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/font.css') }}">
     <style>
         * { box-sizing: border-box; }
-        html, body { max-width: 100%; overflow-x: hidden; }
+
         body {
-            margin: 0; min-height: 100vh; padding: 16px 16px 60px;
-            background: linear-gradient(rgba(255,255,255,.18), rgba(255,255,255,.28)),
+            margin: 0;
+            min-height: 100vh;
+            padding: 16px 16px 60px;
+            background: linear-gradient(rgba(255, 255, 255, .18), rgba(255, 255, 255, .28)),
                         url("{{ url_for('static', filename='img/background.png') }}") center/cover no-repeat fixed;
             font-family: "筑紫A圆体D", system-ui, sans-serif;
             color: #1f1f1f;
         }
-        .topbar {
-            display: flex; align-items: center; gap: 10px; padding: 10px 16px;
-            border-radius: 18px; background: rgba(255,255,255,.8);
-            backdrop-filter: blur(18px); border: 1px solid rgba(255,255,255,.66);
-            box-shadow: rgb(0 0 0 / .12) 0 8px 28px 0; margin-bottom: 22px;
-            width: min(1100px, 100%); margin-left: auto; margin-right: auto;
-        }
-        .topbar a {
-            font-size: .8rem; color: #333; text-decoration: none; padding: 6px 14px;
-            border-radius: 11px; background: rgba(255,255,255,.6);
-            border: 1px solid rgba(0,0,0,.07); transition: all .3s ease;
-        }
-        .topbar a:hover { background: #789bfa71; box-shadow: 0 0 18px #e6b5e6; }
-        .topbar .t { font-size: .9rem; font-weight: 700; letter-spacing: 3px; }
-        .topbar .jump { margin-left: auto; }
-    </style>
-    <style>
-        /* ================= 作品推荐表单（按 recWorks_get 重写） ================= */
-        .Introduction_3_big {
-            height: auto;
-            min-height: 700px;
-            padding: 20px 18px 32px;
-            box-sizing: border-box;
-        }
 
-        .Introduction_3_big > h2 {
-            text-align: center;
-            font-size: 1.05rem;
-            letter-spacing: 2px;
-            margin: 0 0 14px;
-        }
+        html, body { max-width: 100%; overflow-x: hidden; }
 
-        /* ---- flash 提示：后端一直在 flash()，这里第一次真正显示出来 ---- */
-        .flash-wrap {
-            width: 100%;
-            max-width: 300px;
-            margin: 0 auto 14px;
+        .wrap { width: min(760px, 100%); margin: 0 auto; }
+
+        .bar {
             display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .flash {
-            padding: 10px 14px;
-            font-size: 0.78rem;
-            line-height: 1.6;
-            color: #2b2b2b;
-            background: rgba(255, 255, 255, .72);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-left: 4px solid #999;
-            border-radius: 12px;
-            box-shadow: rgb(0 0 0 / 0.18) 0px 6px 20px 0px;
-            animation: flash_in .35s ease-out both;
-        }
-
-        .flash-success { border-left-color: #38a169; background: rgba(237, 250, 242, .88); }
-        .flash-warning { border-left-color: #d69e2e; background: rgba(255, 250, 235, .9); }
-        .flash-error   { border-left-color: #e53e3e; background: rgba(255, 241, 241, .92); }
-
-        @keyframes flash_in {
-            0%   { opacity: 0; transform: translateY(-6px); }
-            100% { opacity: 1; transform: none; }
-        }
-
-        /* ---- 表单排布 ---- */
-        #rec-form {
-            display: flex;
-            flex-direction: column;
             align-items: center;
-            gap: 18px;
-            width: 100%;
-            margin-top: 6px;
+            gap: 10px;
+            padding: 10px 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, .8);
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, .66);
+            box-shadow: rgb(0 0 0 / 0.12) 0px 8px 28px 0px;
+            margin-bottom: 20px;
         }
 
-        #rec-form .coolinput,
-        #rec-form .coolinput_big {
-            width: 300px;
-            max-width: 300px;
-        }
-
-        #rec-form .coolinput input.input,
-        #rec-form .coolinput_big textarea.input {
-            width: 100%;
-            box-sizing: border-box;
-            padding: 11px 12px;
-            font-family: inherit;
-            font-size: 0.8rem;
-            color: #1f1f1f;
-            background: rgb(255 255 255 / 0.06);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgb(255 255 255 / 0.16);
-            border-radius: 15px;
-            box-shadow: rgb(0 0 0 / 0.35) 0px 8px 32px 0px;
-            outline: none;
-            transition: border-color .3s ease, box-shadow .3s ease, background .3s ease;
-        }
-
-        #rec-form .coolinput input.input::placeholder,
-        #rec-form .coolinput_big textarea.input::placeholder {
-            color: #8d9299;
-        }
-
-        #rec-form .coolinput input.input:focus,
-        #rec-form .coolinput_big textarea.input:focus {
-            background: rgba(255, 255, 255, .55);
-            border-color: rgba(120, 155, 250, .75);
-            box-shadow: 0 0 0 3px #789bfa52, rgb(0 0 0 / 0.2) 0px 8px 26px 0px;
-        }
-
-        #rec-form .coolinput_big textarea.input {
-            height: 220px;
-            min-height: 150px;
-            line-height: 1.75;
-            resize: vertical;
-        }
-
-        /* ---- 字数统计 ---- */
-        .counter {
-            width: 300px;
-            margin-top: 5px;
-            text-align: right;
-            font-size: 0.68rem;
-            color: #7a7a7a;
-        }
-
-        .counter.is-over { color: #c53030; font-weight: 700; }
-
-        /* ---- 图片上传 ---- */
-        .upload {
-            display: block;
-            width: 300px;
-            min-height: 150px;
-            position: relative;
-            overflow: hidden;
-            cursor: pointer;
-            border: 2px dashed rgba(255, 255, 255, .55);
-            border-radius: 15px;
-            background: rgb(255 255 255 / 0.06);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            box-shadow: rgb(0 0 0 / 0.3) 0px 8px 28px 0px;
-            transition: border-color .3s ease, box-shadow .3s ease;
-        }
-
-        .upload:hover,
-        .upload.is-drag {
-            border-color: #789bfa;
-            box-shadow: 0 0 18px #e6b5e6;
-        }
-
-        .upload.has-file {
-            border-style: solid;
-            border-color: rgba(255, 255, 255, .6);
-        }
-
-        .upload-inner {
-            min-height: 150px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-        }
-
-        #rec-preview {
-            width: 100%;
-            height: 150px;
-            object-fit: cover;
-            display: block;
-        }
-
-        #rec-preview[hidden] { display: none; }
-
-        .upload-tip {
-            font-size: 0.75rem;
-            line-height: 1.8;
-            color: #3f3f3f;
-            text-align: center;
-        }
-
-        .upload-tip small {
-            font-size: 0.66rem;
-            color: #85898f;
-        }
-
-        .upload.has-file .upload-inner {
-            min-height: 0;
-            padding: 0;
-        }
-
-        .upload.has-file .upload-tip { display: none; }
-
-        .file-meta {
-            width: 300px;
-            margin-top: 6px;
-            font-size: 0.68rem;
-            line-height: 1.6;
-            color: #6b6b6b;
-            word-break: break-all;
-            display: none;
-        }
-
-        .file-meta.is-on { display: block; }
-        .file-meta.is-error { color: #c53030; font-weight: 700; }
-
-        /* ---- 提交按钮 ---- */
-        #rec-form .jztheme-tools-css-button-hover {
-            width: 300px;
-            margin-top: 0;
-            padding: 18px 0;
-            font-family: inherit;
-            font-size: 0.95rem;
-            letter-spacing: 5px;
-            color: #2b2b2b;
-        }
-
-        #rec-form .jztheme-tools-css-button-hover:disabled {
-            opacity: .55;
-            cursor: not-allowed;
-            box-shadow: none;
-        }
-
-        #rec-form .jztheme-tools-css-button-hover:disabled:hover {
-            background: rgb(255 255 255 / 0.06);
-            box-shadow: none;
-        }
-
-        .button-Join { margin-top: 0; }
-
-        /* 推荐管理入口 */
-        .admin-link-row {
-            text-align: center;
-            margin: -4px 0 14px;
-        }
-
-        .admin-link-row a {
-            display: inline-block;
-            padding: 7px 16px;
-            font-size: .78rem;
+        .back {
+            font-size: .8rem;
             color: #333;
             text-decoration: none;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, .6);
-            border: 1px solid rgba(0, 0, 0, .07);
-            box-shadow: rgb(0 0 0 / 0.08) 0px 3px 12px 0px;
-            transition: all .3s ease;
-        }
-
-        .admin-link-row a:hover {
-            color: #333;
-            text-decoration: none;
-            background: #789bfa71;
-            box-shadow: 0 0 18px #e6b5e6;
-        }
-
-        /* 顶部用户栏 */
-        .user-bar {
-            width: min(760px, 92vw);
-            margin: 18px auto 0;
-            padding: 12px 18px;
-            border-radius: 16px;
-            background: rgba(255, 255, 255, .74);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, .6);
-            box-shadow: rgb(0 0 0 / 0.1) 0px 6px 22px 0px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-            box-sizing: border-box;
-        }
-
-        .user-bar .welcome {
-            margin: 0;
-            font-size: .92rem;
-            letter-spacing: 1px;
-            font-weight: 700;
-        }
-
-        .user-actions {
-            margin-left: auto;
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .user-actions form { display: inline; margin: 0; }
-
-        .ubtn {
-            display: inline-block;
-            padding: 7px 15px;
-            font-family: inherit;
-            font-size: .76rem;
-            color: #333;
-            text-decoration: none;
-            border: 1px solid rgba(0, 0, 0, .07);
+            padding: 6px 14px;
             border-radius: 11px;
             background: rgba(255, 255, 255, .6);
-            box-shadow: rgb(0 0 0 / 0.08) 0px 3px 12px 0px;
-            cursor: pointer;
+            border: 1px solid rgba(0, 0, 0, .07);
             transition: all .3s ease;
         }
 
-        .ubtn:hover {
-            color: #333;
-            text-decoration: none;
-            background: #789bfa71;
-            box-shadow: 0 0 18px #e6b5e6;
+        .back:hover { background: #789bfa71; box-shadow: 0 0 18px #e6b5e6; }
+
+        .bar .t { font-size: .9rem; font-weight: 700; letter-spacing: 3px; }
+        .bar .jump { margin-left: auto; font-size: .74rem; color: #5a6ea8; text-decoration: none; }
+        .bar .jump:hover { color: #b48ce0; }
+
+        .card {
+            padding: 30px 30px 26px;
+            border-radius: 24px;
+            background: rgba(255, 255, 255, .86);
+            backdrop-filter: blur(22px);
+            border: 1px solid rgba(255, 255, 255, .72);
+            box-shadow: rgb(0 0 0 / 0.15) 0px 14px 42px 0px;
         }
-            /* 标签选择器 */
+
+        .card h1 {
+            margin: 0 0 6px;
+            font-size: 1.3rem;
+            letter-spacing: 5px;
+            text-align: center;
+        }
+
+        .card .sub {
+            margin: 0 0 28px;
+            font-size: .76rem;
+            color: #6a7080;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .field { margin-bottom: 22px; }
+
+        .field > label {
+            display: block;
+            margin-bottom: 9px;
+            font-size: .78rem;
+            color: #5a5a5a;
+            letter-spacing: 1px;
+        }
+
+        .field > label .req { color: #e07a9b; margin-left: 3px; }
+
+        .field input[type="text"],
+        .field textarea {
+            width: 100%;
+            padding: 11px 14px;
+            font-family: inherit;
+            font-size: .84rem;
+            color: #1f1f1f;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 0, 0, .09);
+            background: rgba(255, 255, 255, .92);
+            transition: border-color .25s ease, box-shadow .25s ease;
+        }
+
+        .field input[type="text"]:focus,
+        .field textarea:focus {
+            outline: none;
+            border-color: #789bfa;
+            box-shadow: 0 0 0 3px rgba(120, 155, 250, .15);
+        }
+
+        .field textarea {
+            resize: vertical;
+            min-height: 150px;
+            line-height: 1.9;
+        }
+
+        .two-col {
+            display: flex;
+            gap: 12px;
+        }
+
+        .two-col > div { flex: 1 1 0; min-width: 0; }
+
+        .two-col input { width: 100%; }
+
+        /* 标签 */
         .tag-picker {
             display: flex;
             flex-wrap: wrap;
-            gap: 6px;
-            margin-top: 9px;
+            gap: 8px;
+            margin-top: 10px;
         }
 
         .tag-chip {
-            padding: 4px 13px;
+            padding: 6px 16px;
             font-family: inherit;
-            font-size: 12px;
-            line-height: 1.6;
-            color: #6b7280;
+            font-size: .76rem;
+            color: #5a6070;
             border-radius: 999px;
-            border: 1px solid rgba(0, 0, 0, .1);
-            background: rgba(255, 255, 255, .8);
+            border: 1px solid rgba(120, 155, 250, .3);
+            background: rgba(255, 255, 255, .9);
             cursor: pointer;
-            transition: all .25s ease;
+            transition: all .22s ease;
         }
 
-        .tag-chip:hover { background: #789bfa71; color: #333; }
+        .tag-chip:hover { border-color: #789bfa; color: #4a5b8f; }
 
         .tag-chip.on {
             color: #fff;
             font-weight: 700;
-            border-color: transparent;
             background: linear-gradient(135deg, #789bfa, #b48ce0);
-            box-shadow: 0 2px 10px rgba(120, 155, 250, .45);
+            border-color: transparent;
+            box-shadow: 0 3px 14px rgb(120 155 250 / .45);
         }
-</style>
+
+        /* 拖放区 */
+        .drop {
+            position: relative;
+            border: 2px dashed rgba(120, 155, 250, .35);
+            border-radius: 16px;
+            padding: 32px 20px;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(255, 255, 255, .55);
+            transition: all .3s ease;
+        }
+
+        .drop:hover, .drop.over {
+            border-color: #789bfa;
+            background: rgba(120, 155, 250, .07);
+        }
+
+        .drop input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        .drop .icon { font-size: 1.7rem; margin-bottom: 8px; }
+        .drop .txt { font-size: .8rem; color: #6a7080; }
+        .drop .small { margin-top: 6px; font-size: .68rem; color: #a8adb4; }
+
+        .preview {
+            display: none;
+            margin-top: 14px;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid rgba(0, 0, 0, .07);
+            background: #f6f3f8;
+        }
+
+        .preview img { width: 100%; display: block; max-height: 320px; object-fit: contain; }
+
+        .preview-name {
+            padding: 8px 12px;
+            font-size: .7rem;
+            color: #8d9299;
+            background: rgba(255, 255, 255, .85);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .flash-box { margin-bottom: 18px; }
+
+        .flash {
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-size: .78rem;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, .9);
+            border: 1px solid rgba(0, 0, 0, .06);
+        }
+
+        .flash.error { border-left: 3px solid #ff6b6b; color: #b03838; }
+        .flash.success { border-left: 3px solid #6bcb77; }
+        .flash.warning { border-left: 3px solid #ffb347; }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-top: 26px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 11px 32px;
+            font-family: inherit;
+            font-size: .84rem;
+            font-weight: 700;
+            border-radius: 13px;
+            border: none;
+            cursor: pointer;
+            transition: all .3s ease;
+        }
+
+        .btn.primary {
+            color: #fff;
+            background: linear-gradient(135deg, #789bfa, #b48ce0);
+            box-shadow: 0 6px 22px rgb(120 155 250 / .45);
+        }
+
+        .btn.primary:hover { box-shadow: 0 8px 28px rgb(120 155 250 / .6); transform: translateY(-1px); }
+        .btn.primary:disabled { opacity: .55; cursor: default; transform: none; }
+
+        .btn.ghost {
+            color: #555;
+            text-decoration: none;
+            background: rgba(255, 255, 255, .9);
+            border: 1px solid rgba(0, 0, 0, .08);
+        }
+
+        .btn.ghost:hover { background: #fff; box-shadow: 0 4px 16px rgb(0 0 0 / .1); }
+
+        .draft-tip {
+            margin-left: auto;
+            font-size: .68rem;
+            color: #a8adb4;
+        }
+
+        .err-box {
+            margin-top: 14px;
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-size: .78rem;
+            color: #b03838;
+            background: rgba(255, 107, 107, .1);
+            border-left: 3px solid #ff6b6b;
+            display: none;
+        }
+
+        .err-box.show { display: block; }
+
+        @media (max-width: 560px) {
+            body { padding: 10px 10px 40px; }
+            .card { padding: 22px 18px; }
+            .two-col { flex-direction: column; }
+            .actions .btn { flex: 1 1 0; }
+            .draft-tip { margin-left: 0; width: 100%; text-align: center; margin-top: 8px; }
+        }
+    </style>
     <!-- Microsoft Clarity -->
     <script>
         (function(c,l,a,r,i,t,y){
@@ -370,319 +294,326 @@
     </script>
 </head>
 <body>
-<div class="topbar"><a href="{{ url_for('admin_home') }}">← 后台</a><span class="t">新增作品推荐</span><a class="jump" href="{{ url_for('recworks_admin') }}">管理已有推荐 →</a></div>
-    <div class="Introduction_3_big">
-        <h2>作品推荐的后台</h2>
-        <p class="admin-link-row">
-            <a href="/manager/recWorks">管理已有推荐（查看 / 删除）→</a>
-        </p>
+<div class="wrap">
+    <header class="bar">
+        <a class="back" href="{{ url_for('admin_home') }}">← 后台</a>
+        <span class="t">新增作品推荐</span>
+        <a class="jump" href="{{ url_for('recworks_admin') }}">管理已有推荐 →</a>
+    </header>
+
+    <div class="card">
+        <h1>安利点什么</h1>
+        <p class="sub">Gal / 动漫 / RPG / 轻小说，写点为什么值得看</p>
 
         {% with msgs = get_flashed_messages(with_categories=true) %}
         {% if msgs %}
-        <div class="flash-wrap">
-            {% for cat, msg in msgs %}
-            <div class="flash flash-{{ cat }}" data-cat="{{ cat }}">{{ msg }}</div>
-            {% endfor %}
+        <div class="flash-box">
+            {% for cat, m in msgs %}<div class="flash {{ cat }}">{{ m }}</div>{% endfor %}
         </div>
         {% endif %}
         {% endwith %}
 
-        <div class="FE_big">
-            <form id="rec-form" action="/manager/recWorks" method="post"
-                  enctype="multipart/form-data" novalidate autocomplete="off">
+        <form method="post" action="{{ url_for('manager_recworks') }}" enctype="multipart/form-data"
+              id="rec-form" novalidate autocomplete="off">
 
-                <div class="coolinput">
-                    <label class="text" for="rw-qq-id">投稿人的QQ账号</label>
-                    <input class="input" id="rw-qq-id" name="rw_qq_id" type="text"
-                           inputmode="numeric" maxlength="15" placeholder="例如 2847407092" required>
-                </div>
-
-                <div class="coolinput">
-                    <label class="text" for="rw-qq-name">投稿人的昵称</label>
-                    <input class="input" id="rw-qq-name" name="rw_qq_name" type="text"
-                           maxlength="255" placeholder="会显示在推荐卡片上" required>
-                </div>
-
-                <div class="coolinput">
-                    <label class="text" for="rw-work-name">作品的标题</label>
-                    <input class="input" id="rw-work-name" name="rw_work_name" type="text"
-                           maxlength="255" placeholder="例如 hanser" required>
-                </div>
-
-                <div class="coolinput">
-                    <label class="text" for="rw-tag">作品标签（可多选）</label>
-                    <input class="input" id="rw-tag" name="rw_tag" type="text"
-                           maxlength="120" placeholder="点下面的标签，或直接输入（用空格分隔）">
-                    <div class="tag-picker" id="tag-picker">
-                        <button type="button" class="tag-chip" data-tag="妹系">妹系</button>
-                        <button type="button" class="tag-chip" data-tag="治愈">治愈</button>
-                        <button type="button" class="tag-chip" data-tag="战斗">战斗</button>
-                        <button type="button" class="tag-chip" data-tag="悬疑">悬疑</button>
-                        <button type="button" class="tag-chip" data-tag="校园">校园</button>
-                        <button type="button" class="tag-chip" data-tag="日常">日常</button>
-                        <button type="button" class="tag-chip" data-tag="催泪">催泪</button>
-                        <button type="button" class="tag-chip" data-tag="科幻">科幻</button>
-                        <button type="button" class="tag-chip" data-tag="奇幻">奇幻</button>
-                        <button type="button" class="tag-chip" data-tag="恋爱">恋爱</button>
-                        <button type="button" class="tag-chip" data-tag="姐系">姐系</button>
-                        <button type="button" class="tag-chip" data-tag="废萌">废萌</button>
-                        <button type="button" class="tag-chip" data-tag="Gal">Gal</button>
-                        <button type="button" class="tag-chip" data-tag="动漫">动漫</button>
-                        <button type="button" class="tag-chip" data-tag="RPG">RPG</button>
-                        <button type="button" class="tag-chip" data-tag="轻小说">轻小说</button>
+            <div class="field">
+                <label>投稿人<span class="req">*</span></label>
+                <div class="two-col">
+                    <div>
+                        <input type="text" name="rw_qq_id" id="f-qq" maxlength="15" inputmode="numeric"
+                               placeholder="QQ 号" value="{{ request.form.get('rw_qq_id', '') }}">
+                    </div>
+                    <div>
+                        <input type="text" name="rw_qq_name" id="f-name" maxlength="255"
+                               placeholder="昵称（会显示在卡片上）" value="{{ request.form.get('rw_qq_name', '') }}">
                     </div>
                 </div>
+                <p style="margin:8px 0 0;font-size:.68rem;color:#a8adb4;">
+                    填 QQ 号后，如果这个人在群里，昵称会自动带出来
+                </p>
+            </div>
 
-                <div class="coolinput_big">
-                    <label class="text" for="rw-recwork">作品推荐内容</label>
-                    <textarea class="input" id="rw-recwork" name="rw_recwork" rows="8"
-                              placeholder="推荐语、个人感受……换行会被原样保留" required></textarea>
-                    <div class="counter" id="rec-counter">0 字</div>
-                </div>
+            <div class="field">
+                <label>作品标题<span class="req">*</span></label>
+                <input type="text" name="rw_work_name" id="f-work" maxlength="255"
+                       placeholder="例如 相见5分属于我！" value="{{ request.form.get('rw_work_name', '') }}">
+            </div>
 
-                <div class="coolinput_big">
-                    <label class="text" for="rw-img">作品图片</label>
-                    <label class="upload" id="rec-drop" for="rw-img">
-                        <input type="file" id="rw-img" name="rw_img_path"
-                               accept="image/jpeg,image/png,image/gif,image/webp" hidden required>
-                        <div class="upload-inner">
-                            <img id="rec-preview" alt="预览" hidden>
-                            <div class="upload-tip" id="rec-tip">
-                                点击选择图片<br>
-                                <small>jpg / png / gif / webp，最大 5MB</small>
-                            </div>
-                        </div>
-                    </label>
-                    <div class="file-meta" id="rec-meta"></div>
+            <div class="field">
+                <label>标签</label>
+                <input type="text" name="rw_tag" id="f-tag" maxlength="120"
+                       placeholder="点下面的标签，或者直接输入（用空格分隔，最多 6 个）"
+                       value="{{ request.form.get('rw_tag', '') }}">
+                <div class="tag-picker" id="tag-picker">
+                    {% set TAGS = ['Gal','动漫','RPG','轻小说','妹系','姐系','废萌','治愈','催泪','战斗','悬疑','科幻','奇幻','恋爱','校园','日常'] %}
+                    {% for t in TAGS %}
+                    <button type="button" class="tag-chip" data-tag="{{ t }}">{{ t }}</button>
+                    {% endfor %}
                 </div>
+            </div>
 
-                <div class="button-Join">
-                    <button class="jztheme-tools-css-button-hover" type="submit" id="rec-submit">提交</button>
+            <div class="field">
+                <label>推荐内容<span class="req">*</span></label>
+                <textarea name="rw_recwork" id="f-recwork" maxlength="60000"
+                          placeholder="为什么推荐？剧情、画风、音乐、你自己的感受……">{{ request.form.get('rw_recwork', '') }}</textarea>
+                <p style="margin:8px 0 0;font-size:.68rem;color:#a8adb4;">最多 6 万字</p>
+            </div>
+
+            <div class="field">
+                <label>封面图片<span class="req">*</span></label>
+                <div class="drop" id="drop">
+                    <input type="file" name="rw_img_path" id="f-img" accept="image/jpeg,image/png,image/gif,image/webp" required>
+                    <div class="icon">🖼️</div>
+                    <div class="txt">点击选择，或把图片拖进来</div>
+                    <div class="small">支持 JPG / PNG / GIF / WEBP，最大 5MB</div>
                 </div>
-            </form>
-        </div>
+                <div class="preview" id="preview">
+                    <img id="preview-img" alt="预览">
+                    <div class="preview-name">
+                        <span id="preview-name"></span>
+                        <span id="preview-size"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="err-box" id="err"></div>
+
+            <div class="actions">
+                <button class="btn primary" type="submit" id="submit-btn">提交推荐</button>
+                <a class="btn ghost" href="{{ url_for('recworks_admin') }}">取消</a>
+                <span class="draft-tip" id="draft-tip"></span>
+            </div>
+        </form>
     </div>
+</div>
 
-    <script>
-    (function () {
-        'use strict';
+<datalist id="member-list">
+    {% for m in members if m.name %}<option value="{{ m.qq }}">{{ m.name }}{% if m.tag %} · {{ m.tag }}{% endif %}</option>{% endfor %}
+</datalist>
 
-        var form = document.getElementById('rec-form');
-        if (!form) { return; }
-
-        var DRAFT_KEY = 'qiu_recworks_draft';
-        var MAX_BYTES = 5 * 1024 * 1024;
-        var OK_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-
-        var fileInput = document.getElementById('rw-img');
-        var drop      = document.getElementById('rec-drop');
-        var preview   = document.getElementById('rec-preview');
-        var meta      = document.getElementById('rec-meta');
-        var textarea  = document.getElementById('rw-recwork');
-        var counter   = document.getElementById('rec-counter');
-        var submitBtn = document.getElementById('rec-submit');
-
-        var fQqId   = document.getElementById('rw-qq-id');
-        var fQqName = document.getElementById('rw-qq-name');
-        var fWork   = document.getElementById('rw-work-name');
-
-        /* ---------- 小工具 ---------- */
-        function fmtSize(n) {
-            if (n < 1024) { return n + ' B'; }
-            if (n < 1048576) { return (n / 1024).toFixed(1) + ' KB'; }
-            return (n / 1048576).toFixed(2) + ' MB';
-        }
-
-        function showMeta(text, isError) {
-            meta.textContent = text || '';
-            meta.classList.toggle('is-on', !!text);
-            meta.classList.toggle('is-error', !!isError);
-        }
-
-        /* ---------- 图片校验：和后端 sniff_image 的格式白名单保持一致 ---------- */
-        function checkFile(file) {
-            if (!file) { return '请选择一张图片'; }
-            if (OK_TYPES.indexOf(file.type) === -1) {
-                return '只支持 jpg / png / gif / webp（当前类型：' + (file.type || '未知') + '）';
-            }
-            if (file.size <= 0) { return '图片是空文件'; }
-            if (file.size > MAX_BYTES) {
-                return '图片不能超过 5MB（当前 ' + fmtSize(file.size) + '）';
-            }
-            return '';
-        }
-
-        function resetFile() {
-            preview.hidden = true;
-            preview.removeAttribute('src');
-            drop.classList.remove('has-file');
-            showMeta('', false);
-        }
-
-        function applyFile(file) {
-            var err = checkFile(file);
-            if (err) {
-                fileInput.value = '';
-                resetFile();
-                showMeta(err, true);
-                return;
-            }
-            var reader = new FileReader();
-            reader.onload = function (e) {
-                preview.src = e.target.result;
-                preview.hidden = false;
-                drop.classList.add('has-file');
-            };
-            reader.readAsDataURL(file);
-            showMeta(file.name + ' · ' + fmtSize(file.size), false);
-        }
-
-        /* ---------- 字数统计 ---------- */
-        function updateCount() {
-            var n = textarea.value.length;
-            counter.textContent = n + ' 字';
-            counter.classList.toggle('is-over', n > 60000);
-        }
-
-        /* ---------- 草稿：提交失败回来时不用重填 ---------- */
-        function saveDraft() {
-            try {
-                sessionStorage.setItem(DRAFT_KEY, JSON.stringify({
-                    qq_id: fQqId.value,
-                    qq_name: fQqName.value,
-                    work_name: fWork.value,
-                    recwork: textarea.value
-                }));
-            } catch (e) { /* 隐私模式下忽略 */ }
-        }
-
-        function restoreDraft() {
-            var raw;
-            try { raw = sessionStorage.getItem(DRAFT_KEY); } catch (e) { return; }
-            if (!raw) { return; }
-            var d;
-            try { d = JSON.parse(raw); } catch (e) { return; }
-            fQqId.value   = d.qq_id   || '';
-            fQqName.value = d.qq_name || '';
-            fWork.value   = d.work_name || '';
-            textarea.value = d.recwork || '';
-            updateCount();
-        }
-
-        var successFlash = document.querySelector('.flash-success');
-        var problemFlash = document.querySelector('.flash-warning, .flash-error');
-
-        if (successFlash) {
-            try { sessionStorage.removeItem(DRAFT_KEY); } catch (e) {}
-        } else if (problemFlash) {
-            restoreDraft();
-        }
-
-        /* ---------- 事件绑定 ---------- */
-        textarea.addEventListener('input', updateCount);
-        updateCount();
-
-        fileInput.addEventListener('change', function () {
-            if (this.files && this.files.length) { applyFile(this.files[0]); }
-            else { resetFile(); }
-        });
-
-        /* 拖拽上传 */
-        ['dragenter', 'dragover'].forEach(function (t) {
-            drop.addEventListener(t, function (e) {
-                e.preventDefault();
-                drop.classList.add('is-drag');
-            });
-        });
-
-        ['dragleave', 'drop'].forEach(function (t) {
-            drop.addEventListener(t, function (e) {
-                e.preventDefault();
-                drop.classList.remove('is-drag');
-            });
-        });
-
-        drop.addEventListener('drop', function (e) {
-            var files = e.dataTransfer && e.dataTransfer.files;
-            if (files && files.length) {
-                fileInput.files = files;
-                applyFile(files[0]);
-            }
-        });
-
-        /* ---------- 提交 ---------- */
-        form.addEventListener('submit', function (e) {
-            e.preventDefault();
-
-            if (!fQqId.value.trim())  { fQqId.focus();   showMeta('QQ 账号不能为空', true); return; }
-            if (!/^\d{5,15}$/.test(fQqId.value.trim())) {
-                fQqId.focus();
-                showMeta('QQ 账号应该是 5-15 位数字', true);
-                return;
-            }
-            if (!fQqName.value.trim()) { fQqName.focus(); showMeta('昵称不能为空', true); return; }
-            if (!fWork.value.trim())   { fWork.focus();   showMeta('作品标题不能为空', true); return; }
-            if (!textarea.value.trim()) {
-                textarea.focus();
-                showMeta('推荐内容不能为空', true);
-                return;
-            }
-            if (textarea.value.length > 60000) {
-                textarea.focus();
-                showMeta('推荐内容太长了，请精简到 6 万字以内', true);
-                return;
-            }
-
-            var fileErr = fileInput.files && fileInput.files.length
-                ? checkFile(fileInput.files[0])
-                : '请选择一张图片';
-            if (fileErr) { showMeta(fileErr, true); return; }
-
-            saveDraft();
-
-            submitBtn.disabled = true;
-            submitBtn.textContent = '提交中…';
-
-            // 用原生 submit 绕开本监听，避免递归
-            HTMLFormElement.prototype.submit.call(form);
-        });
-
-        /* 用户中途改文件时清掉旧的错误提示 */
-        fileInput.addEventListener('click', function () {
-            if (meta.classList.contains('is-error')) { showMeta('', false); }
-        });
-    })();
-    
-/* 标签多选：点一下加进去，再点去掉 */
+<script>
 (function () {
-    var input = document.getElementById('rw-tag');
-    var picker = document.getElementById('tag-picker');
-    if (!input || !picker) { return; }
+    'use strict';
 
-    function parts() {
-        return (input.value || '').split(/[\s,，、\/|]+/).filter(Boolean);
+    var form = document.getElementById('rec-form');
+    var fQq = document.getElementById('f-qq');
+    var fName = document.getElementById('f-name');
+    var fWork = document.getElementById('f-work');
+    var fTag = document.getElementById('f-tag');
+    var fRec = document.getElementById('f-recwork');
+    var fImg = document.getElementById('f-img');
+    var drop = document.getElementById('drop');
+    var preview = document.getElementById('preview');
+    var pImg = document.getElementById('preview-img');
+    var pName = document.getElementById('preview-name');
+    var pSize = document.getElementById('preview-size');
+    var errBox = document.getElementById('err');
+    var btn = document.getElementById('submit-btn');
+    var tip = document.getElementById('draft-tip');
+    var picker = document.getElementById('tag-picker');
+
+    var MAX = 5 * 1024 * 1024;
+    var DRAFT = 'qiu_recworks_draft';
+
+    /* ---------- QQ 号 -> 昵称自动填充 ---------- */
+    if (fQq) {
+        fQq.setAttribute('list', 'member-list');
+        fQq.addEventListener('change', function () {
+            var v = fQq.value.trim();
+            if (!v || !fName || fName.value.trim()) { return; }
+            var opt = document.querySelector('#member-list option[value="' + v + '"]');
+            if (opt) {
+                var txt = (opt.textContent || '').split(' · ')[0].trim();
+                if (txt) {
+                    fName.value = txt;
+                    fName.style.borderColor = '#6bcb77';
+                    setTimeout(function () { fName.style.borderColor = ''; }, 1200);
+                }
+            }
+        });
     }
 
-    function sync() {
-        var cur = parts();
+    /* ---------- 标签多选 ---------- */
+    function tagParts() {
+        return (fTag.value || '').split(/[\s,，、\/|]+/).filter(Boolean);
+    }
+
+    function syncTags() {
+        var cur = tagParts();
         Array.prototype.forEach.call(picker.querySelectorAll('.tag-chip'), function (b) {
             b.classList.toggle('on', cur.indexOf(b.getAttribute('data-tag')) !== -1);
         });
     }
 
-    picker.addEventListener('click', function (e) {
-        var b = e.target.closest ? e.target.closest('.tag-chip') : null;
-        if (!b) { return; }
-        var tag = b.getAttribute('data-tag');
-        var cur = parts();
-        var i = cur.indexOf(tag);
-        if (i >= 0) { cur.splice(i, 1); } else { cur.push(tag); }
-        input.value = cur.join(' ');
-        sync();
+    if (picker) {
+        picker.addEventListener('click', function (e) {
+            var b = e.target.closest ? e.target.closest('.tag-chip') : null;
+            if (!b) { return; }
+            var tag = b.getAttribute('data-tag');
+            var cur = tagParts();
+            var i = cur.indexOf(tag);
+            if (i >= 0) {
+                cur.splice(i, 1);
+            } else {
+                if (cur.length >= 6) {
+                    showErr('标签最多 6 个');
+                    return;
+                }
+                cur.push(tag);
+            }
+            fTag.value = cur.join(' ');
+            syncTags();
+            saveDraft();
+        });
+    }
+
+    if (fTag) {
+        fTag.addEventListener('input', function () { syncTags(); saveDraft(); });
+        syncTags();
+    }
+
+    /* ---------- 图片 ---------- */
+    function human(n) {
+        if (n < 1024) { return n + ' B'; }
+        if (n < 1048576) { return (n / 1024).toFixed(1) + ' KB'; }
+        return (n / 1048576).toFixed(2) + ' MB';
+    }
+
+    function checkFile(file) {
+        if (!file) { return '请选择一张封面图'; }
+        if (file.size > MAX) { return '图片不能超过 5MB，这张是 ' + human(file.size); }
+        if (!/^image\/(jpeg|png|gif|webp)$/.test(file.type)) {
+            return '只支持 JPG / PNG / GIF / WEBP';
+        }
+        return '';
+    }
+
+    function showFile(file) {
+        if (!file) { return; }
+        var err = checkFile(file);
+        if (err) {
+            showErr(err);
+            fImg.value = '';
+            preview.style.display = 'none';
+            return;
+        }
+        hideErr();
+        var url = URL.createObjectURL(file);
+        pImg.onload = function () { URL.revokeObjectURL(url); };
+        pImg.src = url;
+        pName.textContent = file.name;
+        pSize.textContent = human(file.size);
+        preview.style.display = 'block';
+    }
+
+    if (fImg) {
+        fImg.addEventListener('change', function () { showFile(this.files[0]); });
+    }
+
+    if (drop) {
+        ['dragenter', 'dragover'].forEach(function (ev) {
+            drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('over'); });
+        });
+        ['dragleave', 'drop'].forEach(function (ev) {
+            drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('over'); });
+        });
+        drop.addEventListener('drop', function (e) {
+            var f = e.dataTransfer.files[0];
+            if (f) {
+                fImg.files = e.dataTransfer.files;
+                showFile(f);
+            }
+        });
+    }
+
+    /* ---------- 错误提示 ---------- */
+    function showErr(msg) {
+        errBox.textContent = msg;
+        errBox.classList.add('show');
+    }
+
+    function hideErr() {
+        errBox.classList.remove('show');
+    }
+
+    /* ---------- 草稿 ---------- */
+    function saveDraft() {
+        try {
+            localStorage.setItem(DRAFT, JSON.stringify({
+                qq: fQq ? fQq.value : '',
+                name: fName ? fName.value : '',
+                work: fWork ? fWork.value : '',
+                tag: fTag ? fTag.value : '',
+                rec: fRec ? fRec.value : '',
+                t: Date.now(),
+            }));
+            if (tip) { tip.textContent = '已自动保存草稿'; }
+        } catch (e) { /* 隐私模式写不了，忽略 */ }
+    }
+
+    function loadDraft() {
+        var raw;
+        try { raw = localStorage.getItem(DRAFT); } catch (e) { return; }
+        if (!raw) { return; }
+        var d;
+        try { d = JSON.parse(raw); } catch (e) { return; }
+
+        // 只填空白字段，不覆盖表单回显的值
+        if (d.qq && fQq && !fQq.value) { fQq.value = d.qq; }
+        if (d.name && fName && !fName.value) { fName.value = d.name; }
+        if (d.work && fWork && !fWork.value) { fWork.value = d.work; }
+        if (d.tag && fTag && !fTag.value) { fTag.value = d.tag; syncTags(); }
+        if (d.rec && fRec && !fRec.value) { fRec.value = d.rec; }
+
+        if (tip) {
+            var mins = Math.floor((Date.now() - (d.t || 0)) / 60000);
+            tip.textContent = mins < 1 ? '已恢复刚才的草稿' : ('已恢复 ' + mins + ' 分钟前的草稿');
+        }
+    }
+
+    [fQq, fName, fWork, fRec].forEach(function (el) {
+        if (el) { el.addEventListener('input', saveDraft); }
     });
 
-    input.addEventListener('input', sync);
-    sync();
+    loadDraft();
+
+    /* ---------- 提交 ---------- */
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            hideErr();
+
+            if (!fQq.value.trim()) {
+                e.preventDefault(); fQq.focus(); showErr('投稿人的 QQ 号不能为空'); return;
+            }
+            if (!/^\d{5,15}$/.test(fQq.value.trim())) {
+                e.preventDefault(); fQq.focus(); showErr('QQ 号应该是 5-15 位数字'); return;
+            }
+            if (!fName.value.trim()) {
+                e.preventDefault(); fName.focus(); showErr('昵称不能为空'); return;
+            }
+            if (!fWork.value.trim()) {
+                e.preventDefault(); fWork.focus(); showErr('作品标题不能为空'); return;
+            }
+            if (!fRec.value.trim()) {
+                e.preventDefault(); fRec.focus(); showErr('推荐内容不能为空'); return;
+            }
+            if (fRec.value.length > 60000) {
+                e.preventDefault(); fRec.focus(); showErr('推荐内容太长了，请精简到 6 万字以内'); return;
+            }
+
+            var fileErr = checkFile(fImg.files && fImg.files[0]);
+            if (fileErr) {
+                e.preventDefault();
+                showErr(fileErr);
+                return;
+            }
+
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = '提交中…';
+            }
+        });
+    }
 })();
 </script>
 </body>
