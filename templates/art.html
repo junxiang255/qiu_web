@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画家专区 · 小秋的垃圾站</title>
+    <meta name="description" content="画家专区——群友上传的原创画作，galgame 立绘、同人图、手绘涂鸦，按标签翻找，点开看大图。">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/font.css') }}">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; min-height: 100vh;
+            background: linear-gradient(rgba(255,255,255,.18), rgba(255,255,255,.28)),
+                        url("{{ url_for('static', filename='img/background.png') }}") center/cover no-repeat fixed;
+            font-family: "筑紫A圆体D", system-ui, sans-serif;
+            color: #1f1f1f;
+        }
+        html, body { max-width: 100%; overflow-x: hidden; }
+    </style>
+<div class="wrap">
+    <header class="bar">
+        <a class="back" href="/index.html">← 首页</a>
+        <span class="t">画家专区</span>
+        {% if logged_in %}
+        <a class="btn-upload" href="{{ url_for('art_upload') }}">+ 上传画作</a>
+        {% endif %}
+    </header>
+
+    <div class="hero">
+        <h1>画家专区</h1>
+        <p>群友们的画，都在这儿了 · 共 {{ total }} 张</p>
+    </div>
+
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% if msgs %}
+    <div class="flash-box">
+        {% for cat, m in msgs %}<div class="flash {{ cat }}">{{ m }}</div>{% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    {% if items %}
+    <div class="art-grid">
+        {% for it in items %}
+        <article class="art-card">
+            <a class="art-thumb" href="{{ url_for('art_detail', aid=it.id) }}">
+                <img src="{{ it.image_url }}" alt="{{ it.title }}" loading="lazy">
+            </a>
+            <div class="art-meta">
+                <a class="art-title" href="{{ url_for('art_detail', aid=it.id) }}">{{ it.title }}</a>
+                <a class="art-author" href="{{ url_for('user_profile', uid=it.author_id) }}">{{ it.author_name }}</a>
+                {% if it.tags %}
+                <div class="art-tags">
+                    {% for t in it.tags %}<span class="art-tag">{{ t }}</span>{% endfor %}
+                </div>
+                {% endif %}
+                {% if it.can_delete %}
+                <form method="post" action="{{ url_for('art_delete', aid=it.id) }}"
+                      onsubmit="return confirm('确定删除这张画？');">
+                    <button class="art-del" type="submit">删除</button>
+                </form>
+                {% endif %}
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+
+    {% if pages > 1 %}
+    <nav class="pager">
+        {% if page > 1 %}<a class="pg" href="{{ url_for('art_gallery', page=page-1) }}">‹</a>{% endif %}
+        {% for p in range(1, pages + 1) %}
+            {% if p == page %}
+            <span class="pg on">{{ p }}</span>
+            {% elif p <= 2 or p > pages - 2 or (p >= page - 1 and p <= page + 1) %}
+            <a class="pg" href="{{ url_for('art_gallery', page=p) }}">{{ p }}</a>
+            {% elif p == 3 and page > 4 %}
+            <span class="pg dots">…</span>
+            {% elif p == pages - 2 and page < pages - 3 %}
+            <span class="pg dots">…</span>
+            {% endif %}
+        {% endfor %}
+        {% if page < pages %}<a class="pg" href="{{ url_for('art_gallery', page=page+1) }}">›</a>{% endif %}
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="empty">
+        <p>还没有人上传画作</p>
+        {% if logged_in %}
+        <a class="btn-primary" href="{{ url_for('art_upload') }}">上传第一张</a>
+        {% else %}
+        <a class="btn-primary" href="{{ url_for('login', next=url_for('art_upload')) }}">登录后上传</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .wrap { width: min(1180px, 100%); margin: 0 auto; padding: 16px 16px 60px; }
+    .bar {
+        display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+        border-radius: 18px; background: rgba(255,255,255,.8);
+        backdrop-filter: blur(18px); border: 1px solid rgba(255,255,255,.66);
+        box-shadow: rgb(0 0 0 / .12) 0 8px 28px 0; margin-bottom: 22px;
+    }
+    .back {
+        font-size: .8rem; color: #333; text-decoration: none; padding: 6px 14px;
+        border-radius: 11px; background: rgba(255,255,255,.6);
+        border: 1px solid rgba(0,0,0,.07); transition: all .3s ease;
+    }
+    .back:hover { background: #789bfa71; box-shadow: 0 0 18px #e6b5e6; }
+    .bar .t { font-size: .9rem; font-weight: 700; letter-spacing: 3px; }
+    .btn-upload {
+        margin-left: auto; padding: 7px 16px; font-size: .8rem; font-weight: 700;
+        color: #fff; text-decoration: none; border-radius: 11px;
+        background: linear-gradient(135deg,#789bfa,#b48ce0);
+        box-shadow: 0 4px 14px rgb(120 155 250 / .45); transition: all .3s ease;
+    }
+    .btn-upload:hover { box-shadow: 0 6px 20px rgb(120 155 250 / .6); transform: translateY(-1px); }
+
+    .hero { text-align: center; margin: 26px 0 30px; }
+    .hero h1 { margin: 0; font-size: 1.8rem; letter-spacing: 6px; color: #1f1f1f; }
+    .hero p { margin: 10px 0 0; font-size: .82rem; color: #8d9299; letter-spacing: 2px; }
+
+    .flash-box { margin-bottom: 20px; }
+    .flash {
+        padding: 10px 16px; border-radius: 12px; font-size: .8rem; margin-bottom: 8px;
+        background: rgba(255,255,255,.85); border: 1px solid rgba(0,0,0,.06);
+    }
+    .flash.success { border-left: 3px solid #6bcb77; }
+    .flash.error { border-left: 3px solid #ff6b6b; }
+
+    .art-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px;
+    }
+    .art-card {
+        border-radius: 18px; overflow: hidden; background: rgba(255,255,255,.85);
+        border: 1px solid rgba(255,255,255,.7);
+        box-shadow: rgb(0 0 0 / .1) 0 8px 26px 0;
+        transition: transform .3s ease, box-shadow .3s ease;
+    }
+    .art-card:hover { transform: translateY(-4px); box-shadow: rgb(0 0 0 / .16) 0 14px 36px 0; }
+    .art-thumb { display: block; aspect-ratio: 4/3; overflow: hidden; background: #f4f1f6; }
+    .art-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .5s ease; }
+    .art-card:hover .art-thumb img { transform: scale(1.05); }
+    .art-meta { padding: 12px 14px 14px; }
+    .art-title {
+        display: block; font-size: .86rem; font-weight: 700; color: #1f1f1f;
+        text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .art-title:hover { color: #789bfa; }
+    .art-author { display: inline-block; margin-top: 5px; font-size: .72rem; color: #8d9299; text-decoration: none; }
+    .art-author:hover { color: #b48ce0; }
+    .art-tags { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .art-tag {
+        font-size: .64rem; padding: 2px 9px; border-radius: 999px;
+        background: rgba(120,155,250,.14); color: #4a5b8f; border: 1px solid rgba(120,155,250,.25);
+    }
+    .art-del {
+        margin-top: 10px; padding: 4px 12px; font-size: .68rem; border-radius: 8px;
+        border: 1px solid rgba(255,107,107,.4); background: rgba(255,107,107,.1);
+        color: #c94141; cursor: pointer; transition: all .25s ease;
+    }
+    .art-del:hover { background: rgba(255,107,107,.2); }
+
+    .pager { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 32px; flex-wrap: wrap; }
+    .pg {
+        min-width: 38px; height: 38px; display: inline-flex; align-items: center;
+        justify-content: center; padding: 0 10px; font-size: .82rem; color: #444;
+        text-decoration: none; border-radius: 11px; background: rgba(255,255,255,.85);
+        border: 1px solid rgba(0,0,0,.07); transition: all .25s ease;
+    }
+    .pg:hover:not(.on):not(.dots) { background: #fff; box-shadow: 0 4px 16px rgb(0 0 0 /.13); transform: translateY(-1px); }
+    .pg.on { color: #fff; font-weight: 700; background: linear-gradient(135deg,#789bfa,#b48ce0); border-color: transparent; }
+    .pg.dots { background: none; border: none; color: #b0b4ba; cursor: default; }
+
+    .empty { text-align: center; padding: 70px 20px; }
+    .empty p { color: #9aa0a8; font-size: .9rem; margin-bottom: 20px; }
+    .btn-primary {
+        display: inline-block; padding: 11px 30px; font-size: .85rem; font-weight: 700;
+        color: #fff; text-decoration: none; border-radius: 13px;
+        background: linear-gradient(135deg,#789bfa,#b48ce0);
+        box-shadow: 0 6px 22px rgb(120 155 250 / .45); transition: all .3s ease;
+    }
+    .btn-primary:hover { box-shadow: 0 8px 28px rgb(120 155 250 / .6); transform: translateY(-1px); }
+
+    @media (max-width: 560px) {
+        .wrap { padding: 10px 10px 40px; }
+        .hero h1 { font-size: 1.4rem; letter-spacing: 3px; }
+        .art-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .art-meta { padding: 9px 10px 11px; }
+    }
+</style>
+</head>
+<body>
+{% block content %}{% endblock %}
+</body>
+</html>

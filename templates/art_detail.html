@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ art.title }} · 画家专区 · 小秋的垃圾站</title>
+    <meta name="description" content="{{ (art.description or art.title)[:120] }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/font.css') }}">
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 16px 16px 60px;
+            background: linear-gradient(rgba(255, 255, 255, .18), rgba(255, 255, 255, .28)),
+                        url("{{ url_for('static', filename='img/background.png') }}") center/cover no-repeat fixed;
+            font-family: "筑紫A圆体D", system-ui, sans-serif;
+            color: #1f1f1f;
+        }
+
+        html, body { max-width: 100%; overflow-x: hidden; }
+
+        .wrap { width: min(1000px, 100%); margin: 0 auto; }
+
+        .bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, .8);
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, .66);
+            box-shadow: rgb(0 0 0 / 0.12) 0px 8px 28px 0px;
+            margin-bottom: 20px;
+        }
+
+        .back {
+            font-size: .8rem;
+            color: #333;
+            text-decoration: none;
+            padding: 6px 14px;
+            border-radius: 11px;
+            background: rgba(255, 255, 255, .6);
+            border: 1px solid rgba(0, 0, 0, .07);
+            transition: all .3s ease;
+        }
+
+        .back:hover { background: #789bfa71; box-shadow: 0 0 18px #e6b5e6; }
+
+        .bar .t { font-size: .9rem; font-weight: 700; letter-spacing: 3px; }
+
+        .stage {
+            padding: 22px;
+            border-radius: 24px;
+            background: rgba(255, 255, 255, .85);
+            backdrop-filter: blur(22px);
+            border: 1px solid rgba(255, 255, 255, .7);
+            box-shadow: rgb(0 0 0 / 0.15) 0px 14px 42px 0px;
+        }
+
+        .stage img {
+            width: 100%;
+            display: block;
+            border-radius: 14px;
+            background: #f6f3f8;
+            cursor: zoom-in;
+        }
+
+        .stage img.zoomed { cursor: zoom-out; max-height: none; object-fit: contain; }
+
+        .info {
+            margin-top: 20px;
+            padding: 24px 26px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, .85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, .7);
+            box-shadow: rgb(0 0 0 / 0.1) 0px 8px 28px 0px;
+        }
+
+        .info h1 {
+            margin: 0 0 10px;
+            font-size: 1.35rem;
+            letter-spacing: 3px;
+            line-height: 1.4;
+        }
+
+        .meta-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-size: .76rem;
+            color: #8d9299;
+        }
+
+        .author-link {
+            color: #5a6ea8;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .author-link:hover { color: #b48ce0; }
+
+        .tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
+
+        .tag {
+            font-size: .68rem;
+            padding: 3px 11px;
+            border-radius: 999px;
+            background: rgba(120, 155, 250, .14);
+            color: #4a5b8f;
+            border: 1px solid rgba(120, 155, 250, .25);
+        }
+
+        .desc {
+            margin-top: 18px;
+            padding-top: 18px;
+            border-top: 1px dashed rgba(0, 0, 0, .1);
+            font-size: .85rem;
+            line-height: 2;
+            color: #4a4a4a;
+            white-space: pre-wrap;
+        }
+
+        .actions {
+            margin-top: 22px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 9px 22px;
+            font-family: inherit;
+            font-size: .8rem;
+            font-weight: 700;
+            border-radius: 11px;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all .3s ease;
+        }
+
+        .btn.ghost {
+            color: #555;
+            background: rgba(255, 255, 255, .9);
+            border: 1px solid rgba(0, 0, 0, .08);
+        }
+
+        .btn.ghost:hover { background: #fff; box-shadow: 0 4px 16px rgb(0 0 0 / .1); }
+
+        .btn.danger {
+            color: #c94141;
+            background: rgba(255, 107, 107, .1);
+            border: 1px solid rgba(255, 107, 107, .4);
+        }
+
+        .btn.danger:hover { background: rgba(255, 107, 107, .2); }
+
+        .flash-box { margin-bottom: 16px; }
+
+        .flash {
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-size: .78rem;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, .88);
+            border: 1px solid rgba(0, 0, 0, .06);
+        }
+
+        .flash.success { border-left: 3px solid #6bcb77; }
+        .flash.error { border-left: 3px solid #ff6b6b; }
+
+        @media (max-width: 560px) {
+            body { padding: 10px 10px 40px; }
+            .stage { padding: 12px; }
+            .info { padding: 18px 16px; }
+            .info h1 { font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <header class="bar">
+        <a class="back" href="{{ url_for('art_gallery') }}">← 画家专区</a>
+        <span class="t">{{ art.title }}</span>
+    </header>
+
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% if msgs %}
+    <div class="flash-box">
+        {% for cat, m in msgs %}<div class="flash {{ cat }}">{{ m }}</div>{% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="stage">
+        <img src="{{ art.image_url }}" alt="{{ art.title }}" id="big-img">
+    </div>
+
+    <div class="info">
+        <h1>{{ art.title }}</h1>
+
+        <div class="meta-row">
+            <span>作者
+                {% if author %}
+                <a class="author-link" href="{{ url_for('user_profile', uid=author.id) }}">{{ author.display_name }}</a>
+                {% else %}已注销{% endif %}
+            </span>
+            {% if art.created_at %}<span>·</span><span>{{ art.created_at.strftime('%Y-%m-%d %H:%M') }}</span>{% endif %}
+        </div>
+
+        {% if tags %}
+        <div class="tags">
+            {% for t in tags %}<span class="tag">{{ t }}</span>{% endfor %}
+        </div>
+        {% endif %}
+
+        {% if art.description %}
+        <div class="desc">{{ art.description }}</div>
+        {% endif %}
+
+        <div class="actions">
+            <a class="btn ghost" href="{{ url_for('art_gallery') }}">返回画廊</a>
+            {% if logged_in %}
+            <a class="btn ghost" href="{{ url_for('art_upload') }}">我也要传</a>
+            {% endif %}
+            {% if can_delete %}
+            <form method="post" action="{{ url_for('art_delete', aid=art.id) }}"
+                  onsubmit="return confirm('确定删除这张画？文件也会一起删掉。');" style="display:inline;">
+                <button class="btn danger" type="submit">删除画作</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+    var img = document.getElementById('big-img');
+    if (!img) { return; }
+    img.addEventListener('click', function () {
+        img.classList.toggle('zoomed');
+        if (img.classList.contains('zoomed')) {
+            img.style.maxHeight = 'none';
+        } else {
+            img.style.maxHeight = '';
+        }
+    });
+})();
+</script>
+</body>
+</html>

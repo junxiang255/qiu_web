@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>上传画作 · 画家专区 · 小秋的垃圾站</title>
+    <meta name="description" content="上传你的画到画家专区——支持 jpg / png / gif / webp，单张最大 5MB。">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/font.css') }}">
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 16px 16px 60px;
+            background: linear-gradient(rgba(255, 255, 255, .18), rgba(255, 255, 255, .28)),
+                        url("{{ url_for('static', filename='img/background.png') }}") center/cover no-repeat fixed;
+            font-family: "筑紫A圆体D", system-ui, sans-serif;
+            color: #1f1f1f;
+        }
+
+        html, body { max-width: 100%; overflow-x: hidden; }
+
+        .wrap { width: min(680px, 100%); margin: 0 auto; }
+
+        .bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, .8);
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, .66);
+            box-shadow: rgb(0 0 0 / 0.12) 0px 8px 28px 0px;
+            margin-bottom: 20px;
+        }
+
+        .back {
+            font-size: .8rem;
+            color: #333;
+            text-decoration: none;
+            padding: 6px 14px;
+            border-radius: 11px;
+            background: rgba(255, 255, 255, .6);
+            border: 1px solid rgba(0, 0, 0, .07);
+            transition: all .3s ease;
+        }
+
+        .back:hover { background: #789bfa71; box-shadow: 0 0 18px #e6b5e6; }
+
+        .bar .t { font-size: .9rem; font-weight: 700; letter-spacing: 3px; }
+
+        .card {
+            padding: 30px 30px 26px;
+            border-radius: 24px;
+            background: rgba(255, 255, 255, .85);
+            backdrop-filter: blur(22px);
+            border: 1px solid rgba(255, 255, 255, .7);
+            box-shadow: rgb(0 0 0 / 0.15) 0px 14px 42px 0px;
+        }
+
+        .card h1 {
+            margin: 0 0 6px;
+            font-size: 1.3rem;
+            letter-spacing: 4px;
+            text-align: center;
+        }
+
+        .card .sub {
+            margin: 0 0 26px;
+            font-size: .76rem;
+            color: #8d9299;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .field { margin-bottom: 20px; }
+
+        .field label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: .78rem;
+            color: #5a5a5a;
+            letter-spacing: 1px;
+        }
+
+        .field label .req { color: #e07a9b; margin-left: 3px; }
+
+        .field input[type="text"],
+        .field textarea {
+            width: 100%;
+            padding: 11px 14px;
+            font-family: inherit;
+            font-size: .84rem;
+            color: #1f1f1f;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 0, 0, .09);
+            background: rgba(255, 255, 255, .9);
+            transition: border-color .25s ease, box-shadow .25s ease;
+        }
+
+        .field input[type="text"]:focus,
+        .field textarea:focus {
+            outline: none;
+            border-color: #789bfa;
+            box-shadow: 0 0 0 3px rgba(120, 155, 250, .15);
+        }
+
+        .field textarea { resize: vertical; min-height: 110px; line-height: 1.7; }
+
+        .hint { margin-top: 6px; font-size: .68rem; color: #a8adb4; }
+
+        /* 拖放区 */
+        .drop {
+            position: relative;
+            border: 2px dashed rgba(120, 155, 250, .35);
+            border-radius: 16px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(255, 255, 255, .55);
+            transition: all .3s ease;
+        }
+
+        .drop:hover,
+        .drop.over {
+            border-color: #789bfa;
+            background: rgba(120, 155, 250, .07);
+        }
+
+        .drop input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        .drop .icon { font-size: 1.8rem; margin-bottom: 8px; }
+        .drop .txt { font-size: .8rem; color: #6a7080; }
+        .drop .small { margin-top: 6px; font-size: .68rem; color: #a8adb4; }
+
+        .preview {
+            display: none;
+            margin-top: 14px;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid rgba(0, 0, 0, .07);
+            background: #f6f3f8;
+        }
+
+        .preview img { width: 100%; display: block; max-height: 380px; object-fit: contain; }
+
+        .preview-name {
+            padding: 8px 12px;
+            font-size: .7rem;
+            color: #8d9299;
+            background: rgba(255, 255, 255, .8);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .flash-box { margin-bottom: 16px; }
+
+        .flash {
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-size: .78rem;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, .88);
+            border: 1px solid rgba(0, 0, 0, .06);
+        }
+
+        .flash.error { border-left: 3px solid #ff6b6b; color: #b03838; }
+        .flash.success { border-left: 3px solid #6bcb77; }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-top: 26px;
+        }
+
+        .btn {
+            padding: 11px 30px;
+            font-family: inherit;
+            font-size: .84rem;
+            font-weight: 700;
+            border-radius: 13px;
+            border: none;
+            cursor: pointer;
+            transition: all .3s ease;
+        }
+
+        .btn.primary {
+            color: #fff;
+            background: linear-gradient(135deg, #789bfa, #b48ce0);
+            box-shadow: 0 6px 22px rgb(120 155 250 / .45);
+        }
+
+        .btn.primary:hover { box-shadow: 0 8px 28px rgb(120 155 250 / .6); transform: translateY(-1px); }
+        .btn.primary:disabled { opacity: .5; cursor: default; transform: none; }
+
+        .btn.ghost {
+            color: #555;
+            text-decoration: none;
+            background: rgba(255, 255, 255, .8);
+            border: 1px solid rgba(0, 0, 0, .08);
+        }
+
+        .btn.ghost:hover { background: #fff; box-shadow: 0 4px 16px rgb(0 0 0 / .1); }
+
+        @media (max-width: 560px) {
+            body { padding: 10px 10px 40px; }
+            .card { padding: 22px 18px; }
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <header class="bar">
+        <a class="back" href="{{ url_for('art_gallery') }}">← 画家专区</a>
+        <span class="t">上传画作</span>
+    </header>
+
+    <div class="card">
+        <h1>上传你的画</h1>
+        <p class="sub">支持 JPG / PNG / GIF / WEBP，单张最大 5MB</p>
+
+        {% with msgs = get_flashed_messages(with_categories=true) %}
+        {% if msgs %}
+        <div class="flash-box">
+            {% for cat, m in msgs %}
+            <div class="flash {{ cat }}">{{ m }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <form method="post" action="{{ url_for('art_upload') }}" enctype="multipart/form-data" id="art-form">
+            <div class="field">
+                <label>画作标题<span class="req">*</span></label>
+                <input type="text" name="title" maxlength="80" required
+                       placeholder="给这张画起个名字" value="{{ request.form.get('title', '') }}">
+            </div>
+
+            <div class="field">
+                <label>图片<span class="req">*</span></label>
+                <div class="drop" id="drop">
+                    <input type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp" required id="file-input">
+                    <div class="icon">🎨</div>
+                    <div class="txt">点击选择，或把图片拖进来</div>
+                    <div class="small">建议宽度 1200px 以上，太大了加载慢</div>
+                </div>
+                <div class="preview" id="preview">
+                    <img id="preview-img" alt="预览">
+                    <div class="preview-name">
+                        <span id="preview-name"></span>
+                        <span id="preview-size"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="field">
+                <label>描述</label>
+                <textarea name="description" maxlength="2000"
+                          placeholder="说说这张画的来历、用的工具、想表达什么……">{{ request.form.get('description', '') }}</textarea>
+                <p class="hint">最多 2000 字</p>
+            </div>
+
+            <div class="field">
+                <label>标签</label>
+                <input type="text" name="tags" maxlength="120"
+                       placeholder="原创, 立绘, 厚涂（用逗号或空格隔开，最多 6 个）"
+                       value="{{ request.form.get('tags', '') }}">
+            </div>
+
+            <div class="actions">
+                <button class="btn primary" type="submit" id="submit-btn">上传</button>
+                <a class="btn ghost" href="{{ url_for('art_gallery') }}">取消</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    var drop = document.getElementById('drop');
+    var input = document.getElementById('file-input');
+    var preview = document.getElementById('preview');
+    var img = document.getElementById('preview-img');
+    var nameEl = document.getElementById('preview-name');
+    var sizeEl = document.getElementById('preview-size');
+    var form = document.getElementById('art-form');
+    var btn = document.getElementById('submit-btn');
+
+    var MAX = 5 * 1024 * 1024;
+
+    function human(n) {
+        if (n < 1024) { return n + ' B'; }
+        if (n < 1048576) { return (n / 1024).toFixed(1) + ' KB'; }
+        return (n / 1048576).toFixed(2) + ' MB';
+    }
+
+    function show(file) {
+        if (!file) { return; }
+
+        if (file.size > MAX) {
+            alert('图片不能超过 5MB，这张是 ' + human(file.size));
+            input.value = '';
+            return;
+        }
+
+        if (!/^image\/(jpeg|png|gif|webp)$/.test(file.type)) {
+            alert('只支持 JPG / PNG / GIF / WEBP');
+            input.value = '';
+            return;
+        }
+
+        var url = URL.createObjectURL(file);
+        img.onload = function () { URL.revokeObjectURL(url); };
+        img.src = url;
+        nameEl.textContent = file.name;
+        sizeEl.textContent = human(file.size);
+        preview.style.display = 'block';
+    }
+
+    if (input) {
+        input.addEventListener('change', function () { show(this.files[0]); });
+    }
+
+    if (drop) {
+        ['dragenter', 'dragover'].forEach(function (ev) {
+            drop.addEventListener(ev, function (e) {
+                e.preventDefault();
+                drop.classList.add('over');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(function (ev) {
+            drop.addEventListener(ev, function (e) {
+                e.preventDefault();
+                drop.classList.remove('over');
+            });
+        });
+
+        drop.addEventListener('drop', function (e) {
+            var f = e.dataTransfer.files[0];
+            if (f) {
+                input.files = e.dataTransfer.files;
+                show(f);
+            }
+        });
+    }
+
+    if (form) {
+        form.addEventListener('submit', function () {
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = '上传中…';
+            }
+        });
+    }
+})();
+</script>
+</body>
+</html>

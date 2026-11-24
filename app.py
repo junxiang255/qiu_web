@@ -41,6 +41,11 @@ UPLOAD_DIR = Path("/www/wwwroot/qiu_web/recworksimg")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 URL_PREFIX = "/recworksimg"
 
+# 画家专区：画作图片单独一个目录
+ART_DIR = Path("/www/wwwroot/qiu_web/artimg")
+ART_DIR.mkdir(parents=True, exist_ok=True)
+ART_URL_PREFIX = "/artimg"
+
 # 单张图片上限，与 manager.html 前端的 5MB 校验保持一致
 MAX_BYTES = 5 * 1024 * 1024
 
@@ -634,6 +639,23 @@ class CheckIn(db.Model):
 
     def __repr__(self) -> str:
         return f"<CheckIn user={self.user_id} {self.checkin_date}>"
+
+
+class Artwork(db.Model):
+    """画家专区：用户上传的画作。"""
+    __tablename__ = "artwork"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(80), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    img_path: Mapped[str] = mapped_column(String(255), nullable=False)
+    tags: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="visible")
+    created_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=datetime.now)
+
+    @property
+    def image_url(self):
+        return "%s/%s" % (ART_URL_PREFIX, self.img_path)
 
 
 class User(db.Model):
@@ -1867,6 +1889,189 @@ def api_theme():
 SITE_BASE = "https://www.xn--rubbish-o27ow52hy3g.xyz"
 
 
+# ============ 画家专区 ============
+
+ART_PER_PAGE = 12
+
+
+def _art_owner_or_admin(art):
+    """当前登录用户能不能删这张画。"""
+    if g.user is None:
+        return False
+    return art.user_id == g.user.id or g.user.is_admin or g.user.is_developer
+
+
+@app.route("/art")
+def art_gallery():
+    """画作画廊：网格 + 分页。"""
+    try:
+        page = max(1, int(request.args.get("page", 1)))
+    except (TypeError, ValueError):
+        page = 1
+
+    base = db.select(Artwork).where(Artwork.status == "visible")
+    total = db.session.scalar(
+        db.select(func.count()).select_from(Artwork).where(Artwork.status == "visible")
+    ) or 0
+    pages = max(1, (total + ART_PER_PAGE - 1) // ART_PER_PAGE)
+    if page > pages:
+        page = pages
+
+    rows = db.session.scalars(
+        base.order_by(Artwork.id.desc())
+        .offset((page - 1) * ART_PER_PAGE)
+        .limit(ART_PER_PAGE)
+    ).all()
+
+    # 作者信息
+    author_ids = {a.user_id for a in rows}
+    authors = {}
+    if author_ids:
+        for u in db.session.scalars(db.select(User).where(User.id.in_(author_ids))).all():
+            authors[u.id] = u
+
+    items = []
+    for a in rows:
+        u = authors.get(a.user_id)
+        items.append({
+            "id": a.id,
+            "title": a.title,
+            "image_url": a.image_url,
+            "tags": [t for t in (a.tags or "").split(",") if t],
+            "description": a.description or "",
+            "created_at": a.created_at,
+            "author_id": a.user_id,
+            "author_name": (u.display_name if u else "已注销"),
+            "can_delete": _art_owner_or_admin(a),
+        })
+
+    return render_template(
+        "art.html",
+        items=items,
+        page=page,
+        pages=pages,
+        total=total,
+        logged_in=g.user is not None,
+    )
+
+
+@app.route("/art/upload", methods=["GET", "POST"])
+def art_upload():
+    """上传画作（需登录）。"""
+    if g.user is None:
+        flash("请先登录再上传画作", "error")
+        return redirect(url_for("login", next=url_for("art_upload")))
+
+    if request.method == "GET":
+        return render_template("art_upload.html")
+
+    title = (request.form.get("title") or "").strip()
+    desc = (request.form.get("description") or "").strip()
+    tags = normalize_tags(request.form.get("tags") or "")
+
+    if not title:
+        flash("给画起个名字吧", "error")
+        return redirect(url_for("art_upload"))
+    if len(title) > 80:
+        flash("标题最多 80 字", "error")
+        return redirect(url_for("art_upload"))
+    if len(desc) > 2000:
+        flash("描述最多 2000 字", "error")
+        return redirect(url_for("art_upload"))
+
+    f = request.files.get("image")
+    if f is None or not f.filename:
+        flash("请选择要上传的画", "error")
+        return redirect(url_for("art_upload"))
+
+    head = f.stream.read(64)
+    f.stream.seek(0)
+    sniffed = sniff_image(head)
+    if sniffed is None:
+        flash("不是有效的图片（仅支持 jpg / png / gif / webp）", "error")
+        return redirect(url_for("art_upload"))
+    mime, ext = sniffed
+
+    f.stream.seek(0, os.SEEK_END)
+    size = f.stream.tell()
+    f.stream.seek(0)
+    if size <= 0:
+        flash("图片是空文件", "error")
+        return redirect(url_for("art_upload"))
+    if size > MAX_BYTES:
+        flash("图片不能超过 %d MB" % (MAX_BYTES // 1048576), "error")
+        return redirect(url_for("art_upload"))
+
+    # 落盘：art_<userid>_<title>
+    safe_title = _SAFE_RE.sub("_", title).strip("_")[:40].strip("_") or "artwork"
+    stem = "art%d_%s" % (g.user.id, safe_title)
+    tmp = ART_DIR / (".upload-%s.part" % uuid.uuid4().hex)
+    try:
+        f.save(tmp)
+        name = unique_link(tmp, ART_DIR, stem, ext)
+    except Exception:
+        tmp.unlink(missing_ok=True)
+        app.logger.exception("保存画作失败")
+        flash("图片保存失败，请稍后重试", "error")
+        return redirect(url_for("art_upload"))
+
+    row = Artwork(
+        user_id=g.user.id,
+        title=title,
+        description=desc or None,
+        img_path=name,
+        tags=tags or None,
+        status="visible",
+    )
+    try:
+        db.session.add(row)
+        db.session.commit()
+        flash("画作上传成功！", "success")
+        return redirect(url_for("art_detail", aid=row.id))
+    except Exception:
+        db.session.rollback()
+        (ART_DIR / name).unlink(missing_ok=True)
+        app.logger.exception("插入 Artwork 失败")
+        flash("保存失败，请稍后重试", "error")
+        return redirect(url_for("art_upload"))
+
+
+@app.route("/art/<int:aid>")
+def art_detail(aid):
+    art = db.session.get(Artwork, aid)
+    if art is None or (art.status != "visible" and not (g.user and (g.user.is_admin or g.user.is_developer))):
+        abort(404)
+
+    author = db.session.get(User, art.user_id)
+    return render_template(
+        "art_detail.html",
+        art=art,
+        author=author,
+        tags=[t for t in (art.tags or "").split(",") if t],
+        can_delete=_art_owner_or_admin(art),
+        logged_in=g.user is not None,
+    )
+
+
+@app.post("/art/<int:aid>/delete")
+def art_delete(aid):
+    art = db.session.get(Artwork, aid)
+    if art is None:
+        abort(404)
+    if not _art_owner_or_admin(art):
+        abort(403)
+
+    try:
+        (ART_DIR / art.img_path).unlink(missing_ok=True)
+    except Exception:
+        app.logger.exception("删除画作文件失败")
+
+    db.session.delete(art)
+    db.session.commit()
+    flash("画作已删除", "success")
+    return redirect(url_for("art_gallery"))
+
+
 @app.route("/sitemap.xml")
 def sitemap_xml():
     """站点地图：静态页 + 作品详情 + 用户主页。"""
@@ -1893,6 +2098,12 @@ def sitemap_xml():
     ).all()
     for w in works:
         urls.append((SITE_BASE + "/works/%d" % w.id, "0.7", None))
+
+    # 画作详情
+    for a in db.session.scalars(
+        db.select(Artwork).where(Artwork.status == "visible").order_by(Artwork.id.desc())
+    ).all():
+        urls.append((SITE_BASE + "/art/%d" % a.id, "0.6", None))
 
     # 已激活的用户主页
     users = db.session.scalars(
