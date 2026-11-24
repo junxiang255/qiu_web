@@ -2342,22 +2342,51 @@ def api_me():
 @app.route("/manager/top_name" ,methods=["POST"])
 @login_required
 def manager_top_name():
-   
-    top_add=Ranking(top1_name=request.form.get("top1_name"),
-                    top2_name=request.form.get("top2_name"),
-                    top3_name=request.form.get("top3_name"),
-                    top1_qqid=request.form.get("top1_qqid"),
-                    top2_qqid=request.form.get("top2_qqid"),
-                    top3_qqid=request.form.get("top3_qqid")
-                    )
-   
-    db.session.add(top_add)
+    """保存本周榜单：有记录就改，没有就建（原来每次 INSERT，点几次就多几条）。"""
+    row = db.session.scalars(db.select(Ranking).order_by(Ranking.id)).first()
+    if row is None:
+        row = Ranking()
+        db.session.add(row)
+
+    for i in (1, 2, 3):
+        name = (request.form.get("top%d_name" % i) or "").strip()
+        qq = (request.form.get("top%d_qqid" % i) or "").strip()
+        setattr(row, "top%d_name" % i, name[:255] or None)
+        setattr(row, "top%d_qqid" % i, qq[:255] or None)
+        # 留了名字没填 QQ，说明是手填的，QQ 留空即可
+
     db.session.commit()
-    return redirect(url_for('manager'))
+    flash("本周榜单已保存", "success")
+    return redirect(url_for("manager"))
+
+
+@app.post("/manager/top_name/clear")
+@admin_required
+def manager_top_name_clear():
+    """清空榜单。"""
+    db.session.execute(db.delete(Ranking))
+    db.session.commit()
+    flash("榜单已清空", "success")
+    return redirect(url_for("manager"))
+
+
+@app.route("/manager")
 @app.route("/manager")
 @admin_required
 def manager():
-    return render_template("manager.html")
+    """本周乐色王：只负责榜单，作品推荐在 /manager/recWorks。"""
+    rank = db.session.scalars(db.select(Ranking).order_by(Ranking.id)).first()
+
+    # 群成员白名单，给输入框做自动补全
+    members = []
+    for m in db.session.scalars(db.select(GroupMember).order_by(GroupMember.id)).all():
+        members.append({
+            "qq": m.qq_id or "",
+            "name": m.card or m.nickname or m.qq_id or "",
+            "tag": m.group_tag or "",
+        })
+
+    return render_template("manager.html", rank=rank, members=members)
 @app.route("/")
 @app.route("/index.html")
 def home():
