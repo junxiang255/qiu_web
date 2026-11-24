@@ -37,3 +37,5 @@ uwsgi.ini
 
 # 提醒邮件的发送记录（运行时数据）
 scripts/.remind_sent.log
+artimg/
+static/uploads/
