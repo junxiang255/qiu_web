@@ -1334,6 +1334,11 @@ def normalize_tags(raw: str | None) -> str:
     return " ".join(seen[:6])[:120]
 
 
+def split_tags(raw: str | None) -> list[str]:
+    """把存进去的标签串拆回列表。normalize_tags 用空格拼接，这里按所有分隔符切。"""
+    return [p for p in re.split(r"[\s,，、/|／｜]+", raw or "") if p]
+
+
 def client_ip():
     """nginx 反代后 remote_addr 是 127.0.0.1，真实 IP 在 X-Real-IP 里。"""
     return (request.headers.get("X-Real-IP") or request.remote_addr or "").strip()
@@ -1937,7 +1942,7 @@ def art_gallery():
             "id": a.id,
             "title": a.title,
             "image_url": a.image_url,
-            "tags": [t for t in (a.tags or "").split(",") if t],
+            "tags": split_tags(a.tags),
             "description": a.description or "",
             "created_at": a.created_at,
             "author_id": a.user_id,
@@ -2047,7 +2052,7 @@ def art_detail(aid):
         "art_detail.html",
         art=art,
         author=author,
-        tags=[t for t in (art.tags or "").split(",") if t],
+        tags=split_tags(art.tags),
         can_delete=_art_owner_or_admin(art),
         logged_in=g.user is not None,
     )
