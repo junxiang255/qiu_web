@@ -457,9 +457,8 @@
                 var fallback = 'static/img/qun_avatar.jpg';
 
                 if (img) {
-                    if (d.qq_id) {
-                        img.src = 'https://q.qlogo.cn/headimg_dl?dst_uin=' +
-                            encodeURIComponent(d.qq_id) + '&spec=640&img_type=jpg';
+                    if (d.id) {
+                        img.src = '/avatar/' + d.id;
                     } else {
                         img.src = fallback;
                     }

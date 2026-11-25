@@ -1150,9 +1150,9 @@
         var allItems = [];
 
         // QQ 头像接口。站点是 https，这里必须用 https，否则会被浏览器按混合内容拦掉
-        function avatarUrl(qq) {
-            return 'https://q.qlogo.cn/headimg_dl?dst_uin=' +
-                encodeURIComponent(qq) + '&spec=640&img_type=jpg';
+        function avatarUrl(u) {
+            // 数据里不再有 qq_id，直接用服务端给的头像代理地址
+            return (u && u.author_avatar) || 'static/img/qun_avatar.jpg';
         }
 
         function el(tag, cls, text) {
@@ -1178,8 +1178,8 @@
             img.addEventListener('error', function () {
                 wrap.classList.add('is-blank');
             });
-            if (it.qq_id) {
-                img.src = avatarUrl(it.qq_id);
+            if (it.author_avatar) {
+                img.src = it.author_avatar;
             } else {
                 wrap.classList.add('is-blank');
             }
@@ -1264,7 +1264,7 @@
 
         /* ---- 搜索过滤 ---- */
         function matchItem(it, q) {
-            var fields = [it.work_name, it.qq_name, it.qq_id, it.recwork];
+            var fields = [it.work_name, it.qq_name, it.recwork];
             for (var i = 0; i < fields.length; i++) {
                 var val = fields[i];
                 if (val && String(val).toLowerCase().indexOf(q) !== -1) { return true; }
@@ -1338,9 +1338,8 @@
                 var fallback = 'static/img/qun_avatar.jpg';
 
                 if (img) {
-                    if (d.qq_id) {
-                        img.src = 'https://q.qlogo.cn/headimg_dl?dst_uin=' +
-                            encodeURIComponent(d.qq_id) + '&spec=640&img_type=jpg';
+                    if (d.id) {
+                        img.src = '/avatar/' + d.id;
                     } else {
                         img.src = fallback;
                     }

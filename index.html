@@ -1218,9 +1218,8 @@
                 var fallback = 'static/img/qun_avatar.jpg';
 
                 if (img) {
-                    if (d.qq_id) {
-                        img.src = 'https://q.qlogo.cn/headimg_dl?dst_uin=' +
-                            encodeURIComponent(d.qq_id) + '&spec=640&img_type=jpg';
+                    if (d.id) {
+                        img.src = '/avatar/' + d.id;
                     } else {
                         img.src = fallback;
                     }
@@ -1269,12 +1268,11 @@
         card.href = '/u/' + u.id;
         card.title = u.nickname + (u.joined ? ' · ' + u.joined + ' 加入' : '');
 
-        if (u.qq_id) {
+        if (u.avatar_url) {
             var img = document.createElement('img');
             img.loading = 'lazy';
             img.alt = u.nickname;
-            img.src = 'https://q.qlogo.cn/headimg_dl?dst_uin=' +
-                encodeURIComponent(u.qq_id) + '&spec=640&img_type=jpg';
+            img.src = u.avatar_url;
             img.addEventListener('error', function () {
                 this.onerror = null;
                 this.src = FALLBACK;

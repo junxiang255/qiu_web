@@ -32,9 +32,38 @@ app.secret_key = SECRET_KEY
 
 # 登录状态保持 30 天。不加这几行的话 Flask 发的是会话级 cookie，
 # 浏览器一关就掉登录。
-app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)   # 原来 30 天太长
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = True                      # 全站 HTTPS
+
+# 登录失败限流：同一个 IP + 用户名，5 次锁 15 分钟
+LOGIN_MAX_FAILS = 5
+LOGIN_LOCK_MINUTES = 15
+_login_fails = {}       # (ip, username) -> [失败次数, 最后失败时间]
+
+
+@app.after_request
+def add_security_headers(resp):
+    """补齐基础安全响应头。"""
+    resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    resp.headers.setdefault(
+        "Permissions-Policy", "geolocation=(), microphone=(), camera=()"
+    )
+    # 站点有内联 <script>/<style> 和 q.qlogo.cn 头像，这里用宽松但能挡外域脚本的策略
+    resp.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'self'; "
+        "img-src 'self' data: https://q.qlogo.cn https://www.clarity.ms; "
+        "script-src 'self' 'unsafe-inline' https://www.clarity.ms https://scripts.clarity.ms; "
+        "style-src 'self' 'unsafe-inline'; "
+        "font-src 'self' data:; "
+        "connect-src 'self' https://www.clarity.ms https://*.clarity.ms; "
+        "frame-ancestors 'self'",
+    )
+    return resp
 app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 UPLOAD_DIR = Path("/www/wwwroot/qiu_web/recworksimg")
@@ -169,7 +198,7 @@ def login_required(func):
 
 
 @app.route("/manager/recWorks", methods=["POST"])
-@login_required
+@admin_required
 def recWorks_get():
     qq_id     = (request.form.get("rw_qq_id") or "").strip()
     qq_name   = (request.form.get("rw_qq_name") or "").strip()
@@ -269,7 +298,7 @@ def sync_recworks_json():
 
 
 @app.route("/manager/recWorks", methods=["GET"])
-@login_required
+@admin_required
 def recworks_admin():
     """推荐管理：列出全部推荐，可勾选批量删除。"""
     items = db.session.scalars(
@@ -279,7 +308,7 @@ def recworks_admin():
 
 
 @app.post("/manager/recWorks/delete")
-@login_required
+@admin_required
 def recworks_delete():
     ids = [int(x) for x in request.form.getlist("ids") if x.isdigit()]
     if not ids:
@@ -309,7 +338,7 @@ def recworks_delete():
 
 
 @app.route("/manager/recWorks/edit/<int:rid>", methods=["GET", "POST"])
-@login_required
+@admin_required
 def recworks_edit(rid):
     """编辑单条推荐：昵称、作品名、正文，图片可选替换。"""
     row = db.session.get(recWorks, rid)
@@ -404,7 +433,7 @@ def recworks_edit(rid):
 
 
 @app.post("/manager/recWorks/<int:rid>/pin")
-@login_required
+@admin_required
 def recworks_pin(rid):
     """置顶 / 取消置顶。"""
     row = db.session.get(recWorks, rid)
@@ -430,6 +459,10 @@ MAIL_FROM_NAME = os.environ.get("QIU_MAIL_FROM_NAME", "小秋的垃圾站")
 MAIL_ENABLED = bool(SMTP_USER and SMTP_PASS)
 CODE_TTL_MINUTES = 10
 CODE_COOLDOWN_SECONDS = 60
+# 同一个验证码最多试 5 次，超过作废（防 6 位数字穷举）
+CODE_MAX_ATTEMPTS = 5
+# 同一 IP 每小时最多请求多少次验证码
+CODE_IP_HOURLY_LIMIT = 10
 
 
 def send_mail(to_addr, subject, body):
@@ -466,6 +499,8 @@ class EmailCode(db.Model):
     status:Mapped[str]=mapped_column(String(20),nullable=False,default="pending")
     tries:Mapped[int]=mapped_column(Integer,nullable=False,default=0)
     expires_at:Mapped[datetime|None]=mapped_column(DateTime,nullable=True)
+    attempts:Mapped[int]=mapped_column(Integer,nullable=False,default=0,server_default="0")
+    ip:Mapped[str|None]=mapped_column(String(64),nullable=True,index=True)
     created_at:Mapped[datetime|None]=mapped_column(DateTime,nullable=True,default=datetime.now)
 
     def __repr__(self) -> str:
@@ -803,15 +838,31 @@ def send_register_code():
     if not re.fullmatch(r"[1-9]\d{4,11}", qq_id):
         return jsonify(ok=False, msg="QQ 号格式不对")
 
+    # 同一 IP 每小时最多 10 次，挡批量枚举白名单
+    ip = client_ip()
+    hour_ago = datetime.now() - timedelta(hours=1)
+    ip_count = db.session.scalar(
+        db.select(func.count()).select_from(EmailCode)
+        .where(EmailCode.ip == ip, EmailCode.created_at >= hour_ago)
+    ) or 0
+    if ip_count >= CODE_IP_HOURLY_LIMIT:
+        return jsonify(ok=False, msg="请求太频繁，请稍后再试")
+
+    # 下面三种失败（不在群 / 已注册 / 邮件没配）统一回同一句话，
+    # 不然就成了「这个 QQ 在不在白名单」的查询接口。
+    VAGUE = "如果这个 QQ 在群里且还没注册过，验证码会发到它的 QQ 邮箱"
+
     member = db.session.scalar(
         db.select(GroupMember).where(GroupMember.qq_id == qq_id)
     )
     if member is None:
-        return jsonify(ok=False, msg="QQ %s 不在群里，不能注册" % qq_id)
+        app.logger.info("[send-code] %s 不在白名单", qq_id)
+        return jsonify(ok=True, msg=VAGUE)
 
     dup = db.session.scalar(db.select(User).where(User.qq_id == qq_id))
     if dup is not None:
-        return jsonify(ok=False, msg="QQ %s 已经注册过账号了" % qq_id)
+        app.logger.info("[send-code] %s 已注册", qq_id)
+        return jsonify(ok=True, msg=VAGUE)
 
     # 冷却：同一 QQ 60 秒内只能发一次
     last = db.session.scalar(
@@ -826,13 +877,14 @@ def send_register_code():
     code = "%06d" % random.randint(0, 999999)
     email = qq_id + "@qq.com"
     row = EmailCode(qq_id=qq_id, email=email, code=code, status="pending",
+                    ip=ip,
                     expires_at=datetime.now() + timedelta(minutes=CODE_TTL_MINUTES))
     db.session.add(row)
     db.session.commit()
 
     if not MAIL_ENABLED:
         app.logger.warning("[MAIL-OFF] %s 的验证码是 %s", qq_id, code)
-        return jsonify(ok=False, msg="邮件服务还没配置，请联系管理员")
+        return jsonify(ok=True, msg=VAGUE)
 
     ok, err = send_mail(
         email,
@@ -886,13 +938,30 @@ def register():
             flash("请先填邮箱验证码（QQ 号对应的 QQ 邮箱会收到）", "error")
             return redirect(url_for("register"))
 
-        verified_code = db.session.scalar(
+        # 取该 QQ 最近一条 pending 码，失败次数记在它身上
+        latest = db.session.scalar(
             db.select(EmailCode).where(
                 EmailCode.qq_id == qq_id,
-                EmailCode.code == email_code,
                 EmailCode.status == "pending",
             ).order_by(EmailCode.id.desc())
         )
+
+        if latest is not None and int(latest.attempts or 0) >= CODE_MAX_ATTEMPTS:
+            flash("验证码输错太多次，请重新获取", "error")
+            return redirect(url_for("register"))
+
+        verified_code = None
+        if latest is not None and latest.code == email_code:
+            verified_code = latest
+        elif latest is not None:
+            latest.attempts = int(latest.attempts or 0) + 1
+            if latest.attempts >= CODE_MAX_ATTEMPTS:
+                latest.status = "invalidated"
+            db.session.commit()
+
+        if verified_code is None:
+            flash("验证码不对", "error")
+            return redirect(url_for("register"))
         if verified_code is None:
             flash("验证码不对，请重新获取", "error")
             return redirect(url_for("register"))
@@ -922,8 +991,11 @@ def register():
     total = db.session.scalar(db.select(func.count()).select_from(User)) or 0
 
     if member is not None:
+        # 白名单成员注册：账号直接激活，但角色一律给 user。
+        # 群主/管理员的身份不再自动映射成后台管理员——必须管理员在后台手动提权，
+        # 否则「抢注群管理的 QQ」就等于拿到后台。
         status = "active"
-        role = "admin" if total == 0 else ("admin" if member.role in ("owner", "admin") else "user")
+        role = "admin" if total == 0 else "user"
         nick = nickname or (member.card or member.nickname) or None
     else:
         # 不在白名单：先建一个待审核账号，管理员在后台点通过后才会生效
@@ -1518,7 +1590,8 @@ def api_users_list():
         users.append({
             "id": u.id,
             "nickname": u.display_name,
-            "qq_id": u.qq_id or "",
+            # 不再下发真实 QQ 号：头像走 /avatar/<uid> 服务端 302
+            "avatar_url": "/avatar/%d" % u.id,
             "role": u.role,
             "role_label": role_label,
             "group_tag": gm_tags.get(u.qq_id or "", ""),
@@ -1578,6 +1651,7 @@ def _chat_payload(row):
 
 
 @app.get("/api/chat/messages")
+@login_required
 def chat_messages():
     """拉消息，after 传上次拿到的最大 id 就只返回新的。"""
     after = request.args.get("after", type=int) or 0
@@ -1915,6 +1989,18 @@ def user_profile(uid):
                            n_chat=n_chat, n_checkin=n_checkin,
                            my_recs=my_recs, my_comments=my_comments, my_guests=my_guests,
                            work_titles=work_titles)
+
+
+@app.route("/avatar/<int:uid>")
+def avatar_proxy(uid):
+    """头像代理：服务端 302 到 QQ 头像，前端不再需要知道 QQ 号。"""
+    u = db.session.get(User, uid)
+    if u is None or not u.qq_id:
+        return redirect(url_for("static", filename="img/qun_avatar.jpg"))
+    return redirect(
+        "https://q.qlogo.cn/headimg_dl?dst_uin=%s&spec=640&img_type=jpg" % u.qq_id,
+        code=302,
+    )
 
 
 @app.get("/api/theme")
@@ -2427,9 +2513,24 @@ def login():
     password = request.form.get("password") or ""
     user = db.session.scalar(db.select(User).where(User.username == username))
 
+    # 失败次数限流（先查锁）
+    lock_key = (client_ip(), username)
+    fails, last_at = _login_fails.get(lock_key, [0, None])
+    if last_at is not None and fails >= LOGIN_MAX_FAILS:
+        waited = (datetime.now() - last_at).total_seconds() / 60
+        if waited < LOGIN_LOCK_MINUTES:
+            flash("失败次数太多，请 %d 分钟后再试" % int(LOGIN_LOCK_MINUTES - waited), "error")
+            return redirect(url_for('login'))
+        _login_fails.pop(lock_key, None)
+
     if user is None or not user.check_password(password):
+        fails, _ = _login_fails.get(lock_key, [0, None])
+        _login_fails[lock_key] = [fails + 1, datetime.now()]
+        app.logger.warning("[login] 失败 %s from %s", username, client_ip())
         flash("用户名或密码不对", "error")
         return redirect(url_for('login'))
+
+    _login_fails.pop(lock_key, None)
     if user.is_pending:
         flash("这个账号还在等管理员审核，通过后就能登录", "warning")
         return redirect(url_for('login'))

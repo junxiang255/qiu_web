@@ -45,10 +45,11 @@ def main():
             rows = cur.fetchall()
 
             # 已经注册过账号的 QQ，顺便带上角色
-            cur.execute("SELECT qq_id, role, exp FROM user WHERE qq_id IS NOT NULL AND qq_id <> ''")
+            cur.execute("SELECT id, qq_id, role, exp FROM user WHERE qq_id IS NOT NULL AND qq_id <> ''")
             rows_u = cur.fetchall()
-            users = {str(q): (r or 'user') for q, r, _e in rows_u}
-            user_exp = {str(q): int(e or 0) for q, _r, e in rows_u}
+            users = {str(q): (r or 'user') for _i, q, r, _e in rows_u}
+            user_exp = {str(q): int(e or 0) for _i, q, _r, e in rows_u}
+            user_ids = {str(q): int(i) for i, q, _r, _e in rows_u}
 
             # 群主 / 管理员 / 群标签要看群成员表
             cur.execute("SELECT qq_id, role, group_tag FROM group_member")
@@ -85,7 +86,8 @@ def main():
 
         items.append({
             'id': r[0],
-            'qq_id': qq,
+            # 不再输出真实 QQ：已注册的走 /avatar/<uid> 代理，没注册的用群头像
+            'author_avatar': ('/avatar/%d' % user_ids[qq]) if qq in user_ids else '/static/img/qun_avatar.jpg',
             'qq_name': r[2] or '',
             'work_name': r[3] or '',
             'recwork': r[4] or '',
