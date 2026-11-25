@@ -1594,7 +1594,7 @@ def api_users_list():
             "id": u.id,
             "nickname": u.display_name,
             # 不再下发真实 QQ 号：头像走 /avatar/<uid> 服务端 302
-            "avatar_url": "/avatar/%d" % u.id,
+            "avatar_url": "/avatar/%d?v=2" % u.id,
             "role": u.role,
             "role_label": role_label,
             "group_tag": gm_tags.get(u.qq_id or "", ""),

@@ -87,7 +87,7 @@ def main():
         items.append({
             'id': r[0],
             # 不再输出真实 QQ：已注册的走 /avatar/<uid> 代理，没注册的用群头像
-            'author_avatar': ('/avatar/%d' % user_ids[qq]) if qq in user_ids else '/static/img/qun_avatar.jpg',
+            'author_avatar': ('/avatar/%d?v=2' % user_ids[qq]) if qq in user_ids else '/static/img/qun_avatar.jpg',
             'qq_name': r[2] or '',
             'work_name': r[3] or '',
             'recwork': r[4] or '',
