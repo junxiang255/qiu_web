@@ -197,6 +197,19 @@ def login_required(func):
     return inner
 
 
+def admin_required(func):
+    """在 login_required 之上再加一层管理员校验。"""
+    @wraps(func)
+    def inner(*args,**kwargs):
+        if not g.user:
+            return redirect(url_for("login"))
+        if not g.user.is_admin:
+            flash("这个操作需要管理员权限", "error")
+            return redirect(url_for("home"))
+        return func(*args,**kwargs)
+    return inner
+
+
 @app.route("/manager/recWorks", methods=["POST"])
 @admin_required
 def recWorks_get():
@@ -814,17 +827,7 @@ class User(db.Model):
         return self.status == "pending"
 
 
-def admin_required(func):
-    """在 login_required 之上再加一层管理员校验。"""
-    @wraps(func)
-    def inner(*args,**kwargs):
-        if not g.user:
-            return redirect(url_for("login"))
-        if not g.user.is_admin:
-            flash("这个操作需要管理员权限", "error")
-            return redirect(url_for("home"))
-        return func(*args,**kwargs)
-    return inner
+
 
 
 # 注册是否开放（环境变量 QIU_ALLOW_REGISTER=0 可关闭）
