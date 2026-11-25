@@ -30,9 +30,9 @@ xhr_qqid.onreadystatechange = function () {
         // document.getElementById("top1_qqid").textContent = document.body.getAttribute("top1_qqid");
         // documenr.getElementById("top2_qqid").textContent = document.body.getAttribute("top2_qqid");
         // documenr.getElementById("top3_qqid").textContent = document.body.getAttribute("top3_qqid");
-        var top1_img_url = `http://q.qlogo.cn/headimg_dl?dst_uin=${data.top1_qqid}&spec=640&img_type=jpg`;
-        var top2_img_url = `http://q.qlogo.cn/headimg_dl?dst_uin=${data.top2_qqid}&spec=640&img_type=jpg`;
-        var top3_img_url = `http://q.qlogo.cn/headimg_dl?dst_uin=${data.top3_qqid}&spec=640&img_type=jpg`;
+        var top1_img_url = `https://q.qlogo.cn/headimg_dl?dst_uin=${data.top1_qqid}&spec=640&img_type=jpg`;
+        var top2_img_url = `https://q.qlogo.cn/headimg_dl?dst_uin=${data.top2_qqid}&spec=640&img_type=jpg`;
+        var top3_img_url = `https://q.qlogo.cn/headimg_dl?dst_uin=${data.top3_qqid}&spec=640&img_type=jpg`;
         let top1_img = document.getElementById("top1_img");
         let top2_img = document.getElementById("top2_img");
         let top3_img = document.getElementById("top3_img");
