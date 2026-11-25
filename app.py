@@ -1333,7 +1333,7 @@ def context_processor():
 
 
 
-@app.route("/api/top_name",methods=["POST"])
+@app.route("/api/top_name")
 def get_top_name():
     conn = None
     cursor = None
