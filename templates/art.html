@@ -17,7 +17,34 @@
             color: #1f1f1f;
         }
         html, body { max-width: 100%; overflow-x: hidden; }
-    </style>
+    
+        /* ===== 置顶画作 ===== */
+        .art-thumb {
+            position: relative;
+        }
+
+        .art-pin {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 3;
+            padding: 3px 11px;
+            font-size: .68rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #7a4f00;
+            background: linear-gradient(135deg, #ffe08a, #ffc45c);
+            border-radius: 999px;
+            box-shadow: 0 2px 10px rgba(240, 165, 58, .5);
+            pointer-events: none;
+        }
+
+        .art-card.is-pinned {
+            border-color: rgba(255, 196, 92, .72) !important;
+            box-shadow: 0 6px 26px rgba(240, 165, 58, .26) !important;
+        }
+
+</style>
 <div class="wrap">
     <header class="bar">
         <a class="back" href="/index.html">← 首页</a>
@@ -48,9 +75,10 @@
     {% if items %}
     <div class="art-grid">
         {% for it in items %}
-        <article class="art-card">
+        <article class="art-card{% if it.pinned %} is-pinned{% endif %}">
             <a class="art-thumb" href="{{ url_for('art_detail', aid=it.id) }}">
-                <img src="{{ it.thumb_url }}" alt="{{ it.title }}" loading="lazy" decoding="async">
+                {% if it.pinned %}<span class="art-pin">置顶</span>{% endif %}
+                  <img src="{{ it.thumb_url }}" alt="{{ it.title }}" loading="lazy" decoding="async">
             </a>
             <div class="art-meta">
                 <a class="art-title" href="{{ url_for('art_detail', aid=it.id) }}">{{ it.title }}</a>
