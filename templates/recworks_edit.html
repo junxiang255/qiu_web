@@ -239,6 +239,114 @@
             background: linear-gradient(135deg, #789bfa, #b48ce0);
             box-shadow: 0 2px 10px rgba(120, 155, 250, .45);
         }
+
+        /* ===== 作品外链编辑器 ===== */
+        .link-editor {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .link-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, .72);
+            border: 1px solid rgba(0, 0, 0, .07);
+        }
+
+        .link-row .link-kind {
+            flex: 0 0 128px;
+            padding: 8px 10px;
+            font-family: inherit;
+            font-size: .82rem;
+            color: #333;
+            border-radius: 9px;
+            border: 1px solid rgba(0, 0, 0, .1);
+            background: #fff;
+            cursor: pointer;
+        }
+
+        .link-row .link-label {
+            flex: 0 0 140px;
+            padding: 8px 10px;
+            font-family: inherit;
+            font-size: .82rem;
+            border-radius: 9px;
+            border: 1px solid rgba(0, 0, 0, .1);
+            background: #fff;
+        }
+
+        .link-row .link-url {
+            flex: 1 1 auto;
+            min-width: 0;
+            padding: 8px 10px;
+            font-family: inherit;
+            font-size: .82rem;
+            border-radius: 9px;
+            border: 1px solid rgba(0, 0, 0, .1);
+            background: #fff;
+        }
+
+        .link-row .link-del {
+            flex: 0 0 30px;
+            width: 30px;
+            height: 30px;
+            border: none;
+            border-radius: 9px;
+            background: rgba(255, 120, 140, .12);
+            color: #d9455f;
+            font-size: 16px;
+            line-height: 1;
+            cursor: pointer;
+            transition: all .2s ease;
+        }
+
+        .link-row .link-del:hover {
+            background: rgba(255, 120, 140, .26);
+        }
+
+        .link-add-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .link-add {
+            padding: 8px 18px;
+            font-family: inherit;
+            font-size: .82rem;
+            font-weight: 600;
+            color: #5a4a7a;
+            border: 1px dashed rgba(120, 155, 250, .45);
+            border-radius: 10px;
+            background: rgba(120, 155, 250, .08);
+            cursor: pointer;
+            transition: all .2s ease;
+        }
+
+        .link-add:hover {
+            background: rgba(120, 155, 250, .18);
+            border-style: solid;
+        }
+
+        .link-hint {
+            font-size: .74rem;
+            color: #999;
+        }
+
+        .field-note {
+            display: block;
+            margin-top: 6px;
+            font-size: .74rem;
+            color: #9a94a6;
+        }
+
 </style>
 </head>
 <body>
@@ -314,6 +422,34 @@
             <textarea id="rw-recwork" name="rw_recwork" required>{{ item.rw_recwork or '' }}</textarea>
             <div class="counter" id="counter">0 字</div>
         </div>
+            <div class="field">
+                <label for="link-editor">作品外链（可选）</label>
+                <span class="field-note">可以加多个，会显示在卡片底部。快捷标签会自动填好按钮文字。</span>
+
+                <div class="link-editor" id="link-editor">{% for lk in (links or []) %}
+                    <div class="link-row">
+                        <select name="link_kind[]" class="link-kind" onchange="syncLinkLabel(this)">
+                            <option value="touchgal"{% if lk.kind == 'touchgal' %} selected{% endif %}>TouchGal</option>
+                            <option value="bilibili"{% if lk.kind == 'bilibili' %} selected{% endif %}>哔哩哔哩</option>
+                            <option value="steam"{% if lk.kind == 'steam' %} selected{% endif %}>Steam</option>
+                            <option value="bangumi"{% if lk.kind == 'bangumi' %} selected{% endif %}>Bangumi</option>
+                            <option value="other"{% if lk.kind not in ('touchgal','bilibili','steam','bangumi') %} selected{% endif %}>自定义</option>
+                        </select>
+                        <input name="link_label[]" class="link-label" type="text" maxlength="40"
+                               value="{{ lk.label or '' }}" placeholder="按钮文字">
+                        <input name="link_url[]" class="link-url" type="text" maxlength="500"
+                               value="{{ lk.url or '' }}" placeholder="https://...">
+                        <button type="button" class="link-del" title="删除"
+                                onclick="this.parentNode.remove()">×</button>
+                    </div>
+                    {% endfor %}</div>
+
+                <div class="link-add-row">
+                    <button type="button" class="link-add" onclick="addLink()">+ 添加链接</button>
+                    <span class="link-hint">快捷标签：TouchGal · 哔哩哔哩 · Steam · Bangumi</span>
+                </div>
+            </div>
+
 
         <div class="field">
             <label>作品图片</label>
@@ -458,5 +594,72 @@
     sync();
 })();
 </script>
+
+        <template id="link-tpl">
+            <div class="link-row">
+                <select name="link_kind[]" class="link-kind" onchange="syncLinkLabel(this)">
+                    <option value="touchgal">TouchGal</option>
+                    <option value="bilibili">哔哩哔哩</option>
+                    <option value="steam">Steam</option>
+                    <option value="bangumi">Bangumi</option>
+                    <option value="other">自定义</option>
+                </select>
+                <input name="link_label[]" class="link-label" type="text" maxlength="40" placeholder="按钮文字">
+                <input name="link_url[]" class="link-url" type="text" maxlength="500" placeholder="https://...">
+                <button type="button" class="link-del" title="删除" onclick="this.parentNode.remove()">×</button>
+            </div>
+        </template>
+
+<script>
+    var LINK_PRESET = {
+        touchgal: 'TouchGal',
+        bilibili: '哔哩哔哩',
+        steam: 'Steam',
+        bangumi: 'Bangumi',
+        other: ''
+    };
+
+    /* 切换快捷标签时，如果按钮文字还是预设值（或空），就自动换掉 */
+    function syncLinkLabel(sel) {
+        var row = sel.closest('.link-row');
+        var labelEl = row.querySelector('.link-label');
+        var preset = LINK_PRESET[sel.value] || '';
+        var current = labelEl.value.trim();
+        var isPreset = Object.keys(LINK_PRESET).some(function (k) {
+            return LINK_PRESET[k] === current;
+        });
+        if (!current || isPreset) {
+            labelEl.value = preset;
+        }
+        labelEl.placeholder = preset || '自定义文字';
+    }
+
+    function addLink(kind, label, url) {
+        var tpl = document.getElementById('link-tpl');
+        if (!tpl) return;
+        var frag = tpl.content.cloneNode(true);
+        var row = frag.querySelector('.link-row');
+
+        var kindEl = row.querySelector('.link-kind');
+        kindEl.value = kind || 'touchgal';
+
+        var labelEl = row.querySelector('.link-label');
+        labelEl.value = label || '';
+
+        var urlEl = row.querySelector('.link-url');
+        urlEl.value = url || '';
+
+        document.getElementById('link-editor').appendChild(frag);
+
+        // 追加后重新取一次（frag 已展开）
+        var rows = document.querySelectorAll('#link-editor .link-row');
+        var last = rows[rows.length - 1];
+        if (last) {
+            last.querySelector('.link-label').placeholder = LINK_PRESET[kindEl.value] || '按钮文字';
+            if (!url) last.querySelector('.link-url').focus();
+        }
+    }
+</script>
+
 </body>
 </html>

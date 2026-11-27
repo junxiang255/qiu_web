@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import uuid
 from functools import wraps
 from pathlib import Path
@@ -170,6 +171,7 @@ class recWorks(db.Model):
     rw_img_path:Mapped[str | None]=mapped_column("rw_img_Path",String(500),nullable=True)
     rw_tag:Mapped[str | None]=mapped_column("rw_tag",String(120),nullable=True)
     rw_gal_url:Mapped[str | None]=mapped_column("rw_gal_url",String(500),nullable=True)
+    rw_links:Mapped[str | None]=mapped_column("rw_links",Text().with_variant(MEDIUMTEXT,"mysql"),nullable=True)
     pinned:Mapped[bool]=mapped_column(Boolean,nullable=False,default=False,server_default="0")
  
     def __init__(self,qq_id: str | None = None, qq_name: str | None = None,
@@ -275,6 +277,7 @@ def recWorks_get():
         img_path=name,
         tag=tag,
     )
+    row.rw_links = parse_links(request.form)
     try:
         db.session.add(row)
         # 推荐人如果注册过账号，给 TA +50 经验
@@ -361,7 +364,8 @@ def recworks_edit(rid):
         return redirect(url_for("recworks_admin"))
 
     if request.method == "GET":
-        return render_template("recworks_edit.html", item=row)
+        return render_template("recworks_edit.html", item=row,
+                               links=load_links(row), link_kinds=LINK_KINDS)
 
     qq_id = (request.form.get("rw_qq_id") or "").strip()
     qq_name = (request.form.get("rw_qq_name") or "").strip()
@@ -415,6 +419,7 @@ def recworks_edit(rid):
     row.rw_work_name = work_name
     row.rw_recwork = recwork
     row.rw_tag = tag
+    row.rw_links = parse_links(request.form)
     if new_name:
         row.rw_img_path = new_name
 
@@ -623,6 +628,61 @@ class WorkLike(db.Model):
     __table_args__ = (
         UniqueConstraint("work_id", "ip", name="uq_work_like_work_ip"),
     )
+
+
+# ============ 作品外链（多链接） ============
+# 预设的快捷标签：kind 决定前端按钮配色
+LINK_KINDS = {
+    "touchgal": "TouchGal",
+    "bilibili": "哔哩哔哩",
+    "steam": "Steam",
+    "bangumi": "Bangumi",
+    "other": "链接",
+}
+
+
+def parse_links(form):
+    """从表单读出链接数组 -> JSON 字符串（没链接返回 None）。
+
+    表单字段：link_kind[] / link_label[] / link_url[]（三组等长）
+    """
+    kinds = form.getlist("link_kind[]")
+    labels = form.getlist("link_label[]")
+    urls = form.getlist("link_url[]")
+    n = max(len(kinds), len(labels), len(urls))
+
+    out = []
+    for i in range(n):
+        kind = (kinds[i] if i < len(kinds) else "other").strip() or "other"
+        label = (labels[i] if i < len(labels) else "").strip()
+        url = (urls[i] if i < len(urls) else "").strip()
+        if not url:
+            continue
+        if not url.lower().startswith(("http://", "https://")):
+            url = "https://" + url
+        if not label:
+            label = LINK_KINDS.get(kind, "链接")
+        out.append({"kind": kind, "label": label[:40], "url": url[:500]})
+
+    if not out:
+        return None
+    return json.dumps(out, ensure_ascii=False)
+
+
+def load_links(row):
+    """把 row 的链接读成 list[dict]，兼容只有 rw_gal_url 的老数据。"""
+    raw = getattr(row, "rw_links", None)
+    if raw:
+        try:
+            data = json.loads(raw)
+            if isinstance(data, list):
+                return [d for d in data if isinstance(d, dict) and d.get("url")]
+        except Exception:
+            pass
+    gal = getattr(row, "rw_gal_url", None)
+    if gal:
+        return [{"kind": "touchgal", "label": "TouchGal", "url": gal}]
+    return []
 
 
 class WorkComment(db.Model):
@@ -2356,7 +2416,8 @@ def recworks_new():
             "tag": m.group_tag or "",
         })
 
-    return render_template("recworks_new.html", members=members)
+    return render_template("recworks_new.html", members=members,
+                           link_kinds=LINK_KINDS)
 
 
 @app.route("/sitemap.xml")

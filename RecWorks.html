@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="垃圾桶之夜" content="width=device-width, initial-scale=1.0">
-    <title>垃圾桶作品推荐 · v82</title>
+    <title>垃圾桶作品推荐 · v90</title>
     <meta name="description" content="群友安利的作品合集——Gal、动漫、RPG、轻小说，一人一卡，随手写点推荐理由，按标签方便翻找。">
     <link rel="shortcut icon" href="static/img/favicon.ico">
     <link rel="stylesheet" href="static/css/phone_style.css">
@@ -990,6 +990,53 @@
         .rec-acts .rec-more {
         margin-top: 0;
         }
+
+        /* ===== 外链按钮：按来源配色 ===== */
+        .rec-gal-touchgal {
+            background: linear-gradient(135deg, #ff9ec7 0%, #c78ce0 55%, #a48cf5 100%);
+            box-shadow: 0 3px 14px rgba(199, 140, 224, .42);
+        }
+        .rec-gal-touchgal:hover {
+            background: linear-gradient(135deg, #ffb0d3 0%, #d49ce8 55%, #b39bf7 100%);
+            box-shadow: 0 6px 22px rgba(199, 140, 224, .58);
+        }
+
+        .rec-gal-bilibili {
+            background: linear-gradient(135deg, #4fc3f7 0%, #00a1d6 100%);
+            box-shadow: 0 3px 14px rgba(0, 161, 214, .38);
+        }
+        .rec-gal-bilibili:hover {
+            background: linear-gradient(135deg, #6fd0fa 0%, #12b0e4 100%);
+            box-shadow: 0 6px 22px rgba(0, 161, 214, .54);
+        }
+
+        .rec-gal-steam {
+            background: linear-gradient(135deg, #66c0f4 0%, #1b2838 130%);
+            box-shadow: 0 3px 14px rgba(27, 40, 56, .32);
+        }
+        .rec-gal-steam:hover {
+            background: linear-gradient(135deg, #8dd2f7 0%, #2a3f5a 130%);
+            box-shadow: 0 6px 22px rgba(27, 40, 56, .46);
+        }
+
+        .rec-gal-bangumi {
+            background: linear-gradient(135deg, #ffb463 0%, #f0913a 100%);
+            box-shadow: 0 3px 14px rgba(240, 145, 58, .4);
+        }
+        .rec-gal-bangumi:hover {
+            background: linear-gradient(135deg, #ffc785 0%, #f7a354 100%);
+            box-shadow: 0 6px 22px rgba(240, 145, 58, .55);
+        }
+
+        .rec-gal-other {
+            background: linear-gradient(135deg, #b8b3c9 0%, #8f88a8 100%);
+            box-shadow: 0 3px 14px rgba(143, 136, 168, .38);
+        }
+        .rec-gal-other:hover {
+            background: linear-gradient(135deg, #c9c4d9 0%, #a098b8 100%);
+            box-shadow: 0 6px 22px rgba(143, 136, 168, .52);
+        }
+
 </style>
     <!-- Microsoft Clarity -->
     <script>
@@ -1315,19 +1362,23 @@
             detail.href = '/works/' + it.id;
             actRow.appendChild(detail);
 
-            /* 有 TouchGal 链接就多给一个按钮 */
-            if (it.gal_url) {
-                var gal = el('a', 'rec-gal');
-                gal.href = it.gal_url;
-                gal.target = '_blank';
-                gal.rel = 'noopener noreferrer';
-                gal.title = '在 TouchGal 上看这部作品';
-                gal.innerHTML = 'TouchGal' +
+            /* 外链按钮：有几种渲染几个，按 kind 配色 */
+            var links = Array.isArray(it.links) ? it.links : [];
+            links.forEach(function (lk) {
+                if (!lk || !lk.url) return;
+                var kind = String(lk.kind || 'other').toLowerCase();
+                var a = el('a', 'rec-gal rec-gal-' + kind);
+                a.href = lk.url;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                a.title = lk.label || '打开链接';
+                a.appendChild(document.createTextNode(lk.label || '链接'));
+                a.insertAdjacentHTML('beforeend',
                     '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" ' +
                     'stroke="currentColor" stroke-width="3" stroke-linecap="round" ' +
-                    'stroke-linejoin="round"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg>';
-                actRow.appendChild(gal);
-            }
+                    'stroke-linejoin="round"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg>');
+                actRow.appendChild(a);
+            });
 
             main.appendChild(actRow);
 

@@ -29,6 +29,21 @@ import pymysql  # noqa: E402
 OUT = os.path.join(BASE, 'static', 'data', 'recworks.json')
 
 
+
+def _parse_links(raw_links, gal_url=None):
+    """rw_links JSON -> list；没有就退回到 rw_gal_url。"""
+    import json
+    if raw_links:
+        try:
+            data = json.loads(raw_links)
+            if isinstance(data, list):
+                return [d for d in data if isinstance(d, dict) and d.get('url')]
+        except Exception:
+            pass
+    if gal_url:
+        return [{'kind': 'touchgal', 'label': 'TouchGal', 'url': gal_url.strip()}]
+    return []
+
 def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
 
@@ -39,7 +54,7 @@ def main():
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT id, rw_qq_id, rw_qq_name, rw_work_name, rw_recwork, rw_img_Path, rw_tag, pinned, rw_gal_url "
+                "SELECT id, rw_qq_id, rw_qq_name, rw_work_name, rw_recwork, rw_img_Path, rw_tag, pinned, rw_gal_url, rw_links "
                 "FROM rec_Works ORDER BY pinned DESC, id DESC"
             )
             rows = cur.fetchall()
@@ -97,6 +112,7 @@ def main():
             'tags': [t for t in (r[6] or '').split() if t],
             'pinned': bool(r[7]),
             'gal_url': (r[8] or '').strip(),
+            'links': _parse_links(r[9], r[8]),
             'author_state': author_state,
             'author_label': author_label,
             'author_role': users.get(qq, ''),
