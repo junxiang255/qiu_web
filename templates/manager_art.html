@@ -325,11 +325,11 @@
                     {% if a.created_at %} · {{ a.created_at.strftime('%m-%d %H:%M') }}{% endif %}
                 </div>
                 <div class="acts">
-                    <form method="post" action="{{ url_for('manager_art_pin', aid=a.id) }}">
-                        <button class="btn pin{% if a.pinned %} on{% endif %}" type="submit">
-                            {% if a.pinned %}取消置顶{% else %}置顶{% endif %}
-                        </button>
-                    </form>
+                    <button class="btn pin{% if a.pinned %} on{% endif %}" type="button"
+                            data-aid="{{ a.id }}"
+                            onclick="togglePin({{ a.id }}, this)">
+                        {% if a.pinned %}取消置顶{% else %}置顶{% endif %}
+                    </button>
                     <form method="post" action="{{ url_for('manager_art_hide', aid=a.id) }}"
                           onsubmit="return confirm('下架后画廊里就看不到了，确定？');">
                         <button class="btn mini" type="submit">下架</button>
@@ -347,5 +347,35 @@
     <div class="empty">画廊还是空的</div>
     {% endif %}
 </div>
+
+<script>
+    /* 置顶切换：不跳页面，点完原地变样式 */
+    function togglePin(aid, btn) {
+        btn.disabled = true;
+        fetch('/manager/art/' + aid + '/pin', {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'fetch' },
+            credentials: 'same-origin'
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+            btn.disabled = false;
+            if (!d || !d.ok) return;
+
+            var item = btn.closest('.item');
+            if (d.pinned) {
+                if (item) item.classList.add('is-pinned');
+                btn.classList.add('on');
+                btn.textContent = '取消置顶';
+            } else {
+                if (item) item.classList.remove('is-pinned');
+                btn.classList.remove('on');
+                btn.textContent = '置顶';
+            }
+        })
+        .catch(function () { btn.disabled = false; });
+    }
+</script>
+
 </body>
 </html>

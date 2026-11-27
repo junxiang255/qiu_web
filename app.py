@@ -2362,13 +2362,23 @@ def manager_art():
     )
 
 
-@app.post("/manager/art/<int:aid>/pin")
+@app.route("/manager/art/<int:aid>/pin", methods=["GET", "POST"])
 @admin_required
 def manager_art_pin(aid):
-    """切换画作置顶状态。置顶的画作在画廊里排最前面。"""
+    """切换画作置顶状态。置顶的画作在画廊里排最前面。
+
+    正常走 AJAX（POST）拿 JSON；如果是直接在地址栏打开的（GET），
+    就跳回后台，免得页面上只剩一串 JSON。
+    """
     art = db.session.get(Artwork, aid)
     if art is None:
+        if request.method == "GET":
+            flash("画作不存在", "warning")
+            return redirect(url_for("manager_art"))
         return jsonify(ok=False, error="画作不存在"), 404
+
+    if request.method == "GET":
+        return redirect(url_for("manager_art"))
 
     art.pinned = not bool(art.pinned)
     db.session.commit()
