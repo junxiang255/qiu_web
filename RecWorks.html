@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="垃圾桶之夜" content="width=device-width, initial-scale=1.0">
-    <title>垃圾桶作品推荐 · v80</title>
+    <title>垃圾桶作品推荐 · v81</title>
     <meta name="description" content="群友安利的作品合集——Gal、动漫、RPG、轻小说，一人一卡，随手写点推荐理由，按标签方便翻找。">
     <link rel="shortcut icon" href="static/img/favicon.ico">
     <link rel="stylesheet" href="static/css/phone_style.css">
@@ -982,7 +982,7 @@
         .rec-acts {
         display: flex;
         align-items: center;
-        gap: 80px;
+        gap: 72px !important;
         flex-wrap: wrap;
         margin-top: 20px;
         }
@@ -1303,8 +1303,15 @@
             main.appendChild(body);
 
             var actRow = el('div', 'rec-acts');
+            /* 内联样式：前面几轮改 CSS 都没反映到页面上，这里绕开所有规则 */
+            actRow.style.display = 'flex';
+            actRow.style.alignItems = 'center';
+            actRow.style.gap = '72px';
+            actRow.style.flexWrap = 'wrap';
+            actRow.style.marginTop = '20px';
 
             var detail = el('a', 'rec-more', '查看详情与评论 →');
+            detail.style.marginTop = '0';
             detail.href = '/works/' + it.id;
             actRow.appendChild(detail);
 
