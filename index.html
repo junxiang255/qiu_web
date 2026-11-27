@@ -730,21 +730,45 @@
 
         @media (max-width: 560px) {
             .topbar {
-                width: calc(100% - 20px);
-                top: 8px;
-                margin-top: 8px;
-                gap: 10px;
-                padding: 8px 12px;
+                width: calc(100% - 16px);
+                top: 6px;
+                margin-top: 6px;
+                gap: 6px;
+                padding: 7px 9px;
                 border-radius: 16px;
+                flex-wrap: nowrap;
             }
-            .tb-avatar { width: 34px; height: 34px; }
+            .tb-brand {
+                padding: 3px 6px 3px 3px;
+                gap: 7px;
+                min-width: 0;
+                flex-shrink: 1;
+            }
+            .tb-avatar { width: 32px; height: 32px; }
             .tb-name {
-                font-size: .8rem;
-                max-width: 32vw;
+                font-size: .74rem;
+                max-width: 24vw;
                 overflow: hidden;
                 text-overflow: ellipsis;
+                white-space: nowrap;
             }
-            .tb-nav a { padding: 7px 14px; font-size: .78rem; }
+            /* 签到 + 主页：都缩小，别被挤出屏幕 */
+            .tb-checkin {
+                padding: 6px 12px;
+                font-size: .74rem;
+                flex-shrink: 0;
+            }
+            .tb-nav {
+                flex-shrink: 0;
+            }
+            .tb-nav a {
+                padding: 6px 11px;
+                font-size: .74rem;
+            }
+            /* 账号区让位：名字太长时只留头像 */
+            .tb-user-name {
+                max-width: 18vw;
+            }
             .tb-player { gap: 8px; padding: 0 2px; }
             .tb-time { display: none; }
             .tb-play { width: 32px; height: 32px; }
@@ -755,6 +779,16 @@
             .hero-title { font-size: 1.5rem; letter-spacing: 2px; }
             .hero-btn { padding: 12px 34px; }
         }
+
+        /* 超窄屏（小屏手机竖屏）：顶栏只留必要元素 */
+        @media (max-width: 400px) {
+            .tb-name { display: none; }
+            .tb-brand { padding: 3px; }
+            .tb-checkin { padding: 6px 9px; font-size: .7rem; }
+            .tb-nav a { padding: 6px 9px; font-size: .7rem; }
+            .tb-user-name { display: none; }
+        }
+
     
         /* ===== 顶栏 v2：账号区 + 播放器开关 ===== */
         .tb-account {
