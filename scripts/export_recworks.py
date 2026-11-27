@@ -39,7 +39,7 @@ def main():
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT id, rw_qq_id, rw_qq_name, rw_work_name, rw_recwork, rw_img_Path, rw_tag, pinned "
+                "SELECT id, rw_qq_id, rw_qq_name, rw_work_name, rw_recwork, rw_img_Path, rw_tag, pinned, rw_gal_url "
                 "FROM rec_Works ORDER BY pinned DESC, id DESC"
             )
             rows = cur.fetchall()
@@ -96,6 +96,7 @@ def main():
             'tag': (r[6] or '').strip(),
             'tags': [t for t in (r[6] or '').split() if t],
             'pinned': bool(r[7]),
+            'gal_url': (r[8] or '').strip(),
             'author_state': author_state,
             'author_label': author_label,
             'author_role': users.get(qq, ''),

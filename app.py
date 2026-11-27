@@ -169,6 +169,7 @@ class recWorks(db.Model):
     rw_recwork:Mapped[str] = mapped_column( "rw_recwork", Text().with_variant(MEDIUMTEXT, "mysql"), nullable=False) 
     rw_img_path:Mapped[str | None]=mapped_column("rw_img_Path",String(500),nullable=True)
     rw_tag:Mapped[str | None]=mapped_column("rw_tag",String(120),nullable=True)
+    rw_gal_url:Mapped[str | None]=mapped_column("rw_gal_url",String(500),nullable=True)
     pinned:Mapped[bool]=mapped_column(Boolean,nullable=False,default=False,server_default="0")
  
     def __init__(self,qq_id: str | None = None, qq_name: str | None = None,
