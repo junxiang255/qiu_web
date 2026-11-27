@@ -762,6 +762,7 @@ class Artwork(db.Model):
     thumb_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
     tags: Mapped[str | None] = mapped_column(String(120), nullable=True)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="visible")
+    pinned: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
     created_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=datetime.now)
 
     @property
@@ -2114,7 +2115,7 @@ def art_gallery():
         page = pages
 
     rows = db.session.scalars(
-        base.order_by(Artwork.id.desc())
+        base.order_by(Artwork.pinned.desc(), Artwork.id.desc())
         .offset((page - 1) * ART_PER_PAGE)
         .limit(ART_PER_PAGE)
     ).all()
@@ -2140,6 +2141,7 @@ def art_gallery():
             "author_id": a.user_id,
             "author_name": (u.display_name if u else "已注销"),
             "can_delete": _art_owner_or_admin(a),
+            "pinned": bool(a.pinned),
         })
 
     my_pending = 0
@@ -2323,7 +2325,8 @@ def manager_art():
         db.select(Artwork).where(Artwork.status == "pending").order_by(Artwork.id.desc())
     ).all()
     visible = db.session.scalars(
-        db.select(Artwork).where(Artwork.status == "visible").order_by(Artwork.id.desc()).limit(60)
+        db.select(Artwork).where(Artwork.status == "visible")
+        .order_by(Artwork.pinned.desc(), Artwork.id.desc()).limit(60)
     ).all()
 
     # 作者信息
@@ -2348,6 +2351,7 @@ def manager_art():
                 "author_name": u.display_name if u else "已注销",
                 "author_id": a.user_id,
                 "status": a.status,
+                "pinned": bool(a.pinned),
             })
         return out
 
@@ -2356,6 +2360,19 @@ def manager_art():
         pending=pack(pending),
         visible=pack(visible),
     )
+
+
+@app.post("/manager/art/<int:aid>/pin")
+@admin_required
+def manager_art_pin(aid):
+    """切换画作置顶状态。置顶的画作在画廊里排最前面。"""
+    art = db.session.get(Artwork, aid)
+    if art is None:
+        return jsonify(ok=False, error="画作不存在"), 404
+
+    art.pinned = not bool(art.pinned)
+    db.session.commit()
+    return jsonify(ok=True, pinned=bool(art.pinned))
 
 
 @app.post("/manager/art/<int:aid>/approve")
