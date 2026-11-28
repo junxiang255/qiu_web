@@ -616,6 +616,19 @@ class GroupMember(db.Model):
         return gained
 
 
+class ArtComment(db.Model):
+    """画作评论。"""
+    __tablename__ = "art_comment"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    art_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    user_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="visible")
+    created_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=datetime.now)
+
+    def __repr__(self) -> str:
+        return f"<ArtComment {self.id} art={self.art_id}>"
+
 class WorkLike(db.Model):
     """作品点赞（已停用，前端入口已移除；表先留着，需要时可恢复）。"""
     __tablename__ = 'work_like'
@@ -2266,6 +2279,42 @@ def art_detail(aid):
             abort(404)
 
     author = db.session.get(User, art.user_id)
+
+    # ---- 评论 ----
+    cmt_rows = db.session.scalars(
+        db.select(ArtComment)
+        .where(ArtComment.art_id == aid, ArtComment.status == "visible")
+        .order_by(ArtComment.id.asc())
+    ).all()
+
+    cmt_user_ids = {c.user_id for c in cmt_rows if c.user_id}
+    cmt_users = {}
+    if cmt_user_ids:
+        for u in db.session.scalars(
+            db.select(User).where(User.id.in_(cmt_user_ids))
+        ).all():
+            cmt_users[u.id] = u
+
+    is_owner = (g.user is not None and art.user_id == g.user.id)
+    is_admin = (g.user is not None and (g.user.is_admin or g.user.is_developer))
+
+    comments = []
+    for c in cmt_rows:
+        cu = cmt_users.get(c.user_id) if c.user_id else None
+        comments.append({
+            "id": c.id,
+            "content": c.content,
+            "created_at": c.created_at,
+            "user_id": c.user_id,
+            "user_name": (cu.display_name if cu else "已注销"),
+            "avatar_url": ("/avatar/%d?v=2" % cu.id) if cu else None,
+            "can_delete": bool(
+                g.user is not None and (
+                    (c.user_id and c.user_id == g.user.id) or is_owner or is_admin
+                )
+            ),
+        })
+
     return render_template(
         "art_detail.html",
         art=art,
@@ -2273,6 +2322,8 @@ def art_detail(aid):
         tags=split_tags(art.tags),
         can_delete=_art_owner_or_admin(art),
         logged_in=g.user is not None,
+        comments=comments,
+        comment_count=len(comments),
     )
 
 
@@ -2295,6 +2346,61 @@ def art_delete(aid):
     db.session.commit()
     flash("画作已删除", "success")
     return redirect(url_for("art_gallery"))
+
+@app.post("/art/<int:aid>/comment")
+def art_comment_add(aid):
+    """给画作发评论（需登录）。"""
+    art = db.session.get(Artwork, aid)
+    if art is None:
+        abort(404)
+    if g.user is None:
+        flash("登录后才能评论", "warning")
+        return redirect(url_for("login", next=request.path))
+
+    content = (request.form.get("content") or "").strip()
+    if not content:
+        flash("评论不能为空", "error")
+        return redirect(url_for("art_detail", aid=aid))
+    if len(content) > 1000:
+        flash("评论太长啦（最多 1000 字）", "error")
+        return redirect(url_for("art_detail", aid=aid))
+
+    db.session.add(ArtComment(
+        art_id=aid,
+        user_id=g.user.id,
+        content=content,
+        status="visible",
+    ))
+    db.session.commit()
+    flash("评论成功", "success")
+    return redirect(url_for("art_detail", aid=aid) + "#comments")
+
+
+@app.post("/art/<int:aid>/comment/<int:cid>/delete")
+def art_comment_delete(aid, cid):
+    """删评论：评论作者本人 / 画作作者 / 管理员。"""
+    if g.user is None:
+        abort(403)
+
+    c = db.session.get(ArtComment, cid)
+    if c is None or c.art_id != aid:
+        abort(404)
+
+    art = db.session.get(Artwork, aid)
+    allowed = (
+        c.user_id == g.user.id
+        or (art is not None and art.user_id == g.user.id)
+        or g.user.is_admin
+        or g.user.is_developer
+    )
+    if not allowed:
+        abort(403)
+
+    c.status = "deleted"
+    db.session.commit()
+    flash("评论已删除", "success")
+    return redirect(url_for("art_detail", aid=aid) + "#comments")
+
 
 
 # ---- 画作审核（管理员）----

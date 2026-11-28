@@ -181,7 +181,215 @@
             .info { padding: 18px 16px; }
             .info h1 { font-size: 1.1rem; }
         }
-    </style>
+    
+        /* ===== 评论区 ===== */
+        .cmts {
+            margin-top: 18px;
+            padding: 22px 24px 24px;
+            border-radius: 22px;
+            background: rgba(255, 255, 255, .78);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, .7);
+            box-shadow: 0 10px 32px rgba(0, 0, 0, .1);
+        }
+
+        .cmts-h {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0 0 16px;
+            font-size: 1.05rem;
+            letter-spacing: 2px;
+            color: #1f1f1f;
+        }
+
+        .cmts-n {
+            display: inline-grid;
+            place-items: center;
+            min-width: 26px;
+            height: 24px;
+            padding: 0 8px;
+            border-radius: 999px;
+            font-size: .74rem;
+            font-weight: 700;
+            color: #5a6ea8;
+            background: rgba(120, 155, 250, .16);
+        }
+
+        /* 发表框 */
+        .cmt-form textarea {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px 14px;
+            font-family: inherit;
+            font-size: .9rem;
+            line-height: 1.8;
+            color: #333;
+            border-radius: 14px;
+            border: 1px solid rgba(0, 0, 0, .1);
+            background: rgba(255, 255, 255, .9);
+            resize: vertical;
+            min-height: 84px;
+            outline: none;
+            transition: border-color .2s ease, box-shadow .2s ease;
+        }
+
+        .cmt-form textarea:focus {
+            border-color: rgba(120, 155, 250, .6);
+            box-shadow: 0 0 0 4px rgba(120, 155, 250, .12);
+        }
+
+        .cmt-form-foot {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .cmt-tip {
+            font-size: .74rem;
+            color: #9a94a6;
+        }
+
+        .cmt-login {
+            padding: 16px;
+            text-align: center;
+            font-size: .86rem;
+            color: #6b7280;
+            border-radius: 14px;
+            background: rgba(120, 155, 250, .07);
+            border: 1px dashed rgba(120, 155, 250, .3);
+        }
+
+        .cmt-login a {
+            color: #5671c9;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        /* 列表 */
+        .cmt-list {
+            list-style: none;
+            margin: 18px 0 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .cmt {
+            display: flex;
+            gap: 12px;
+            padding: 14px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, .72);
+            border: 1px solid rgba(0, 0, 0, .05);
+        }
+
+        .cmt-av {
+            flex: 0 0 40px;
+            width: 40px;
+            height: 40px;
+        }
+
+        .cmt-av img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .12);
+        }
+
+        .cmt-fb {
+            display: grid;
+            place-items: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: .9rem;
+            font-weight: 700;
+            color: #fff;
+            background: linear-gradient(135deg, #a8b8f0, #8f9fe0);
+        }
+
+        .cmt-main {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .cmt-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .cmt-name {
+            font-size: .86rem;
+            font-weight: 700;
+            color: #1f1f1f;
+            text-decoration: none;
+        }
+
+        .cmt-name:hover { color: #5671c9; }
+
+        .cmt-time {
+            font-size: .72rem;
+            color: #a8a2b2;
+        }
+
+        .cmt-del {
+            margin-left: auto;
+        }
+
+        .cmt-del button {
+            padding: 3px 10px;
+            font-family: inherit;
+            font-size: .72rem;
+            color: #d9455f;
+            background: rgba(255, 120, 140, .1);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background .2s ease;
+        }
+
+        .cmt-del button:hover {
+            background: rgba(255, 120, 140, .22);
+        }
+
+        .cmt-body {
+            margin-top: 6px;
+            font-size: .88rem;
+            line-height: 1.85;
+            color: #444;
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
+            word-break: break-word;
+        }
+
+        .cmt-empty {
+            margin-top: 18px;
+            padding: 26px;
+            text-align: center;
+            font-size: .86rem;
+            color: #a8a2b2;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, .5);
+            border: 1px dashed rgba(0, 0, 0, .08);
+        }
+
+        @media (max-width: 560px) {
+            .cmts { padding: 18px 16px 20px; }
+            .cmt { padding: 12px; }
+            .cmt-form-foot { flex-direction: column; align-items: stretch; }
+            .cmt-form-foot .btn { width: 100%; }
+        }
+
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -236,6 +444,71 @@
             </form>
             {% endif %}
         </div>
+
+        <!-- ===== 评论区 ===== -->
+        <section class="cmts" id="comments">
+            <h2 class="cmts-h">
+                评论
+                <span class="cmts-n">{{ comment_count }}</span>
+            </h2>
+
+            {% if logged_in %}
+            <form class="cmt-form" method="post"
+                  action="{{ url_for('art_comment_add', aid=art.id) }}">
+                <textarea name="content" maxlength="1000" rows="3"
+                          placeholder="说点什么…（最多 1000 字）" required></textarea>
+                <div class="cmt-form-foot">
+                    <span class="cmt-tip">友善发言，别吵架</span>
+                    <button class="btn primary" type="submit">发表评论</button>
+                </div>
+            </form>
+            {% else %}
+            <div class="cmt-login">
+                想评论？<a href="{{ url_for('login', next=request.path) }}">先登录</a>
+            </div>
+            {% endif %}
+
+            {% if comments %}
+            <ul class="cmt-list">
+                {% for c in comments %}
+                <li class="cmt">
+                    <div class="cmt-av">
+                        {% if c.avatar_url %}
+                        <img src="{{ c.avatar_url }}" alt="{{ c.user_name }}"
+                             loading="lazy" decoding="async"
+                             onerror="this.style.display='none';this.nextElementSibling.style.display='grid';">
+                        <span class="cmt-fb" style="display:none;">{{ c.user_name[:1] }}</span>
+                        {% else %}
+                        <span class="cmt-fb">{{ c.user_name[:1] }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="cmt-main">
+                        <div class="cmt-head">
+                            {% if c.user_id %}
+                            <a class="cmt-name" href="{{ url_for('user_profile', uid=c.user_id) }}">{{ c.user_name }}</a>
+                            {% else %}
+                            <span class="cmt-name">{{ c.user_name }}</span>
+                            {% endif %}
+                            {% if c.created_at %}
+                            <span class="cmt-time">{{ c.created_at.strftime('%m-%d %H:%M') }}</span>
+                            {% endif %}
+                            {% if c.can_delete %}
+                            <form class="cmt-del" method="post"
+                                  action="{{ url_for('art_comment_delete', aid=art.id, cid=c.id) }}"
+                                  onsubmit="return confirm('删除这条评论？');">
+                                <button type="submit">删除</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        <div class="cmt-body">{{ c.content }}</div>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="cmt-empty">还没有评论，来说第一句吧</div>
+            {% endif %}
+        </section>
     </div>
 </div>
 
